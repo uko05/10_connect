@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // waitingPlayersコレクションに対するルール
+    match /waitingPlayers/{document=**} {
+      allow read, write: if request.auth != null; // 認証されたユーザーのみ
+    }
+
+    // roomsコレクションに対するルール
+    match /rooms/{document=**} {
+      allow read, write: if request.auth != null; // 認証されたユーザーのみ
+    }
+
+    // デフォルトのルール（全てのドキュメントに対して全てのアクセスを拒否）
+    // ここに他のルールを追加することもできます。
+    match /{document=**} {
+      allow read, write: if false; // デフォルトで全てのアクセスを拒否
+    }
+  }
+}

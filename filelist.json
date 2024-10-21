@@ -1,0 +1,15 @@
+// filelist.js (Node.js スクリプト)
+const fs = require('fs');
+const path = require('path');
+
+const directoryPath = path.join(__dirname, 'chara'); // chara フォルダのパス
+fs.readdir(directoryPath, (err, files) => {
+    if (err) {
+        return console.log('Unable to scan directory: ' + err);
+    }
+
+    // PNGファイルのみをフィルタリング
+    const pngFiles = files.filter(file => path.extname(file).toLowerCase() === '.png');
+    // JSONファイルとして保存
+    fs.writeFileSync('filelist.json', JSON.stringify(pngFiles, null, 2));
+});
