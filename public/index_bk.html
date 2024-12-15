@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>原壊：コネクトバトル</title>
+    <link rel="stylesheet" href="style.css"> <!-- スタイルシートのリンク -->
+    <script type="module" src="scripts/main.js" defer></script> <!-- JavaScriptファイルの読み込み -->
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/scripts/favicon_io/favicon.ico" type="image/x-icon">
+    <link rel="icon" sizes="16x16" href="/scripts/favicon_io/favicon-16x16.png">
+    <link rel="icon" sizes="32x32" href="/scripts/favicon_io/favicon-32x32.png">
+    
+    <!-- Apple Touch Icon (for iOS) -->
+    <link rel="apple-touch-icon" href="/scripts/favicon_io/apple-touch-icon.png">
+    
+    <!-- Android Icons (for Android devices) -->
+    <link rel="icon" sizes="192x192" href="/scripts/favicon_io/android-chrome-192x192.png">
+    <link rel="icon" sizes="512x512" href="/scripts/favicon_io/android-chrome-512x512.png">
+</head>
+<body>
+    <header>
+        <h1>原壊：コネクトバトル</h1>
+    </header>
+
+     <!-- ----------------------------左ペイン------------------------------------------- -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="https://uko05.github.io/TopPage00/" class="sidebar-title">うーこの部屋</a> <!-- リンクを追加 -->
+            <button id="toggle-button" aria-expanded="true" aria-label="メニューを閉じる">☰</button>
+        </div>
+        <nav id="nav-links">
+            <ul>
+                <li>
+                    <a href="#" class="parent-node">▼ ゲーム</a> <!-- デフォルトで表示 -->
+                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
+                        <li><a href="https://uko05.github.io/TiersList01/">　コネクトフォー</a></li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <a href="#" class="parent-node">▼ 推しキャラランキング</a> <!-- デフォルトで表示 -->
+                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
+                        <li><a href="https://uko05.github.io/TiersList01/">　原神</a></li>
+                        <li><a href="https://uko05.github.io/TiersList02/">　スタレ【運命】</a></li>
+                        <li><a href="https://uko05.github.io/TiersList03/">　スタレ【属性】</a></li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <a href="#" class="parent-node">▼ フリーフォーマット</a> <!-- デフォルトで表示 -->
+                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
+                        <li><a href="https://uko05.github.io/genshinFormat04/">　原神</a></li>
+                        <li><a href="https://uko05.github.io/genshinFormat04/">　スタレ（未定）</a></li>
+                    </ul>
+                </li>
+                
+            </ul>
+        </nav>
+    </div>
+     <!-- ----------------------------左ペイン------------------------------------------- -->
+     <!-- ヘルプボタン -->
+    <button id="helpButton" class="help-btn">
+      <img src="font/rulebutton.png" alt="ヘルプ">
+    </button>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="slider">
+          <!-- 左ボタン -->
+          <button class="slider-btn prev-btn">&lt;</button>
+          <!-- 画像表示エリア -->
+          <div class="slider-images">
+            <img src="font/rule1.png" alt="説明1" class="slide active">
+            <img src="font/rule2.png" alt="説明2" class="slide">
+            <img src="font/rule3.png" alt="説明3" class="slide">
+            <img src="font/rule4.png" alt="説明4" class="slide">
+            <img src="font/rule5.png" alt="説明5" class="slide">
+          </div>
+          <!-- 右ボタン -->
+          <button class="slider-btn next-btn">&gt;</button>
+        </div>
+      </div>
+    </div>
+     
+     <!-- ----------------------------モーダル------------------------------------------- -->
+         
+    <div class="parent-container"> <!-- 幅を指定した親Div -->
+    
+        <div id="matchLabel" class="match-label"></div>
+
+        <div class="container">
+            
+            <div id="playerIdDisplay" class="info-box">あなたのプレイヤーID: <span id="generatedId"></span></div>
+            
+            <div class="info-item-yoko">
+                <div class="label label-even">名前</div>
+                <input id="playerName" class="value-yoko" type="text" placeholder="プレイヤー名を入力" />
+            </div>
+            <div id="playerIdDisplay" class="info-box top15">▼キャラクター情報▼</span></div>
+            
+            <!-- キャラクター情報を表示するためのテーブル -->
+            <div id="characterInfoContainer">
+                <div class="info-item-yoko">
+                    <div class="label label-even">キャラ</div>
+                    <div id="characterName" class="value-yoko"></div>
+                </div>
+                <div class="info-item-yoko">
+                    <div class="label label-even">チャージ量</div>
+                    <div id="characterCharge" class="value-yoko"></div>
+                </div>
+                <div class="info-item-tate">
+                    <div class="label label-even">必殺技名</div>
+                    <div id="Ability" class="value-tate"></div>
+                </div>
+                <div class="info-item-tate">
+                    <div class="label label-even">必殺技内容</div>
+                    <div id="AbilityDetail" class="value-tate abilityDetail"></div>
+                </div>
+            </div>
+            <!-- 選択したキャラのcharaIDを保持する非表示のフィールド -->
+            <input type="hidden" id="charaID" value="">
+            
+            <button id="matchButton" class="btn">マッチング</button>
+            
+            <div class="info-item-yoko">
+                <div class="label label-even">合言葉</div>
+                <input id="roomMatching" class="value-yoko" type="text" placeholder="合言葉を入力" />
+            </div>
+            <div>
+                <label for="systemvolumeSlider">システム音量: </label>
+                <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
+            </div>
+            <div>
+                <label for="voicevolumeSlider">　ボイス音量: </label>
+                <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
+            </div>
+            <div id="statusMessage" class="status"></div>
+            
+        </div>
+        
+        <div class="charalist"> <!-- charalistを追加 -->
+            <div class="thumbnail-container" id="thumbnailContainer"></div>
+        </div>
+    </div>
+
+</body>
+</html>
