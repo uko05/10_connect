@@ -2,7 +2,7 @@
 // キャラクターのデータ
 export const characterData = [
     { 
-        src: 'chara/Albedo.png', 
+        src: 'public/chara/Albedo.png', 
         charaID: '001', 
         name: 'アルベド', 
         charge: 9, 
@@ -10,10 +10,10 @@ export const characterData = [
         Ability: '誕生式・大地の潮', 
         AbilityDetail: '【破壊】ランダムな4列の上から2個の石を破壊する。(15ターン目から発動可能)', 
         AbilityUseTurn: 15,  
-        AbilityCutImage: 'chara/ult_Albedo.png', 
-        voice_select: 'scripts/sound/albedo_select.wav',
-        voice_attack: 'scripts/sound/albedo_attack.wav',
-        voice_ult: 'scripts/sound/albedo_ult.wav',
+        AbilityCutImage: 'public/chara/ult_Albedo.png', 
+        voice_select: 'public/scripts/sound/albedo_select.wav',
+        voice_attack: 'public/scripts/sound/albedo_attack.wav',
+        voice_ult: 'public/scripts/sound/albedo_ult.wav',
         process: 'ult_allTopDelete' // 関数名を文字列として保持
     },
     { 
