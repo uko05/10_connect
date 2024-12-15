@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { db } from "./firebaseConfig.js"; // firebaseの設定ファイル
+import { db } from "./public/firebaseConfig.js"; // firebaseの設定ファイル
 import {
     getFirestore,
     collection,
