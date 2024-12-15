@@ -1,89 +1,152 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/10.14.1/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/10.14.1/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/10.14.1/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+    <title>原壊：コネクトバトル</title>
+    <link rel="stylesheet" href="style.css"> <!-- スタイルシートのリンク -->
+    <script type="module" src="scripts/main.js" defer></script> <!-- JavaScriptファイルの読み込み -->
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/scripts/favicon_io/favicon.ico" type="image/x-icon">
+    <link rel="icon" sizes="16x16" href="/scripts/favicon_io/favicon-16x16.png">
+    <link rel="icon" sizes="32x32" href="/scripts/favicon_io/favicon-32x32.png">
+    
+    <!-- Apple Touch Icon (for iOS) -->
+    <link rel="apple-touch-icon" href="/scripts/favicon_io/apple-touch-icon.png">
+    
+    <!-- Android Icons (for Android devices) -->
+    <link rel="icon" sizes="192x192" href="/scripts/favicon_io/android-chrome-192x192.png">
+    <link rel="icon" sizes="512x512" href="/scripts/favicon_io/android-chrome-512x512.png">
+</head>
+<body>
+    <header>
+        <h1>原壊：コネクトバトル</h1>
+    </header>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+     <!-- ----------------------------左ペイン------------------------------------------- -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="https://uko05.github.io/TopPage00/" class="sidebar-title">うーこの部屋</a> <!-- リンクを追加 -->
+            <button id="toggle-button" aria-expanded="true" aria-label="メニューを閉じる">☰</button>
+        </div>
+        <nav id="nav-links">
+            <ul>
+                <li>
+                    <a href="#" class="parent-node">▼ ゲーム</a> <!-- デフォルトで表示 -->
+                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
+                        <li><a href="https://uko05.github.io/TiersList01/">　コネクトフォー</a></li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <a href="#" class="parent-node">▼ 推しキャラランキング</a> <!-- デフォルトで表示 -->
+                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
+                        <li><a href="https://uko05.github.io/TiersList01/">　原神</a></li>
+                        <li><a href="https://uko05.github.io/TiersList02/">　スタレ【運命】</a></li>
+                        <li><a href="https://uko05.github.io/TiersList03/">　スタレ【属性】</a></li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <a href="#" class="parent-node">▼ フリーフォーマット</a> <!-- デフォルトで表示 -->
+                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
+                        <li><a href="https://uko05.github.io/genshinFormat04/">　原神</a></li>
+                        <li><a href="https://uko05.github.io/genshinFormat04/">　スタレ（未定）</a></li>
+                    </ul>
+                </li>
+                
+            </ul>
+        </nav>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+     <!-- ----------------------------左ペイン------------------------------------------- -->
+     <!-- ヘルプボタン -->
+    <button id="helpButton" class="help-btn">
+      <img src="font/rulebutton.png" alt="ヘルプ">
+    </button>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="slider">
+          <!-- 左ボタン -->
+          <button class="slider-btn prev-btn">&lt;</button>
+          <!-- 画像表示エリア -->
+          <div class="slider-images">
+            <img src="font/rule1.png" alt="説明1" class="slide active">
+            <img src="font/rule2.png" alt="説明2" class="slide">
+            <img src="font/rule3.png" alt="説明3" class="slide">
+            <img src="font/rule4.png" alt="説明4" class="slide">
+            <img src="font/rule5.png" alt="説明5" class="slide">
+          </div>
+          <!-- 右ボタン -->
+          <button class="slider-btn next-btn">&gt;</button>
+        </div>
+      </div>
+    </div>
+     
+     <!-- ----------------------------モーダル------------------------------------------- -->
+         
+    <div class="parent-container"> <!-- 幅を指定した親Div -->
+    
+        <div id="matchLabel" class="match-label"></div>
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
-      });
-    </script>
-  </body>
+        <div class="container">
+            
+            <div id="playerIdDisplay" class="info-box">あなたのプレイヤーID: <span id="generatedId"></span></div>
+            
+            <div class="info-item-yoko">
+                <div class="label label-even">名前</div>
+                <input id="playerName" class="value-yoko" type="text" placeholder="プレイヤー名を入力" />
+            </div>
+            <div id="playerIdDisplay" class="info-box top15">▼キャラクター情報▼</span></div>
+            
+            <!-- キャラクター情報を表示するためのテーブル -->
+            <div id="characterInfoContainer">
+                <div class="info-item-yoko">
+                    <div class="label label-even">キャラ</div>
+                    <div id="characterName" class="value-yoko"></div>
+                </div>
+                <div class="info-item-yoko">
+                    <div class="label label-even">チャージ量</div>
+                    <div id="characterCharge" class="value-yoko"></div>
+                </div>
+                <div class="info-item-tate">
+                    <div class="label label-even">必殺技名</div>
+                    <div id="Ability" class="value-tate"></div>
+                </div>
+                <div class="info-item-tate">
+                    <div class="label label-even">必殺技内容</div>
+                    <div id="AbilityDetail" class="value-tate abilityDetail"></div>
+                </div>
+            </div>
+            <!-- 選択したキャラのcharaIDを保持する非表示のフィールド -->
+            <input type="hidden" id="charaID" value="">
+            
+            <button id="matchButton" class="btn">マッチング</button>
+            
+            <div class="info-item-yoko">
+                <div class="label label-even">合言葉</div>
+                <input id="roomMatching" class="value-yoko" type="text" placeholder="合言葉を入力" />
+            </div>
+            <div>
+                <label for="systemvolumeSlider">システム音量: </label>
+                <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
+            </div>
+            <div>
+                <label for="voicevolumeSlider">　ボイス音量: </label>
+                <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
+            </div>
+            <div id="statusMessage" class="status"></div>
+            
+        </div>
+        
+        <div class="charalist"> <!-- charalistを追加 -->
+            <div class="thumbnail-container" id="thumbnailContainer"></div>
+        </div>
+    </div>
+
+</body>
 </html>

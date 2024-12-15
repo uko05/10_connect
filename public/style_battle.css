@@ -1,0 +1,1102 @@
+@font-face {
+    font-family: 'SDK_JP_WEB'; /* 任意のフォント名 */
+    src: url('font/SDK_JP_WEB.ttf') format('truetype'); /* フォントファイルのパスを指定 */
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'SDK_JP_WEB', sans-serif;
+    display: flex;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    margin-left: 50px; /* 左側に50pxのマージンを追加 */
+    background-size: cover; /* 画面全体に画像を拡大 */
+    background-position: center; /* 画像を中央に配置 */
+    background-repeat: no-repeat; /* 繰り返しを無効化 */
+    background-image: url('./scripts/wallpaper/battleback001.png');
+}
+
+h1 {
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 30px;
+    margin: 0;
+}
+
+html, body {
+    height: 100%;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+/* sidebarのスタイル */
+.sidebar {
+    background-color: #333; /* 左ペインの背景色 */
+    color: white; /* 左ペインのテキスト色 */
+    width: 250px; /* 左ペインの幅 */
+    height: 100%; /* 高さを100%にする */
+    position: fixed; /* 固定位置にする */
+    top: 0; /* 上からの位置 */
+    left: 0; /* 左からの位置 */
+    z-index: 1000; /* 重なり順を設定 */
+    transition: transform 0.3s ease; /* スライドアニメーション */
+    background: linear-gradient(to bottom, #444, #777); /* グラデーション背景 */
+    border-right: 5px solid #ffcc00; /* ボーダーを追加 */
+}
+
+/* 左ペインが非表示の時のスタイル */
+.sidebar.hidden {
+    transform: translateX(-200px); /* トグルボタンの幅分だけスライド */
+}
+
+/* サイドバーのヘッダーのスタイル */
+.sidebar-header {
+    display: flex; /* フレックスボックスを使用 */
+    justify-content: space-between; /* タイトルとボタンを左右に配置 */
+    align-items: center; /* 垂直方向に中央揃え */
+    padding: 10px; /* パディング */
+    background-color: #444; /* ヘッダーの背景色 */
+    border-bottom: 1px solid #ffc400;
+}
+
+.sidebar.active {
+    transform: translateX(0); /* アクティブ状態で表示 */
+}
+
+/* 初期状態で左ペインを表示するためのスタイル */
+.sidebar {
+    transform: translateX(0); /* 左ペインを表示 */
+}
+
+.child-nodes {
+    display: none; /* 初期状態で非表示 */
+    list-style-type: none; /* リストのスタイルをなくす */
+    padding-left: 20px; /* インデントを追加 */
+}
+
+.child-nodes.active {
+    display: block; /* アクティブ状態で表示 */
+}
+
+.sidebar-title {
+    font-family: 'SDK_JP_WEB', sans-serif; /* 使用するフォント */
+    font-size: 20px; /* フォントサイズを調整 */
+    color: white; /* テキストカラー */
+    margin-left: 10px; /* 左のマージンを調整 */
+}
+
+/* トグルボタンのスタイル */
+#toggle-button {
+    font-family: 'SDK_JP_WEB', sans-serif; /* トグルボタンにも同じフォントを適用 */
+    border: 2px solid #ffffff; /* ボーダーを追加 */
+    background-color: #444; /* デフォルトを灰色に */
+    border-radius: 5px;
+    padding: 5px 10px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+    height: 35px;
+    margin-left: 10px;
+}
+
+/* ホバー時におしゃれな黄色に */
+#toggle-button:hover {
+    background-color: #ffcc00; /* ホバー時の黄色 */
+}
+
+.parent-node {
+    padding: 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    z-index: 1001;
+    display: block; /* 要素をブロック表示にする */
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+
+nav ul li {
+    padding: 5px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+}
+/* 子ノードのホバー効果を追加 */
+nav ul li .child-nodes li:hover {
+    background-color: rgba(255, 204, 0, 0.3); /* 子ノードにホバー時の背景色を追加 */
+}
+
+/* 親ノードのホバー効果を無効にする */
+nav ul li:hover > a {
+    background-color: transparent; /* 親ノードのホバー時に背景色を透明に */
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* モーダルのスタイル */
+.modal {
+  display: none; /* デフォルトでは非表示 */
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  width: 80%;
+  max-width: 1200px;
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 90vh; /* 縦方向に90%までの高さに制限 */
+  overflow-y: auto; /* はみ出た場合スクロール可能にする */
+}
+
+.slider-images img {
+  width: 100%; /* モーダル幅に合わせる */
+  height: auto; /* 縦横比を保つ */
+  max-height: 80vh; /* 画面の高さに収まるよう制限 */
+  object-fit: contain; /* はみ出さずに画像を調整 */
+}
+
+/* スライダーエリア */
+.slider {
+  position: relative;
+  overflow: hidden;
+}
+
+.slider-images {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+}
+
+.slide {
+  min-width: 100%;
+  display: none;
+}
+
+.slide.active {
+  display: block;
+}
+
+/* スライダーボタン */
+.slider-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.prev-btn {
+  left: 10px;
+}
+
+.next-btn {
+  right: 10px;
+}
+
+/* 閉じるボタン */
+.close {
+  position: absolute;
+  top: 10px; /* モーダルの内側から10pxの位置に配置 */
+  right: 10px;
+  background-color: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #000;
+  z-index: 10; /* 画像よりも前面に配置 */
+}
+
+.help-btn {
+  position: fixed; /* 画面固定 */
+  bottom: 10px; /* 画面下からの位置 */
+  right: 10px; /* 画面右端に固定 */
+  background: none; /* 背景なし */
+  border: none; /* 枠線なし */
+  padding: 0; /* 内側の余白なし */
+  margin: 0; /* 外側の余白なし */
+  cursor: pointer;
+}
+
+.help-btn img {
+  display: block; /* 画像周囲の余白を防ぐ */
+  width: 100%; /* 親要素にフィット */
+  height: auto; /* 比率を保ちながら高さを調整 */
+  margin: 0; /* 外側の余白なし */
+  padding: 0; /* 内側の余白なし */
+  object-fit: contain; /* 比率を保ちながら調整 */
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+#leftPane, #centerPane, #rightPane {
+    flex: 1; /* 残りのスペースを均等に分配 */
+    display: flex;
+    flex-direction: column; /* 縦方向に並べる */
+    align-items: center; /* 中央揃え */
+    background-color: white;
+}
+
+/* 左ペイン（キャラクター情報の表示エリア） */
+#leftPane {
+    flex: 1; /* 残りのスペースを均等に分配 */
+    //background-color: rgba(255, 255, 255, 0.4);
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+/* 右ペイン（相手キャラクター情報の表示エリア） */
+#rightPane {
+    flex: 1; /* 残りのスペースを均等に分配 */
+    //background-color: rgba(255, 255, 255, 0.4);
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+#turnLabel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 50px;
+    font-weight: bold;
+    color: black;
+    background: linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 255, 0, 0.8));
+    background-size: 200% 200%; /* 背景を大きくしてアニメーションをスムーズに */
+    animation: gradientMove 3s infinite alternate; /* グラデーションに動きを追加 */
+    padding: 20px;
+    border-radius: 15px;
+    display: none; /* 初期状態で非表示 */
+    opacity: 0; /* 初期状態は透明 */
+    transition: opacity 0.5s ease-in-out; /* フェードイン/アウトのアニメーション */
+    width: 600px;
+    height: 200px;
+    text-align: center;
+    line-height: 100px; /* 縦方向中央揃え */
+    box-shadow: 0 4px 20px rgba(255, 200, 0, 0.6); /* 黄色寄りの光るシャドウ */
+    border: 5px solid rgba(255, 255, 255, 0.8); /* 白い境界線 */
+}
+
+/* グラデーション移動のアニメーション */
+@keyframes gradientMove {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+.win-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 80px;
+    font-weight: bold;
+    color: black;
+    background-color: rgba(255, 165 ,0 , 0.8);
+    padding: 10px;
+    border-radius: 5px;
+    display: none; /* 初期状態では非表示 */
+    opacity: 0; /* 初期状態で透明に設定 */
+    transition: opacity 0.5s ease-in-out; /* 透明度の遷移をスムーズに */
+    width: 800px; /* 横幅800px */
+    height: 400px; /* 高さ200px */
+    text-align: center; /* 横方向の中央揃え */
+    line-height: 200px; /* 高さに合わせて縦方向の中央揃え */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* シャドウで立体感を追加 */
+    border: 3px solid black; /* 白い境界線 */    
+}
+
+.turn-label.show {
+    opacity: 1; /* アニメーションで表示 */
+    transform: scale(1); /* アニメーションで拡大 */
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+/* サムネイルとタイムリミットゲージのコンテナ */
+.thumbnail-container {
+    width: 130px; /* 幅 */
+    height: 130px; /* 高さ */
+    display: flex; /* フレックスボックスを使用 */
+    justify-content: center; /* 水平方向に中央揃え */
+    align-items: center; /* 垂直方向に中央揃え */
+    border-radius: 10px; /* 角を丸くする */
+    margin: 5px auto; /* 上下に5px、左右を自動で中央に配置 */
+    flex-direction: column; /* フレックスボックスの方向を縦に変更 */
+}
+
+.thumbnail-container img {
+    width: 100%; /* 親要素に合わせて幅を100%にする */
+    height: 100%; /* 親要素に合わせて高さを100%にする */
+    border-radius: 10px; /* 親要素の角に合わせて角を丸くする */
+    object-fit: cover; /* アスペクト比を維持しつつコンテナに合わせる */
+}
+
+/* タイムリミットゲージのスタイル */
+#timeLimitContainer {
+    margin-top: 5px; /* サムネイルとの間隔を設定 */
+    width: 100%; /* ゲージの幅 */
+    height: 40px; /* ゲージの高さ */
+    background-color: #ccc; /* ゲージ枠の色 */
+    border-radius: 5px; /* 角を丸くする */
+    overflow: hidden; /* 中身がはみ出ないようにする */
+    position: relative;
+}
+
+#timeLimitGauge {
+    width: 100%; /* 初期値は満タン */
+    height: 100%; /* ゲージの高さを100%に設定 */
+    background-color: green; /* ゲージの色 */
+    border-radius: 10px 0 0 10px; /* 左側の角だけ丸くする */
+    transition: width 0.1s linear; /* スムーズな減少アニメーション */
+}
+
+/* メモリ線 */
+.gauge-tlmarks {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    top: 0;
+    left: 0;
+}
+
+.tlmark {
+    width: 2px; /* メモリ線の幅を小さく設定 */
+    height: 100%;   /* メモリ線の高さは親要素と同じ */
+    background-color: #999; /* メモリ線の色 */
+    position: absolute;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+// 必殺技画像
+
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 8px 4px rgba(230, 0, 0, 0.3);
+        transform: scale(1);
+        background-position: 0%;
+    }
+    50% {
+        box-shadow: 0 0 12px 12px rgba(255, 153, 0, 0.6);
+        transform: scale(0.9);
+        background-position: 100%;
+    }
+    100% {
+        box-shadow: 0 0 8px 4px rgba(230, 0, 0, 0.3);
+        transform: scale(1);
+        background-position: 200%;
+    }
+}
+
+.glowing-effect {
+    -webkit-animation: glow 1.5s infinite linear;
+    animation: glow 1.5s infinite linear;
+}
+
+.ult-effect {
+    background: linear-gradient(to right, #e60000, #f39800, #fff100, #009944, #0068b7, #1d2088, #920783, #e60000) 0% center / 200%;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+@keyframes glowColumn {
+    0% {
+        box-shadow: 0 0 8px 4px var(--shadow-color, rgba(0, 255, 0, 0.1));
+    }
+    50% {
+        box-shadow: 0 0 12px 12px var(--shadow-color, rgba(0, 255, 0, 0.6));
+    }
+    100% {
+        box-shadow: 0 0 8px 4px var(--shadow-color, rgba(0, 255, 0, 0.1));
+    }
+}
+
+.column.selected {
+    animation: glowColumn 2s infinite ease-in-out;
+}
+
+.column {
+    background-color: rgba(0, 0, 0, 0.1); /* 基本色 */
+    box-shadow: 0 0 8px 4px rgba(0, 0, 0, 0.1); /* デフォルトの影 */
+    border-radius: 5px; /* 角を丸める */
+    animation: none; /* デフォルトではアニメーションを無効化 */
+    pointer-events: none; /* マウス操作を無効化 */
+    z-index: 10; /* ボードの上に表示 */
+}
+
+.cell.selected {
+    animation: glowCell 1s infinite ease-in-out; /* アニメーションを追加 */
+    background-color: rgba(255, 215, 0, 0.5); /* ゴールド系の半透明色 */
+    border: 2px solid orange; /* 強調表示の枠線 */
+    box-shadow: 0 0 12px 6px rgba(255, 165, 0, 0.6); /* 影効果 */
+}
+
+@keyframes glowCell {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 8px 4px rgba(255, 165, 0, 0.3);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 12px 8px rgba(255, 165, 0, 0.6);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 8px 4px rgba(255, 165, 0, 0.3);
+    }
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+/* 必殺技ボタンコンテナ */
+#specialMoveButtonContainer {
+    display: none;
+    text-align: center;
+}
+
+/* 必殺技ボタンスタイル */
+.special-move-button {
+    width: 770px; /* 初期値は満タン */
+    height: 110px; /* ゲージの高さを100%に設定 */
+    padding: 15px 10px;
+    font-size: 60px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(to top, #ff0000, #ffff00);
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    align-items: center;    /* 垂直方向の中央揃え */
+    justify-content: center; /* 水平方向の中央揃え */
+    text-align: center;     /* テキストの中央揃え */
+    transition: transform 0.2s, box-shadow 0.2s; /* クリック時のエフェクト用 */
+    animation: glowColumn 2s infinite ease-in-out;
+    text-shadow: 
+        -2px -2px 0 black, 
+         2px -2px 0 black, 
+        -2px  2px 0 black, 
+         2px  2px 0 black, 
+        0px -2px 0 black, 
+        0px  2px 0 black, 
+        -2px  0px 0 black, 
+         2px  0px 0 black;
+}
+
+/* ホバー時のエフェクト */
+.special-move-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* クリック時のエフェクト */
+.special-move-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2);
+}
+
+/* カットイン画像 */
+#cutin-image {
+    width: 100%; /* 横幅を親要素に合わせる */
+    height: auto; /* アスペクト比を保ちながら高さを自動調整 */
+    object-fit: cover; /* 必要に応じてサイズ内に収める */
+}
+
+/* カットインコンテナ */
+#cutin-container {
+    position: fixed;
+    top: 50%; /* 画面中央 */
+    left: 50%;
+    transform: translate(-50%, -50%); /* 高さ中央揃え、横も中央 */
+    z-index: 9999; /* 最前面に表示 */
+    text-align: center; /* 画像を中央に配置 */
+    display: none; /* 最初は非表示 */
+    width: 80%; /* centerPanel に合わせた割合指定 */
+    max-width: 800px; /* 必要に応じて最大幅を設定 */
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+#chargeGageInfo_1 {
+    display: flex;
+    align-items: center; /* 縦の位置を中央揃え */
+}
+
+#chargeGage_1 {
+    display: flex;
+    flex-direction: column; /* ラベルを縦に並べる */
+    gap: 5px; /* ラベル同士の間隔を調整 */
+}
+
+#chargeGageInfo_2 {
+    display: flex;
+    align-items: center; /* 縦の位置を揃える */
+}
+
+#chargeGage_2 {
+    display: flex;
+    flex-direction: column; /* ラベルを縦に並べる */
+    gap: 5px; /* ラベル同士の間隔を調整 */
+    margin-right: 10px; /* スペースを追加して右側に余白を作る */
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+.gauge-container {
+    width: 30px;               /* ゲージの幅 */
+    height: 130px;             /* ゲージの高さ */
+    background-color: #fff;    /* ゲージの背景色 */
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid #ccc; /* 境界線 */
+    align-items: flex-end;     /* 下から上に伸びるように配置 */
+    margin-right: 10px; /* スペースを追加して右側に余白を作る */
+}
+
+/* メモリ線 */
+.gauge-marks {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    top: 0;
+    left: 0;
+}
+
+.mark {
+    width: 100%;
+    height: 1px;   /* メモリ線の高さ */
+    background-color: #999; /* メモリ線の色 */
+    position: absolute;
+}
+
+.gauge {
+    width: 100%;
+    height: 0%;                /* 初期状態（0%からスタート） */
+    background-color: #00f;    /* 開始時の色（青） */
+    transition: height 0.5s, background-color 0.5s; /* アニメーション */
+    border-radius: 5px;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+.player-info p {
+    margin: 0; /* pタグのデフォルトマージンを削除 */
+}
+
+.info-item-tate {
+    display: flex; /* フレックスボックスを使用 */
+    flex-direction: column; /* 縦に並べる */
+    align-items: flex-start; /* 左揃え */
+    padding: 5px; /* 内側の余白 */
+    border: 1px solid #ccc; /* 境界線 */
+    border-radius: 5px; /* 角を丸くする */
+    background-color: rgba(255, 255, 255, 0.4);
+    font-size: 18px;
+}
+
+.label {
+    width: 110px;
+    color: #333; /* テキストの色 */
+    margin-bottom: 5px; /* ラベルと値の間にスペースを追加 */
+    text-align: left; /* 左揃え */
+}
+
+.textright {
+    text-align: right; /* 左揃え */
+}
+
+.label-even {
+    text-align:justify;
+    text-align-last:justify;
+}
+
+.value-tate {
+    padding: 2px; /* 内側の余白 */
+    border: 1px solid #bbb; /* 値の周りに境界線 */
+    border-radius: 5px; /* 角を丸くする */
+    background-color: rgba(255, 255, 255, 0.4);
+    min-height: 32px; /* 最小の高さを設定 */
+    width: calc(100% - 2px); /* パディングとボーダーを考慮 */
+    box-sizing: border-box; /* パディングとボーダーを幅に含める */
+    text-align: left; /* 左揃え */
+    height: 26px; /* 高さ */
+}
+
+.abilityName {
+    font-size: 18px;
+    height: 55px; /* 高さ */
+}
+
+.abilityDetail {
+    height: 200px; /* 高さ */
+    font-size: 18px;
+}
+
+.top15 {
+    margin-top: 15px; /* 上部にマージンを追加 */
+}
+
+#playerName_1 #playerName_2 {
+    height: 30px; /* 高さ */
+    font-size: 28px;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+/* 中央ペイン（ゲームボードエリア） */
+#centerPanel {
+    flex: 4; /* 残りのスペースを均等に分配 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* ビューポートに対して中央に配置 */
+    //background-image: url('./scripts/wallpaper/battleback001.png');
+}
+
+/* ゲームボード */
+.board {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative; /* 親要素に相対位置を設定 */
+    top: 0; /* 上部に固定 */
+}
+
+#connect4Canvas_top {
+    width: 770px; /* 実際の幅と高さに合わせる */
+    height: 110px;
+}
+
+#connect4Canvas {
+    border: 2px solid #333;
+    border-radius: 10px; /* 角を丸くする場合 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 影を追加して立体感を出す */
+    width: 100%; /* 親要素の幅に合わせる */
+    height: auto; /* アスペクト比を保つ */
+    max-width: 770px; /* 必要に応じて最大幅を指定 */
+    max-height: 660px;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+//◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆
+/* iPad Pro専用のスタイル */
+//◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆
+@media (max-width: 1366px) and (max-height: 1024px) {
+
+    /* フォントサイズや間隔を調整 */
+    body {
+        font-size: 18px; /* 文字サイズの調整 */
+        padding : 0px;
+    }
+
+    .thumbnail-container {
+        width: 90%; /* 幅 */
+        height: 90%; /* 高さ */
+    }
+    
+    #leftPane, #rightPane {
+        flex: 0 0 200px; /* 左右のパネルの幅を200pxに固定 */
+        width: 200px; /* 幅を明示的に指定 */
+        height: 100%; /* 幅を明示的に指定 */
+    }
+
+    #centerPane {
+        flex: 1; /* 残りのスペースを均等に分配 */
+        //min-width: 400px; /* 最小幅を設定してレイアウトが崩れにくくする */
+    }
+
+    #connect4Canvas, #connect4Canvas_top {
+        //max-width: 600px; /* 画面の横幅に収まるように最大幅を設定 */
+        height: auto; /* 自動で高さを調整 */
+    }
+
+    .board {
+        height: auto;
+    }
+    
+    .turn-label {
+        width: 600px; /* 幅を80%に調整 */
+        font-size: 30px; /* フォントサイズを調整 */
+    }
+
+    button {
+        padding: 10px 16px;
+        font-size: 1rem;
+    }
+
+    .info-item-tate {
+        font-size: 18px;
+        flex-direction: row; /* 横に並べる */
+        flex-wrap: wrap; /* アイテムを折り返し可能にする */
+    }
+
+    .label {
+        width: 100px;
+        margin-bottom: 5px; /* ラベルと値の間にスペースを追加 */
+    }
+
+    .value-tate {
+        min-height: 30px; /* 最小の高さを設定 */
+        width: calc(100% - 2px); /* パディングとボーダーを考慮 */
+        height: 30px; /* 高さ */
+    }
+
+    .abilityName {
+        font-size: 18px;
+        height: 55px; /* 高さ */
+    }
+
+    .abilityDetail {
+        height: 230px; /* 高さ */
+        font-size: 18px;
+    }
+    
+    #AbilityDetail_1 #AbilityDetail_2{
+        flex-direction: column; /* 縦に並べる */
+    }
+    
+    #playerName_1 #playerName_2 {
+        height: 40px; /* 高さ */
+        font-size: 18px;
+    }
+
+    .parent-node {
+        padding: 3px;
+        margin-bottom: 3px;
+    }
+
+    .child-nodes {
+        padding-left: 10px; /* インデントを追加 */
+    }
+
+    nav ul li {
+        padding: 3px;
+        font-size: 16px;
+    }
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* iPad Air専用のスタイル */
+@media (max-width: 1180px) and (max-height: 820px) {
+
+    /* フォントサイズや間隔を調整 */
+    body {
+        font-size: 16px; /* 文字サイズの調整 */
+        padding : 0px;
+    }
+
+    .thumbnail-container {
+        width: 90%; /* 幅 */
+        height: 90%; /* 高さ */
+    }
+    
+    #leftPane, #rightPane {
+        flex: 0 0 180px; /* 左右のパネルの幅を200pxに固定 */
+        width: 180px; /* 幅を明示的に指定 */
+        height: 100%; /* 幅を明示的に指定 */
+    }
+
+    #centerPane {
+        flex: 1; /* 残りのスペースを均等に分配 */
+        //min-width: 400px; /* 最小幅を設定してレイアウトが崩れにくくする */
+    }
+    
+    /* タイムリミットゲージのスタイル */
+    #timeLimitContainer {
+        margin-top: 0px; /* サムネイルとの間隔を設定 */
+        height: 30px; /* ゲージの高さ */
+    }
+
+    .turn-label {
+        width: 600px; /* 幅を80%に調整 */
+        font-size: 30px; /* フォントサイズを調整 */
+    }
+
+    button {
+        padding: 10px 16px;
+        font-size: 1rem;
+    }
+
+    .info-item-tate {
+        font-size: 16px;
+        flex-direction: row; /* 横に並べる */
+        flex-wrap: wrap; /* アイテムを折り返し可能にする */
+    }
+
+    .label {
+        width: 100px;
+        margin-bottom: 5px; /* ラベルと値の間にスペースを追加 */
+    }
+
+    .value-tate {
+        min-height: 30px; /* 最小の高さを設定 */
+        width: calc(100% - 2px); /* パディングとボーダーを考慮 */
+        height: 30px; /* 高さ */
+    }
+
+    .abilityName {
+        font-size: 16px;
+        height: 55px; /* 高さ */
+    }
+
+    .abilityDetail {
+        height: 150px; /* 高さ */
+        font-size: 16px;
+    }
+    
+    #AbilityDetail_1 #AbilityDetail_2{
+        flex-direction: column; /* 縦に並べる */
+    }
+    
+    #playerName_1 #playerName_2 {
+        height: 40px; /* 高さ */
+        font-size: 16px;
+    }
+
+    .parent-node {
+        padding: 3px;
+        margin-bottom: 3px;
+    }
+
+    .child-nodes {
+        padding-left: 10px; /* インデントを追加 */
+    }
+
+    nav ul li {
+        padding: 3px;
+        font-size: 16px;
+    }
+    
+    .help-btn {
+      width: 10%; 
+    }
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* iPad mini専用のスタイル */
+@media  (max-width: 1024px) and (max-height: 768px) {
+
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* iPhone 12 Pro専用のスタイル */
+@media ((max-width: 844px) and (max-height: 390px)  ) {
+    /* フォントサイズや間隔を調整 */
+    body {
+        font-size: 12px; /* 文字サイズの調整 */
+        padding : 0px;
+    }
+
+    .thumbnail-container {
+        width: 70px; /* 幅 */
+        height: 70px; /* 高さ */
+    }
+    
+    #leftPane, #rightPane {
+        flex: 0 0 200px; /* 左右のパネルの幅を200pxに固定 */
+        width: 200px; /* 幅を明示的に指定 */
+        height: 100%; /* 幅を明示的に指定 */
+    }
+
+    #centerPane {
+        flex: 1; /* 残りのスペースを均等に分配 */
+        min-width: 400px; /* 最小幅を設定してレイアウトが崩れにくくする */
+    }
+
+    #connect4Canvas, #connect4Canvas_top {
+        max-width: 370px; /* 画面の横幅に収まるように最大幅を設定 */
+        height: auto; /* 自動で高さを調整 */
+    }
+
+    .board {
+        width: 90%;
+        height: auto;
+    }
+    
+    .turn-label {
+        width: 400px; /* 幅を80%に調整 */
+        font-size: 50px; /* フォントサイズを調整 */
+    }
+
+    button {
+        padding: 10px 16px;
+        font-size: 1rem;
+    }
+
+    .info-item-tate {
+        font-size: 12px;
+        flex-direction: row; /* 横に並べる */
+        flex-wrap: wrap; /* アイテムを折り返し可能にする */
+    }
+
+    .label {
+        width: 70px;
+        margin-bottom: 5px; /* ラベルと値の間にスペースを追加 */
+    }
+
+    .value-tate {
+        min-height: 22px; /* 最小の高さを設定 */
+        width: calc(100% - 2px); /* パディングとボーダーを考慮 */
+        height: 22px; /* 高さ */
+    }
+
+    .abilityName {
+        font-size: 12px;
+    }
+
+    .abilityDetail {
+        height: 110px; /* 高さ */
+        font-size: 12px;
+    }
+    
+    #AbilityDetail_1 #AbilityDetail_2{
+        flex-direction: column; /* 縦に並べる */
+    }
+    
+    #playerName_1 #playerName_2 {
+        height: 30px; /* 高さ */
+        font-size: 12px;
+    }
+
+    .parent-node {
+        padding: 3px;
+        margin-bottom: 3px;
+    }
+
+    .child-nodes {
+        padding-left: 10px; /* インデントを追加 */
+    }
+
+    nav ul li {
+        padding: 3px;
+    }
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* iPhone 12 Pro-XR-専用のスタイル */
+@media ((max-width: 896px) and (max-height: 414px)) or ((max-width: 932px) and (max-height: 430px)) {
+    /* フォントサイズや間隔を調整 */
+    body {
+        font-size: 12px; /* 文字サイズの調整 */
+        padding : 0px;
+    }
+
+    .thumbnail-container {
+        width: 70px; /* 幅 */
+        height: 70px; /* 高さ */
+    }
+    
+    #leftPane, #rightPane {
+        flex: 0 0 200px; /* 左右のパネルの幅を200pxに固定 */
+        width: 200px; /* 幅を明示的に指定 */
+        height: 100%; /* 幅を明示的に指定 */
+    }
+
+    #centerPane {
+        flex: 1; /* 残りのスペースを均等に分配 */
+        min-width: 400px; /* 最小幅を設定してレイアウトが崩れにくくする */
+    }
+
+    #connect4Canvas, #connect4Canvas_top {
+        max-width: 370px; /* 画面の横幅に収まるように最大幅を設定 */
+        height: auto; /* 自動で高さを調整 */
+    }
+
+    .board {
+        width: 90%;
+        height: auto;
+    }
+    
+    .turn-label {
+        width: 400px; /* 幅を80%に調整 */
+        font-size: 50px; /* フォントサイズを調整 */
+    }
+
+    button {
+        padding: 10px 16px;
+        font-size: 1rem;
+    }
+
+    .info-item-tate {
+        font-size: 12px;
+        flex-direction: row; /* 横に並べる */
+        flex-wrap: wrap; /* アイテムを折り返し可能にする */
+    }
+
+    .label {
+        width: 70px;
+        margin-bottom: 5px; /* ラベルと値の間にスペースを追加 */
+    }
+
+    .value-tate {
+        min-height: 22px; /* 最小の高さを設定 */
+        width: calc(100% - 2px); /* パディングとボーダーを考慮 */
+        height: 22px; /* 高さ */
+    }
+
+    .abilityName {
+        font-size: 12px;
+    }
+
+    .abilityDetail {
+        height: 110px; /* 高さ */
+        font-size: 12px;
+    }
+    
+    #AbilityDetail_1 #AbilityDetail_2{
+        flex-direction: column; /* 縦に並べる */
+    }
+    
+    #playerName_1 #playerName_2 {
+        height: 30px; /* 高さ */
+        font-size: 12px;
+    }
+
+    .parent-node {
+        padding: 3px;
+        margin-bottom: 3px;
+    }
+
+    .child-nodes {
+        padding-left: 10px; /* インデントを追加 */
+    }
+
+    nav ul li {
+        padding: 3px;
+    }
+}
