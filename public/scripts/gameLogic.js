@@ -125,16 +125,16 @@ let selectedCharacter = false;
 let ultAfter = false;
 
 // 音声 
-const chargeSound = new Audio('scripts/sound/charge.mp3');
+const chargeSound = new Audio('public/scripts/sound/charge.mp3');
 chargeSound.volume = 0.2;
 
-const moveSound = new Audio('scripts/sound/moveSound.wav');
+const moveSound = new Audio('public/scripts/sound/moveSound.wav');
 moveSound.volume = 0.2;
 
-const highlightSound = new Audio('scripts/sound/stone_highlight.wav');
+const highlightSound = new Audio('public/scripts/sound/stone_highlight.wav');
 highlightSound.volume = 0.2;
 
-const AbilityStandby = new Audio('scripts/sound/AbilityStandby.mp3');
+const AbilityStandby = new Audio('public/scripts/sound/AbilityStandby.mp3');
 AbilityStandby.volume = 0.2;
 
 let selectSoundUrl = null;

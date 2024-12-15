@@ -28,7 +28,7 @@ let selectedCharacter = null;
 let isNavigatingToBattle = false; 
 
 // 音声ファイルを定義（キャラクター選択とマッチング用）
-const selectSound = new Audio('scripts/sound/chara_select.wav');
+const selectSound = new Audio('public/scripts/sound/chara_select.wav');
 let systemvolumeSlider = null;
 let voicevolumeSlider = null;
 let charaSoundUrl = null;
