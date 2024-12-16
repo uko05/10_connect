@@ -325,8 +325,8 @@ header {
 }
 
 .thumbnail {
-    width: 230px; /* 幅 */
-    height: 230px; /* 高さ */
+    width: 210px; /* 幅 */
+    height: 210px; /* 高さ */
     object-fit: cover; /* アスペクト比を維持しつつコンテナに合わせる */
     border-radius: 10px; /* 角を丸くする */
     border: 2px solid rgba(0, 0, 0, 0.3); /* 薄い黒のボーダーを追加 */
