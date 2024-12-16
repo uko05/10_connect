@@ -260,14 +260,18 @@ header {
 
 .parent-container {
     width: 1200px; /* 幅を指定 */
-    height: 770px; /* 必要なら高さも指定 */
-    position: relative;
+    height: 730px; /* 必要なら高さも指定 */
+    //position: relative;
     background-color: rgba(255, 255, 255, 0.4);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    margin: auto; /* 上下にマージンを設定し、自動で左右中央寄せ */
+    //margin: auto; /* 上下にマージンを設定し、自動で左右中央寄せ */
     display: flex;
     font-size: 18px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -365px 0 0 -600px; /* 完全に中央に配置するため、上・左の margin を負の数に設定 */
 }
 
 .container {
