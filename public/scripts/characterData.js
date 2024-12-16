@@ -65,7 +65,7 @@ export const characterData = [
         src: 'public/chara/hanabi.png', 
         charaID: '005', 
         name: '花火', 
-        charge: 8, 
+        charge: 9, 
         chargeMax: 200,
         Ability: '一人千役', 
         AbilityDetail: '【愉悦】このターンと次の相手のターン、打つ石の色を逆転させる。(勝敗判定などは元の色で行う)', 
