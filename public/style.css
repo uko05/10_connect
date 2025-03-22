@@ -463,7 +463,7 @@ header {
     display: none;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
-    width: 800px;
+    width: 1200px;
     height: 400px;
     text-align: center;
     line-height: 200px;

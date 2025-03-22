@@ -90,6 +90,8 @@ let red_Win = 0;
 let yellow_Win = 0;
 let changeStone = 0;
 
+let winningflg = 0;
+
 const img1 = document.createElement('img');
     
 const abilities = {
@@ -460,6 +462,20 @@ document.getElementById('specialMoveButton').addEventListener('click', () => {
         return;
     }
     
+    if (playerLeft_CharaID === '005' && changeStone > 0){
+        // 花火専用処理
+        // 相手も花火で先に必殺技を使われた場合かぶせて使えない
+        // 通常状態に戻す
+        nowCol = 3;
+        toggleSpecialMoveButton(false); // ボタンを非表示にする
+        
+        img1.classList.remove('glowing-effect');  // エフェクトを削除
+        img1.classList.remove('selected');        // 画像選択のクラスを削除
+        selectedCharacter = selectedCharacter ? false : true;
+        return;
+        
+    }
+    
     // 必殺技の処理をここに記述
     invokeAbility(playerLeft_Ability);
     
@@ -612,7 +628,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // topCanvas.addEventListener("dblclick", handleStoneDrop);    // 石を落とす
     topCanvas.addEventListener("dblclick", (event) => {
         if (!selectedCharacter) {
-            handleStoneDrop(event); // 条件を満たした場合のみ実行
+            if (winningflg == 0){
+                handleStoneDrop(event); // 条件を満たした場合のみ実行            
+            }
         }
     });
     
@@ -645,7 +663,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     //canvas.addEventListener("dblclick", handleStoneDrop);    // 石を落とす
     canvas.addEventListener("dblclick", (event) => {
         if (!selectedCharacter) {
-            handleStoneDrop(event); // 条件を満たした場合のみ実行
+            if (winningflg == 0){
+                handleStoneDrop(event); // 条件を満たした場合のみ実行
+            }
         }
     });
     
@@ -834,6 +854,7 @@ async function watchRoomUpdates() {
                 console.log("相手が必殺技を使いました。");
                 // カットイン終了後に必殺技の関数を実行
                 isTurnPlayerUltVoice();
+                disp_TopStone(turn, nowCol);
                 
                 // カットインを表示し、終了を待機
                 await showCutIn();
@@ -867,7 +888,10 @@ async function watchRoomUpdates() {
             const result = checkWin(stonesData);
             
             if ((result.red || result.yellow)) {
-            
+                
+                // 勝敗ラベル表示中は石を落とせないようにフラグを立てる。
+                winningflg = 1;
+                
                 if (result.red && result.yellow) {
                 
                     // ◆引き分け                        
@@ -937,6 +961,9 @@ async function watchRoomUpdates() {
                 showTurnLabel();
                 disp_TopStone(turn, nowCol);
                 init_drawBoard();
+                
+                // 画面リセットしたのでフラグを戻す。
+                winningflg = 0;
                 
             } else {
                 showTurnLabel();
