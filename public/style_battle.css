@@ -5,6 +5,15 @@
     font-style: normal;
 }
 
+* {
+  user-select: none;
+}
+
+/* ただし、input や textarea だけは選択可能にする */
+input, textarea {
+  user-select: auto;
+}
+
 body {
     font-family: 'SDK_JP_WEB', sans-serif;
     display: flex;
