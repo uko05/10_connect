@@ -163,6 +163,9 @@ let timeLimit = 100; // タイムリミット（秒）
 let timeRemaining = timeLimit; // 残り時間
 let timeLimitGauge = document.getElementById('timeLimitGauge');
 
+let ruanflg = 0;
+let onlyCutIn = 0;
+
 //------------------------------------------------------------------------------------------------
 // 要素取得
 const modal = document.getElementById("helpModal");
@@ -846,18 +849,26 @@ async function watchRoomUpdates() {
             
             // 相手がULTを使ったときにカットインだけでも出したいなぁ
             let check_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
-                console.log("必殺技判定　前：", check_UltCount);
-                console.log("必殺技判定　後：", playerRight_UltCount);
+            console.log("必殺技判定　前：", check_UltCount);
+            console.log("必殺技判定　後：", playerRight_UltCount);
+                
             if (playerRight_UltCount === check_UltCount) {
             
             } else {
-                console.log("相手が必殺技を使いました。");
-                // カットイン終了後に必殺技の関数を実行
-                isTurnPlayerUltVoice();
-                disp_TopStone(turn, nowCol);
+                if (onlyCutIn == 0) {
+                    console.log("相手が必殺技を使いました。");
+                    // カットイン終了後に必殺技の関数を実行
+                    isTurnPlayerUltVoice();
+                    disp_TopStone(turn, nowCol);
+                    
+                    // カットインを表示し、終了を待機
+                    await showCutIn();
+                    onlyCutIn = 1;
+                    //return; // この後の処理をスキップ
+                } else {
+                    onlyCutIn = 0;
+                }
                 
-                // カットインを表示し、終了を待機
-                await showCutIn();
             }
             playerRight_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
             
@@ -973,8 +984,21 @@ async function watchRoomUpdates() {
                 winningflg = 0;
                 
             } else {
-                showTurnLabel();
-                disp_TopStone(turn, nowCol);
+                // ルアンメェイ専用の判定
+                if (ruanflg == 1) {
+                    console.log("ルアン・メェイ専用判定");
+                    disp_DeleteStone();
+                    showTurnLabel();
+                    disp_TopStone(turn, nowCol);
+                    init_drawBoard();
+                    ruanflg = 0;
+                    
+                } else {
+                    // 通常処理
+                    showTurnLabel();
+                    disp_TopStone(turn, nowCol);
+                }
+                
             }
             
             // 初期化処理
@@ -2023,7 +2047,9 @@ async function invokeAbility(functionName) {
     console.log("invokeAbility:", functionName);
     if (typeof abilities[functionName] === "function") {
         console.log("必殺技実行");
-
+        
+        ult_CntUP();
+        
         // カットイン終了後に必殺技の関数を実行
         isTurnPlayerUltVoice();
         
@@ -2523,6 +2549,8 @@ async function ult_madness() {
         await updateRoomWithNewStones(roomDoc.id, stonesData, p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount);
 
         init_drawBoard(true);
+        
+        ruanflg = 1;
         
     } catch (error) {
         console.error("必殺技の処理中にエラーが発生しました:", error);

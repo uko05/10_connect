@@ -2516,8 +2516,8 @@ async function ult_madness() {
         await changeStonesColor(stonesData, redChangeStones, yellowChangeStones);
 
         // ハイライト処理
-        await highlightStones(redChangeStones, 250);
-        await highlightStones(yellowChangeStones, 250);
+        await highlightStones(redChangeStones);
+        await highlightStones(yellowChangeStones);
 
         // Firestoreに更新
         await updateRoomWithNewStones(roomDoc.id, stonesData, p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount);
@@ -2611,32 +2611,6 @@ function getRandomElements(array, count) {
 
 //------------------------------------------------------------------------------------------------
 
-
-async function ult_CntUP() {
-    console.log("必殺技に使用回数をカウントアップします！");
-    
-    try {
-        const roomsRef = collection(db, "rooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
-        
-        // getDocs に await を追加
-        const querySnapshot = await getDocs(q);
-
-        // Firestore のデータを更新
-        for (const roomDoc of querySnapshot.docs) {
-            const roomData = roomDoc.data(); // roomData を定義
-            
-            const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
-            const roomDocRef = doc(db, "rooms", roomDoc.id);
-            await updateDoc(roomDocRef, { 
-                player1_UltCount: p1_UltCount,
-                player2_UltCount: p2_UltCount
-            });
-        }
-    } catch (error) {
-        console.error("処理中にエラーが発生しました。:", error);
-    }
-}
 
 
 
