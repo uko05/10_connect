@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { db } from "./firebaseConfig.js"; // firebaseの設定ファイル
+import { db } from "./firebaseConfig.js"; //firebaseの設定ファイル
 import {
     getFirestore,
     collection,
@@ -18,16 +18,16 @@ import {
 import { characterData } from './characterData.js';
 
 let playerDocRef = null;
-let NowMatching = false;  // 既にマッチング処理が進行中かどうかを示すフラグ
-let roomDocRef = null; // ここで roomDocRef を宣言
+let NowMatching = false;  //既にマッチング処理が進行中かどうかを示すフラグ
+let roomDocRef = null; //ここで roomDocRef を宣言
 
-// 選択中のキャラクターを保持する変数
+//選択中のキャラクターを保持する変数
 let selectedCharacter = null;
 
-// バトル画面への遷移フラグ
+//バトル画面への遷移フラグ
 let isNavigatingToBattle = false; 
 
-// 音声ファイルを定義（キャラクター選択とマッチング用）
+//音声ファイルを定義（キャラクター選択とマッチング用）
 const selectSound = new Audio('public/scripts/sound/chara_select.wav');
 let systemvolumeSlider = null;
 let voicevolumeSlider = null;
@@ -35,7 +35,7 @@ let charaSoundUrl = null;
 let charaSound = null;
 
 //------------------------------------------------------------------------------------------------
-// 要素取得
+//要素取得
 const modal = document.getElementById("helpModal");
 const helpButton = document.getElementById("helpButton");
 const closeModalButton = modal.querySelector(".close");
@@ -46,7 +46,7 @@ const nextButton = document.querySelector(".next-btn");
 let currentSlide = 0;
 
 //------------------------------------------------------------------------------------------------
-// サムネイルを表示する関数
+//サムネイルを表示する関数
 function displayThumbnails() {
     const container = document.getElementById('thumbnailContainer');
     systemvolumeSlider = document.getElementById('systemvolumeSlider');
@@ -57,65 +57,77 @@ function displayThumbnails() {
     console.log("システム音量スライダー:", systemvolumeSlider);
     console.log("ボイス音量スライダー:", voicevolumeSlider);
     
+    //キャラデータ分だけループする
+    //対象の画像にCSSとか属性とか音声とかを設定する。
+    //addEventListenerでクリックイベントを設定する
+    //イベント内で実際に画面に表示する関数を実行する
     characterData.forEach((character, index) => {
         const img = document.createElement('img');
-        img.src = character.src; // 画像のソース
-        img.alt = character.name; // 代替テキスト
-        img.className = 'thumbnail'; // CSSクラスを追加
+        img.src = character.src; //画像のソース
+        img.alt = character.name; //代替テキスト
+        img.className = 'thumbnail'; //CSSクラスを追加
 
-        // 音声のURLをデータ属性として持たせる
-        img.setAttribute('data-voice', character.voice_select); // 画像に音声のURLをセット
+        //音声のURLをデータ属性として持たせる
+        img.setAttribute('data-voice', character.voice_select); //画像に音声のURLをセット
 
-        // クリックイベントを追加
+        //クリックイベントを追加
         img.addEventListener('click', () => {
-            // 既に選択中のキャラクターがあれば枠を外す
+            //前のボイスが再生中なら停止してリセット
+            if (charaSound && !charaSound.paused) {
+                charaSound.pause();
+                charaSound.currentTime = 0;
+            }
+
+            //既に選択中のキャラクターがあれば枠を外す
             if (selectedCharacter) {
                 selectedCharacter.classList.remove('selected');
             }
-            // 現在のキャラクターを選択
+            //現在のキャラクターを選択
             img.classList.add('selected');
-            selectedCharacter = img; // 選択中のキャラクターを更新
+            selectedCharacter = img; //選択中のキャラクターを更新
             
-            // キャラクター情報を表示
-            displayCharacterInfo(character); // キャラクター情報を表示
+            //キャラクター情報を表示
+            displayCharacterInfo(character); //キャラクター情報を表示
 
-            // 音声を再生
-            charaSoundUrl = img.getAttribute('data-voice'); // 音声URLを取得
-            charaSound = new Audio(charaSoundUrl); // Audioオブジェクトを作成
+            //音声を再生
+            charaSoundUrl = img.getAttribute('data-voice'); //音声URLを取得
+            charaSound = new Audio(charaSoundUrl); //Audioオブジェクトを作成
             charaSound.volume = 0.2;
             charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
         });
-        container.appendChild(img); // コンテナに画像を追加
+        container.appendChild(img); //コンテナに画像を追加
     });
 }
 
-// キャラクターの情報を表示する関数
+//キャラクターの情報を表示する関数
 function displayCharacterInfo(character) {
-    document.getElementById('characterName').innerText = character.name; // キャラクター名を表示
-    document.getElementById('characterCharge').innerText = character.charge; // チャージ量を表示
-    document.getElementById('Ability').innerText = character.Ability; // 必殺技名を表示
-    document.getElementById('AbilityDetail').innerText = character.AbilityDetail; // 必殺技内容を表示
-    document.getElementById('charaID').value = character.charaID; // キャラIDをhiddenフィールドに設定
+    document.getElementById('characterName').innerText = character.name; //キャラクター名を表示
+    document.getElementById('characterCharge').innerText = character.charge; //チャージ量を表示
+    document.getElementById('Ability').innerText = character.Ability; //必殺技名を表示
+    document.getElementById('AbilityDetail').innerText = character.AbilityDetail; //必殺技内容を表示
+    document.getElementById('charaID').value = character.charaID; //キャラIDをhiddenフィールドに設定
 }
 
-// ページが読み込まれたらサムネイルを表示し、スライダーイベントを設定
+//ページが読み込まれたらサムネイルを表示し、スライダーイベントを設定
+//DOMContentLoaded・・・HTMLが全部読み込まれたとき動く
+//Load・・・CSSとかJS含む全て（ページ全体）が読み込まれたときに動く
 document.addEventListener('DOMContentLoaded', () => {
-    // スライダー要素を取得
+    //スライダー要素を取得
     systemvolumeSlider = document.getElementById('systemvolumeSlider');
     voicevolumeSlider = document.getElementById('voicevolumeSlider');
 
     console.log("システム音量スライダー:", systemvolumeSlider);
     console.log("ボイス音量スライダー:", voicevolumeSlider);
 
-    // サムネイルを表示
+    //サムネイルを表示
     displayThumbnails();
 
-    // スライダーのイベントリスナーを設定
+    //スライダーのイベントリスナーを設定
     if (systemvolumeSlider) {
         systemvolumeSlider.addEventListener('input', (event) => {
-            const newVolume = parseFloat(event.target.value); // 数値として取得
+            const newVolume = parseFloat(event.target.value); //数値として取得
             console.log("○システム音量変更：", newVolume);
-            selectSound.volume = newVolume; // 音量を更新
+            selectSound.volume = newVolume; //音量を更新
         });
     } else {
         console.error("systemvolumeSlider が見つかりません");
@@ -123,20 +135,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (voicevolumeSlider) {
         voicevolumeSlider.addEventListener('input', (event) => {
-            const newVolume = parseFloat(event.target.value); // 数値として取得
+            const newVolume = parseFloat(event.target.value); //数値として取得
             console.log("○ボイス音量変更：", newVolume);
-            charaSound.volume = newVolume; // 音量を更新
+            charaSound.volume = newVolume; //音量を更新
         });
     } else {
         console.error("voicevolumeSlider が見つかりません");
     }
     
-    localStorage.setItem("timeRemaining", 1000); // 残り時間を保存
-    localStorage.setItem("lastTimestamp", Date.now()); // 現在のタイムスタンプを保存
+    localStorage.setItem("timeRemaining", 1000); //残り時間を保存
+    localStorage.setItem("lastTimestamp", Date.now()); //現在のタイムスタンプを保存
     loadTimeRemaining();
 });
 
-// ローカルストレージから残り時間を取得
+//ローカルストレージから残り時間を取得
 function loadTimeRemaining() {
     const savedTime = localStorage.getItem("timeRemaining");
     const savedTimestamp = localStorage.getItem("lastTimestamp");
@@ -150,32 +162,32 @@ const sidebar = document.getElementById('sidebar');
 const parentNode = document.querySelector('.parent-node');
 const childNodes = document.querySelector('.child-nodes');
 
-// 初期状態でサイドバーを隠す
+//初期状態でサイドバーを隠す
 sidebar.classList.add('hidden');
 toggleButton.setAttribute('aria-expanded', false);
 toggleButton.setAttribute('aria-label', 'メニューを開く');
 
 toggleButton.addEventListener('click', () => {
-    sidebar.classList.toggle('hidden'); // hiddenクラスを切り替え
+    sidebar.classList.toggle('hidden'); //hiddenクラスを切り替え
     const isExpanded = !sidebar.classList.contains('hidden');
     toggleButton.setAttribute('aria-expanded', isExpanded);
     toggleButton.setAttribute('aria-label', isExpanded ? 'メニューを閉じる' : 'メニューを開く');
 });
 
 parentNode.addEventListener('click', (event) => {
-    event.preventDefault(); // デフォルトのリンク動作を防止
-    childNodes.classList.toggle('active'); // 子ノードの表示・非表示を切り替え
+    event.preventDefault(); //デフォルトのリンク動作を防止
+    childNodes.classList.toggle('active'); //子ノードの表示・非表示を切り替え
     const isActive = childNodes.classList.contains('active');
-    parentNode.textContent = `${isActive ? '▼' : '▶'} 推しキャラランキング`; // テキストを更新
+    parentNode.textContent = `${isActive ? '▼' : '▶'} 推しキャラランキング`; //テキストを更新
 });
 
 //------------------------------------------------------------------------------------------------
 
-// モーダルを開く
+//モーダルを開く
 helpButton.addEventListener("click", () => {
   modal.style.display = "block";
 });
-// モーダルを閉じる
+//モーダルを閉じる
 closeModalButton.addEventListener("click", () => {
   modal.style.display = "none";
 });
@@ -186,7 +198,7 @@ window.addEventListener("click", (event) => {
   }
 });
 
-// スライダーの操作
+//スライダーの操作
 function updateSlides() {
   slides.forEach((slide, index) => {
     slide.classList.toggle("active", index === currentSlide);
@@ -203,20 +215,20 @@ nextButton.addEventListener("click", () => {
   updateSlides();
 });
 
-// 初期スライド更新
+//初期スライド更新
 updateSlides();
 //------------------------------------------------------------------------------------------------
 
-// ページを離れるときに自分のドキュメントと該当するroomsドキュメントを削除
+//ページを離れるときに自分のドキュメントと該当するroomsドキュメントを削除
 window.addEventListener('beforeunload', async (event) => {
-    if (playerDocRef && !isNavigatingToBattle) { // フラグを確認
-        event.preventDefault(); // これを追加
+    if (playerDocRef && !isNavigatingToBattle) { //フラグを確認
+        event.preventDefault(); //これを追加
         try {
-            // 自分の待機ドキュメントを削除
+            //自分の待機ドキュメントを削除
             await deleteDoc(playerDocRef);
-            playerDocRef = null; // ドキュメント参照をリセット
+            playerDocRef = null; //ドキュメント参照をリセット
 
-            // 条件に合致するroomsドキュメントを削除
+            //条件に合致するroomsドキュメントを削除
             const roomQuery = query(
                 roomsRef,
                 where("player1_ID", "==", playerId),
@@ -226,7 +238,7 @@ window.addEventListener('beforeunload', async (event) => {
             const roomQuerySnapshot = await getDocs(roomQuery);
 
             roomQuerySnapshot.forEach(async (roomDoc) => {
-                await deleteDoc(roomDoc.ref); // roomsドキュメントの削除
+                await deleteDoc(roomDoc.ref); //roomsドキュメントの削除
             });
 
         } catch (error) {
@@ -237,7 +249,7 @@ window.addEventListener('beforeunload', async (event) => {
 
 //------------------------------------------------------------------------------------------------
 
-// 入力を無効化する関数
+//入力を無効化する関数
 function toggleInputs(isDisabled) {
     document.getElementById('playerName').disabled = isDisabled;
     document.getElementById('roomMatching').disabled = isDisabled;
@@ -245,27 +257,27 @@ function toggleInputs(isDisabled) {
 
     document.getElementById('statusMessage').innerText = isDisabled ? "マッチング待機中" : "";
 
-    // サムネイルのクリックイベントを無効化
+    //サムネイルのクリックイベントを無効化
     const thumbnails = document.querySelectorAll('.thumbnail');
     thumbnails.forEach(thumbnail => {
-        thumbnail.style.pointerEvents = isDisabled ? 'none' : 'auto'; // クリック無効化
+        thumbnail.style.pointerEvents = isDisabled ? 'none' : 'auto'; //クリック無効化
     });
 }
 
-// サムネイルのクリックイベント
+//サムネイルのクリックイベント
 document.querySelectorAll('.thumbnail').forEach(thumbnail => {
     thumbnail.addEventListener('click', function() {
-        // すべてのサムネイルの選択状態を解除
+        //すべてのサムネイルの選択状態を解除
         document.querySelectorAll('.thumbnail').forEach(t => {
             t.classList.remove('selected');
-            // 選択状態ではないサムネイルのアニメーションを停止
+            //選択状態ではないサムネイルのアニメーションを停止
             t.style.animationPlayState = 'paused';
         });
 
-        // クリックされたサムネイルを選択状態に
+        //クリックされたサムネイルを選択状態に
         thumbnail.classList.add('selected');
         
-        // 選択されたサムネイルだけアニメーションを有効化
+        //選択されたサムネイルだけアニメーションを有効化
         thumbnail.style.animationPlayState = 'running';
         
     });
@@ -273,7 +285,7 @@ document.querySelectorAll('.thumbnail').forEach(thumbnail => {
 
 //------------------------------------------------------------------------------------------------
 
-// 自分のIDを持つデータを削除する関数
+//自分のIDを持つデータを削除する関数
 async function removePlayerFromRoom(generatedId) {
 
     const roomRef = query(collection(db, "rooms"), where("player1_ID", "==", generatedId));
@@ -283,10 +295,10 @@ async function removePlayerFromRoom(generatedId) {
     document.getElementById('generatedId').innerText = "";
     document.getElementById('statusMessage').innerText = "";
     
-    // Firestoreのバッチを作成
+    //Firestoreのバッチを作成
     const batch = writeBatch(db);
 
-    // roomsから削除
+    //roomsから削除
     roomSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
     });
@@ -295,59 +307,59 @@ async function removePlayerFromRoom(generatedId) {
 }
 //------------------------------------------------------------------------------------------------
 
-// クッキーからUUIDを取得
+//クッキーからUUIDを取得
 function getUUIDFromCookie() {
-    const cookies = document.cookie.split("; "); // クッキーを配列に分割
+    const cookies = document.cookie.split("; "); //クッキーを配列に分割
     const uuidCookie = cookies.find(cookie => cookie.startsWith("playerUUID="));
     
-    // UUIDが見つかった場合に値を返す
+    //UUIDが見つかった場合に値を返す
     return uuidCookie ? uuidCookie.split("=")[1] : null;
 }
 
 //------------------------------------------------------------------------------------------------
 
-// マッチングボタンのクリックイベント
+//マッチングボタンのクリックイベント
 document.getElementById('matchButton').addEventListener('click', async () => {
     
     selectSound.play();
 
-    localStorage.setItem("timeRemaining", 1000); // 残り時間を保存
+    localStorage.setItem("timeRemaining", 1000); //残り時間を保存
     
-    // プレイヤー名チェック
+    //プレイヤー名チェック
     const playerName = document.getElementById('playerName').value;
     if (playerName.trim() === "") {
         document.getElementById('statusMessage').innerText = "名前を入力してください。";
         return;
     }
     
-    // キャラクター選択チェック
+    //キャラクター選択チェック
     const charaID = document.getElementById('charaID').value;
     if (charaID.trim() === "") {
         document.getElementById('statusMessage').innerText = "キャラクターを選択してください。";
         return;
     }
     
-    // 合言葉マッチング用
+    //合言葉マッチング用
     let roomMatching = document.getElementById('roomMatching').value;
     if (roomMatching.trim() === "") {
         roomMatching = null;
     }
 
-    // UUIDの生成
+    //UUIDの生成
     let playerUUID = null
     if (NowMatching == false) {
-        // マッチング開始
+        //マッチング開始
         playerUUID = crypto.randomUUID(); 
     
     } else {
-        // マッチング解除
+        //マッチング解除
         playerUUID = getUUIDFromCookie(); 
         
     }
-    document.cookie = `playerUUID=${playerUUID}; path=/; max-age=259200`; // クッキーに保存（1日間有効）
+    document.cookie = `playerUUID=${playerUUID}; path=/; max-age=259200`; //クッキーに保存（1日間有効）
     
-    // NowMatching = FALSE(マッチングしてない：デフォルト)
-    toggleInputs(!NowMatching); // 入力を切り替え
+    //NowMatching = FALSE(マッチングしてない：デフォルト)
+    toggleInputs(!NowMatching); //入力を切り替え
     const matchButton = document.getElementById('matchButton');
 
     if (NowMatching == false) {
@@ -358,7 +370,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         matchButton.style.backgroundColor = "";
     }
     
-    // ルームを検索する。条件はステータスがwaitingかつ部屋指定用の合言葉が同じ（未入力の場合はNull）
+    //ルームを検索する。条件はステータスがwaitingかつ部屋指定用の合言葉が同じ（未入力の場合はNull）
     const roomsRef = collection(db, "rooms");
     const myroom = query(
         roomsRef,
@@ -369,32 +381,32 @@ document.getElementById('matchButton').addEventListener('click', async () => {
     const matchingRooms = querySnapshot.docs;
     
     if (matchingRooms.length > 0) {
-        // ルームドキュメントの参照を初期化
-        roomDocRef = matchingRooms[0].ref; // 最初のマッチングルームの参照を取得
+        //ルームドキュメントの参照を初期化
+        roomDocRef = matchingRooms[0].ref; //最初のマッチングルームの参照を取得
     
         if (NowMatching) {
-            // マッチング解除
+            //マッチング解除
             removePlayerFromRoom(playerUUID);
             
-            NowMatching = false; // 解除時にfalseに設定
+            NowMatching = false; //解除時にfalseに設定
             
-            toggleInputs(NowMatching); // 入力を切り替え
+            toggleInputs(NowMatching); //入力を切り替え
             
         } else {
         
-            // 更新
+            //更新
             try {
-                // roomDocRefを初期化
-                roomDocRef = matchingRooms[0].ref; // 最初のマッチングルームの参照を取得
+                //roomDocRefを初期化
+                roomDocRef = matchingRooms[0].ref; //最初のマッチングルームの参照を取得
                 
                 document.getElementById('generatedId').innerText = playerUUID;
                 
-                // 更新に対する処理を記述
+                //更新に対する処理を記述
                 listenForMatches();
                 
-                // 既にマッチング待ちのデータがある場合、Player2として更新する。
+                //既にマッチング待ちのデータがある場合、Player2として更新する。
                 await updateDoc(roomDocRef, {
-                    player2_ID: playerUUID, // 修正: player2_IDにUUIDを設定
+                    player2_ID: playerUUID, //修正: player2_IDにUUIDを設定
                     player2_CharaID: charaID,
                     player2_Name: playerName,
                     status: "in_progress"
@@ -412,7 +424,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         
     } else {   
     
-        // まだマッチング待ちがないので、Player1として新規作成する。
+        //まだマッチング待ちがないので、Player1として新規作成する。
         try {
             const startP = (crypto.getRandomValues(new Uint8Array(1))[0] % 2) === 0 ? 'P1' : 'P2';
             const p1color = startP === 'P1' ? 'red' : 'yellow';
@@ -461,7 +473,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
 
 //------------------------------------------------------------------------------------------------
 
-// プレイヤーが待機リストに入ったときのリスナー処理
+//プレイヤーが待機リストに入ったときのリスナー処理
 function listenForMatches() {
 
     const roomsRef = collection(db, "rooms");
@@ -472,28 +484,28 @@ function listenForMatches() {
     if (roomMatching.trim() === "") {
         roomMatching = null;
     }
-    let playerUUID = getUUIDFromCookie(); // クッキーからUUIDを読み込む
+    let playerUUID = getUUIDFromCookie(); //クッキーからUUIDを読み込む
     
     onSnapshot(roomsRef, async (snapshot) => {
         
         const addedDocs = snapshot.docChanges().filter(change => change.type === "added");
         const modifiedDocs = snapshot.docChanges().filter(change => change.type === "modified");
 
-        // 追加されたドキュメントの処理
+        //追加されたドキュメントの処理
         addedDocs.forEach(change => {
         
             const roomData = change.doc.data();
             
-            // statusが"waiting"かつroomMatchingが一致する部屋のみを処理
+            //statusが"waiting"かつroomMatchingが一致する部屋のみを処理
             if (roomData.status === "waiting" && roomData.roomMatching === roomMatching && roomData.player1_ID != playerUUID) {
             
                 if (NowMatching === false) {
                 
-                    return; // NowMatchingがfalseなら処理を実行しない
+                    return; //NowMatchingがfalseなら処理を実行しない
                 }
 
                 document.getElementById('statusMessage').innerText = "マッチングしました！！";
-                isNavigatingToBattle = true; // バトル画面への遷移フラグを設定
+                isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
                 
                 showMatchLabel();
             
@@ -502,11 +514,11 @@ function listenForMatches() {
                 }, 5000);
             }
           
-            // statusが"waiting"かつroomMatchingが一致する部屋のみを処理
+            //statusが"waiting"かつroomMatchingが一致する部屋のみを処理
             if (roomData.status === "in_progress" && roomData.roomMatching === roomMatching && roomData.player2_ID === playerUUID) {
             
                 document.getElementById('statusMessage').innerText = "マッチングしました！！";
-                isNavigatingToBattle = true; // バトル画面への遷移フラグを設定
+                isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
                 
                 showMatchLabel();
             
@@ -516,16 +528,16 @@ function listenForMatches() {
             }
         });
 
-        // 更新されたドキュメントの処理
+        //更新されたドキュメントの処理
         modifiedDocs.forEach(change => {
         
             const roomData = change.doc.data();
             
-            // statusが"in_progress"かつroomMatchingが一致する部屋のみを処理
+            //statusが"in_progress"かつroomMatchingが一致する部屋のみを処理
             if (roomData.status === "in_progress" && roomData.roomMatching === roomMatching && roomData.player1_ID === playerUUID) {
             
                 document.getElementById('statusMessage').innerText = "マッチングしました！！";
-                isNavigatingToBattle = true; // バトル画面への遷移フラグを設定
+                isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
                 
                 showMatchLabel();
             
@@ -537,27 +549,27 @@ function listenForMatches() {
     });
 }
 
-// matchingを表示するための関数
+//matchingを表示するための関数
 async function showMatchLabel() {
     
     const matchLabel = document.getElementById("matchLabel");
 
     matchLabel.innerHTML = 'マッチングしました！<br>バトル画面に移動します。';
 
-    // フェードイン
-    matchLabel.style.display = "block"; // 初めに表示状態に
+    //フェードイン
+    matchLabel.style.display = "block"; //初めに表示状態に
     setTimeout(() => {
-        matchLabel.style.opacity = 1; // 透明度を1にしてフェードイン
-    }, 10); // 少し遅れて実行（レイアウトを反映させるため）
+        matchLabel.style.opacity = 1; //透明度を1にしてフェードイン
+    }, 10); //少し遅れて実行（レイアウトを反映させるため）
 
-    // 3秒後にフェードアウト
+    //3秒後にフェードアウト
     setTimeout(() => {
-        matchLabel.style.opacity = 0; // 透明度を0にしてフェードアウト
-    }, 4000); // 3秒後にフェードアウト
+        matchLabel.style.opacity = 0; //透明度を0にしてフェードアウト
+    }, 4000); //3秒後にフェードアウト
 
-    // フェードアウト後に完全に非表示
+    //フェードアウト後に完全に非表示
     setTimeout(() => {
-        matchLabel.style.display = "none"; // 透明度が0になったら非表示
-    }, 5000); // フェードアウト後に少し待ってから非表示
+        matchLabel.style.display = "none"; //透明度が0になったら非表示
+    }, 5000); //フェードアウト後に少し待ってから非表示
 }
 //------------------------------------------------------------------------------------------------

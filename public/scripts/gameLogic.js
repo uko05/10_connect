@@ -163,6 +163,7 @@ let timeLimit = 100; // タイムリミット（秒）
 let timeRemaining = timeLimit; // 残り時間
 let timeLimitGauge = document.getElementById('timeLimitGauge');
 
+let onlyCutIn = 0;
 //------------------------------------------------------------------------------------------------
 // 要素取得
 const modal = document.getElementById("helpModal");
@@ -846,18 +847,31 @@ async function watchRoomUpdates() {
             
             // 相手がULTを使ったときにカットインだけでも出したいなぁ
             let check_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
-                console.log("必殺技判定　前：", check_UltCount);
-                console.log("必殺技判定　後：", playerRight_UltCount);
+            
+            console.log("▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼");
+            console.log("現在のターン数：", data.turnCount);
+            console.log("ターンプレイヤー：", data.turn);
+            console.log("必殺技判定　前：", check_UltCount);
+            console.log("必殺技判定　後：", playerRight_UltCount);
+            
             if (playerRight_UltCount === check_UltCount) {
             
             } else {
-                console.log("相手が必殺技を使いました。");
-                // カットイン終了後に必殺技の関数を実行
-                isTurnPlayerUltVoice();
-                disp_TopStone(turn, nowCol);
-                
-                // カットインを表示し、終了を待機
-                await showCutIn();
+                if (onlyCutIn == 0) {
+                    console.log("★相手が必殺技を使いました。");
+                    // カットイン終了後に必殺技の関数を実行
+                    isTurnPlayerUltVoice();
+                    disp_TopStone(turn, nowCol);
+
+                    // カットインを表示し、終了を待機
+                    await showCutIn();
+                    onlyCutIn = 1;
+                    return;
+
+                } else {
+                    onlyCutIn = 0;
+                    console.log("●自分が必殺技を使いました。");
+                }
             }
             playerRight_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
             
@@ -872,6 +886,9 @@ async function watchRoomUpdates() {
             // 全てのフィールドが埋まっているときはランダムな列を削除する
             handleFullBoard(stonesData);
 
+            console.log("カットインフラグ：", onlyCutIn);
+            console.log("ターンフラグ：", isTurnPlayer());
+            
             let stoneUpdated = false;
             for (const key in stonesData) {
                 if (stonesData[key].turnCount === turnCount - 1 && !ultAfter) {
@@ -879,15 +896,18 @@ async function watchRoomUpdates() {
                     const color = stonesData[key].color;
                     animateStoneDrop(column, row, color);
                     stoneUpdated = true;
+                    console.log("ドロップ列：", column);
+                    console.log("ドロップ行：", row);
+                    console.log("ドロップ色：", color);
                 }
             }
-            
-            console.log("*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=");
-            
             // 勝利した色の石を格納する。
             const result = checkWin(stonesData);
             
             if ((result.red || result.yellow)) {
+            
+                console.log("↓↓↓↓↓↓↓↓↓↓↓");
+                console.log("勝利判定①");
                 
                 // 勝敗ラベル表示中は石を落とせないようにフラグを立てる。
                 winningflg = 1;
@@ -948,17 +968,24 @@ async function watchRoomUpdates() {
                 // 勝利したときのラベル表示（YOU WIN:YOU LOSE）
                 await showWinner(result);
                 
+                console.log("↑↑↑↑↑↑↑↑↑↑↑");
             } 
             
             if (red_Win === 3 || yellow_Win === 3) {
+                console.log("◆◆◆◆◆◆◆◆◆◆◆");
+                console.log("勝利判定②");
                 const winningColor = red_Win === 3 ? "red" : "yellow";
                 displayVictory(winningColor); // 勝利画面を表示
                 resetTimeLimit();
+                console.log("◆◆◆◆◆◆◆◆◆◆◆");
                 return; // この後の処理をスキップ
             }
             
             // ターンプレイヤーのみ処理を行う（二重更新対策）
             if (result.red || result.yellow) {
+            
+                console.log("●●●●●●●●●●●");
+                
                 if (!isTurnPlayer()) {
                     await deleteStonesAndUpdate();
                     console.log("Roomsコレクション石初期化");
@@ -972,6 +999,8 @@ async function watchRoomUpdates() {
                 // 画面リセットしたのでフラグを戻す。
                 winningflg = 0;
                 
+                console.log("〇〇〇〇〇〇〇〇〇〇〇");
+                
             } else {
                 showTurnLabel();
                 disp_TopStone(turn, nowCol);
@@ -982,6 +1011,8 @@ async function watchRoomUpdates() {
             createMemoryMarks();  // メモリ線を作成
             updateTimeLimit();    // タイムリミットの更新開始
 
+            console.log("▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲");
+            
         });
     });
 }
@@ -2023,7 +2054,9 @@ async function invokeAbility(functionName) {
     console.log("invokeAbility:", functionName);
     if (typeof abilities[functionName] === "function") {
         console.log("必殺技実行");
-
+        
+        ult_CntUP();
+        
         // カットイン終了後に必殺技の関数を実行
         isTurnPlayerUltVoice();
         
@@ -2031,6 +2064,7 @@ async function invokeAbility(functionName) {
         await showCutIn();
 
         abilities[functionName](); // 関数を動的に呼び出す
+        console.log("必殺技でドキュメントを更新しました。");
     } else {
         console.error(`Function ${functionName} is not defined in abilities module`);
     }
@@ -2113,6 +2147,19 @@ function getRandomTwoNumbers() {
     const result = [];
 
     while (result.length < 2) {
+        const randomIndex = Math.floor(Math.random() * numbers.length); // 配列のランダムなインデックスを取得
+        const column = numbers.splice(randomIndex, 1)[0]; // 選ばれた列番号を取得し、候補から削除
+        result.push({ column, row: 1 }); // { column, row } 形式で結果リストに追加 (row は 1 固定)
+    }
+
+    return result;
+}
+
+function getRandomThreeNumbers() {
+    const numbers = [0, 1, 5, 6]; // 候補となる列番号
+    const result = [];
+
+    while (result.length < 3) {
         const randomIndex = Math.floor(Math.random() * numbers.length); // 配列のランダムなインデックスを取得
         const column = numbers.splice(randomIndex, 1)[0]; // 選ばれた列番号を取得し、候補から削除
         result.push({ column, row: 1 }); // { column, row } 形式で結果リストに追加 (row は 1 固定)
@@ -2253,9 +2300,7 @@ async function deleteStones(stonesToDelete) {
             const roomDocRef = doc(db, "rooms", roomDoc.id);
             await updateDoc(roomDocRef, { 
                 player1_ChargeNow: p1_chargeNow,
-                player1_UltCount: p1_UltCount,
                 player2_ChargeNow: p2_chargeNow,
-                player2_UltCount: p2_UltCount,
                 stones: stonesData 
             });
         });
@@ -2403,10 +2448,8 @@ async function ult_downThinkingTime() {
             await updateDoc(roomDocRef, { 
                 player1_ChargeNow: p1_chargeNow,
                 player1_TimeLimit: p1_Time,
-                player1_UltCount: p1_UltCount,
                 player2_ChargeNow: p2_chargeNow,
                 player2_TimeLimit: p2_Time,
-                player2_UltCount: p2_UltCount
             });
             console.log("思考時間が減少しました。");
         }
@@ -2472,9 +2515,7 @@ async function ult_randomAbility(){
             
             await updateDoc(roomDocRef, { 
                 player1_ChargeNow: p1_chargeNow,
-                player1_UltCount: p1_UltCount,
                 player2_ChargeNow: p2_chargeNow,
-                player2_UltCount: p2_UltCount,
                 changeStone: changeStone
             });
         }
@@ -2486,47 +2527,59 @@ async function ult_randomAbility(){
 //------------------------------------------------------------------------------------------------
 
 async function ult_madness() {
-    console.log("ルアンママの必殺技発動！");
-    try {
-        // Firestoreから石の情報を取得
-        const roomsRef = collection(db, "rooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
-        const querySnapshot = await getDocs(q);
 
-        if (querySnapshot.empty) {
-            console.error("Room not found.");
-            return;
-        }
+    const randomStones = getRandomThreeNumbers();
+    console.log("キャストリスの必殺技発動！:", randomStones);
+    
+    const stonesToDelete = await getStonesToDelete(randomStones, 6);
 
-        const roomDoc = querySnapshot.docs[0];
-        const roomData = roomDoc.data();
-        const stonesData = roomData.stones || {};
-        console.log("現在のstonesData:", stonesData);
+    // 石をハイライト
+    highlightStones(stonesToDelete, 250);
 
-        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // 必殺技ゲージ
-        const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false); // 必殺技回数
-
-        // 赤と黄色の変更する石を取得
-        const [redChangeStones, yellowChangeStones] = await getStonesToChange(stonesData, playerLeft_UltCount);
-
-        console.log("逆転する赤の石:", redChangeStones);
-        console.log("逆転する黄の石:", yellowChangeStones);
-
-        // 石の色を逆転
-        await changeStonesColor(stonesData, redChangeStones, yellowChangeStones);
-
-        // ハイライト処理
-        await highlightStones(redChangeStones, 250);
-        await highlightStones(yellowChangeStones, 250);
-
-        // Firestoreに更新
-        await updateRoomWithNewStones(roomDoc.id, stonesData, p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount);
-
-        init_drawBoard(true);
-        
-    } catch (error) {
-        console.error("必殺技の処理中にエラーが発生しました:", error);
-    }
+    // 石を削除
+    deleteStones(stonesToDelete);
+    
+//    console.log("ルアンママの必殺技発動！");
+//    try {
+//        // Firestoreから石の情報を取得
+//        const roomsRef = collection(db, "rooms");
+//        const q = query(roomsRef, where("roomID", "==", roomID));
+//        const querySnapshot = await getDocs(q);
+//
+//        if (querySnapshot.empty) {
+//            console.error("Room not found.");
+//            return;
+//        }
+//
+//        const roomDoc = querySnapshot.docs[0];
+//        const roomData = roomDoc.data();
+//        const stonesData = roomData.stones || {};
+//        console.log("現在のstonesData:", stonesData);
+//
+//        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // 必殺技ゲージ
+//        const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false); // 必殺技回数
+//
+//        // 赤と黄色の変更する石を取得
+//        const [redChangeStones, yellowChangeStones] = await getStonesToChange(stonesData, playerLeft_UltCount);
+//
+//        console.log("逆転する赤の石:", redChangeStones);
+//        console.log("逆転する黄の石:", yellowChangeStones);
+//
+//        // 石の色を逆転
+//        await changeStonesColor(stonesData, redChangeStones, yellowChangeStones);
+//
+//        // ハイライト処理
+//        await highlightStones(redChangeStones, 250);
+//        await highlightStones(yellowChangeStones, 250);
+//
+//        // Firestoreに更新
+//        await updateRoomWithNewStones(roomDoc.id, stonesData, p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount);
+//
+//        init_drawBoard(true);
+//            
+//    } catch (error) {
+//        console.error("必殺技の処理中にエラーが発生しました:", error);
+//    }
 }
 
 // 石の色を逆転する関数
