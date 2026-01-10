@@ -1082,51 +1082,84 @@ function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+//// ターンを表示するための関数
+//async function showTurnLabel() {
+//    
+//    const turnLabel = document.getElementById("turnLabel");
+//    let turnlbl = null;
+//
+//    if (isTurnPlayer()) {
+//        turnlbl = "自分のターン";
+//
+//        if (turn === startP) {
+//            // 赤側グラデーション
+//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
+//        } else {
+//            // 黄色側グラデーション
+//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
+//        }
+//    } else {
+//        turnlbl = "相手のターン";
+//
+//        if (turn === startP) {
+//            // 赤側グラデーション
+//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
+//        } else {
+//            // 黄色側グラデーション
+//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
+//        }
+//    }
+//
+//    turnLabel.innerHTML = `${turnlbl} <br> ${turnCount}ターン目`;
+//
+//    // フェードイン
+//    turnLabel.style.display = "block"; // 初めに表示状態に
+//    setTimeout(() => {
+//        turnLabel.style.opacity = 1; // 透明度を1にしてフェードイン
+//    }, 10); // 少し遅れて実行（レイアウトを反映させるため）
+//
+//    // 3秒後にフェードアウト
+//    setTimeout(() => {
+//        turnLabel.style.opacity = 0; // 透明度を0にしてフェードアウト
+//    }, 1000); // 1秒後にフェードアウト
+//
+//    // フェードアウト後に完全に非表示
+//    setTimeout(() => {
+//        turnLabel.style.display = "none"; // 透明度が0になったら非表示
+//    }, 1500); // フェードアウト後に少し待ってから非表示
+//}
+
 // ターンを表示するための関数
 async function showTurnLabel() {
-    
-    const turnLabel = document.getElementById("turnLabel");
-    let turnlbl = null;
+  const turnLabel = document.getElementById("turnLabel");
 
-    if (isTurnPlayer()) {
-        turnlbl = "自分のターン";
+  const isMyTurn = isTurnPlayer();
+  const turnlbl = isMyTurn ? "自分のターン" : "相手のターン";
 
-        if (turn === startP) {
-            // 赤側グラデーション
-            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
-        } else {
-            // 黄色側グラデーション
-            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
-        }
-    } else {
-        turnlbl = "相手のターン";
+  // ★ここが本体：今ターンの色を決める
+  const turnColor = (turn === player_info) ? playerLeft_Color : playerRight_Color;
 
-        if (turn === startP) {
-            // 赤側グラデーション
-            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
-        } else {
-            // 黄色側グラデーション
-            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
-        }
-    }
+  if (turnColor === "red") {
+    // 赤側グラデーション
+    turnLabel.style.background =
+      "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
+  } else {
+    // 黄色側グラデーション
+    turnLabel.style.background =
+      "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
+  }
 
-    turnLabel.innerHTML = `${turnlbl} <br> ${turnCount}ターン目`;
+  turnLabel.innerHTML = `${turnlbl} <br> ${turnCount}ターン目`;
 
-    // フェードイン
-    turnLabel.style.display = "block"; // 初めに表示状態に
-    setTimeout(() => {
-        turnLabel.style.opacity = 1; // 透明度を1にしてフェードイン
-    }, 10); // 少し遅れて実行（レイアウトを反映させるため）
+  // フェードイン
+  turnLabel.style.display = "block";
+  setTimeout(() => (turnLabel.style.opacity = 1), 10);
 
-    // 3秒後にフェードアウト
-    setTimeout(() => {
-        turnLabel.style.opacity = 0; // 透明度を0にしてフェードアウト
-    }, 1000); // 1秒後にフェードアウト
+  // 1秒後にフェードアウト
+  setTimeout(() => (turnLabel.style.opacity = 0), 1000);
 
-    // フェードアウト後に完全に非表示
-    setTimeout(() => {
-        turnLabel.style.display = "none"; // 透明度が0になったら非表示
-    }, 1500); // フェードアウト後に少し待ってから非表示
+  // 非表示
+  setTimeout(() => (turnLabel.style.display = "none"), 1500);
 }
 
 function handleStoneDrop(event) {
