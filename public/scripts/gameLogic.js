@@ -1428,51 +1428,87 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 }
 
 //--------------------------------------------------------------------------------
-// 時間切れ関係
+// 時間切れ関係（Tx版・ログ/例外ハンドリング付き）
 async function updateRoomWithStone_timeoutTx(column, playerColor) {
-  const roomsRef = collection(db, "rooms");
-  const q = query(roomsRef, where("roomID", "==", roomID));
-  const qs = await getDocs(q);
-  if (qs.empty) return;
+  try {
+    const roomsRef = collection(db, "rooms");
+    const q = query(roomsRef, where("roomID", "==", roomID));
+    const qs = await getDocs(q);
 
-  // 通常 rooms は1件のはずなので1件だけ使う想定
-  const roomRef = qs.docs[0].ref;
+    if (qs.empty) {
+      console.warn("[timeoutTx] roomが見つからない", { roomID });
+      return false;
+    }
 
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(roomRef);
-    if (!snap.exists()) return;
+    // 通常1件想定
+    const roomRef = qs.docs[0].ref;
 
-    const data = snap.data();
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(roomRef);
 
-    // ★サーバー上で「今ほんとに自分のターンか」を確認
-    if (data.turn !== player_info) return;
+      if (!snap.exists()) {
+        console.warn("[timeoutTx] snapが存在しない", { roomID });
+        return;
+      }
 
-    const stones = data.stones || {};
+      const data = snap.data();
 
-    // ★サーバーのstonesで row を決める
-    const row = findAvailableRowFromStones(column, stones);
-    if (row < 0) return;
+      // ★サーバー上で「今ほんとに自分のターンか」を確認
+      if (data.turn !== player_info) {
+        console.warn("[timeoutTx] ターン不一致で中断", {
+          serverTurn: data.turn,
+          me: player_info,
+          serverTurnCount: data.turnCount,
+        });
+        return;
+      }
 
-    const currentTurnCount = data.turnCount ?? 1;
-    const nextTurn = (data.turn === "P1") ? "P2" : "P1";
+      const stones = data.stones || {};
 
-    const nextChangeStone =
-      (data.changeStone ?? 0) > 0 ? (data.changeStone - 1) : 0;
+      // ★サーバーのstonesで row を決める
+      const row = findAvailableRowFromStones(column, stones);
+      if (row < 0) {
+        console.warn("[timeoutTx] 列が満杯で中断", { column });
+        return;
+      }
 
-    const timeoutField =
-      (player_info === "P1") ? "player1_TimeoutCount" : "player2_TimeoutCount";
+      const currentTurnCount = data.turnCount ?? 1;
+      const nextTurn = (data.turn === "P1") ? "P2" : "P1";
 
-    tx.update(roomRef, {
-      [`stones.${column}_${row}`]: {
+      const nextChangeStone =
+        (data.changeStone ?? 0) > 0 ? (data.changeStone - 1) : 0;
+
+      const timeoutField =
+        (player_info === "P1") ? "player1_TimeoutCount" : "player2_TimeoutCount";
+
+      console.log("[timeoutTx] 更新実行", {
+        column,
+        row,
         color: playerColor,
-        turnCount: currentTurnCount
-      },
-      turn: nextTurn,
-      turnCount: currentTurnCount + 1,
-      changeStone: nextChangeStone,
-      [timeoutField]: increment(1),
+        currentTurnCount,
+        nextTurn,
+        timeoutField,
+      });
+
+      tx.update(roomRef, {
+        [`stones.${column}_${row}`]: {
+          color: playerColor,
+          turnCount: currentTurnCount,
+        },
+        turn: nextTurn,
+        turnCount: currentTurnCount + 1,
+        changeStone: nextChangeStone,
+        [timeoutField]: increment(1),
+      });
     });
-  });
+
+    console.log("[timeoutTx] runTransaction 完了");
+    return true;
+
+  } catch (e) {
+    console.error("[timeoutTx] 例外で失敗", e);
+    return false;
+  }
 }
 
 function findAvailableRowFromStones(column, stones) {
