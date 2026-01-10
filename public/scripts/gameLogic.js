@@ -2018,9 +2018,8 @@ async function updateTimeLimit() {
                     highlightedColumn.remove();
                 }  
             }
-            // ■■■■■2026/01/10　追加
-            await recordTimeoutOncePerTurn();
-            dropStone(nowCol, 3);
+            
+            await dropStone(nowCol, 3);
         }
         resetTimeLimit();
     }
