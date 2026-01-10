@@ -1226,35 +1226,37 @@ function findAvailableRow(column, stonesData) {
     return row - 1; // 最後に石を置ける行を返す
 }
 
-// 実際の石を落とす処理を行う関数
-async function dropStone(column, normalAttack = true) {
+// attackType: 1=通常, 2=必殺技等, 3=時間切れ
+async function dropStone(column, attackType = 1) {
 
-    let color = playerLeft_Color;
-    if (changeStone > 0) {
-        color = color === 'red' ? 'yellow' : 'red'; // 色交換
-    }
-    const row = await findAvailableRow(column, stonesData);
-    if (row < 0) return; // すでに列が満杯の場合
+  let color = playerLeft_Color;
+  if (changeStone > 0) {
+    color = color === 'red' ? 'yellow' : 'red';
+  }
 
-    animateStoneDrop(column, row, color); // アニメーションで石を落とす
-    
-    let chargeNum = isTurnChargeNum(turn);
-    
-    await updateRoomWithStone(column, row, color, turnCount, chargeNum, normalAttack); // Firestoreにデータを更新
-    if (normalAttack && !ultAfter) {
-        isTurnPlayerAttackVoice();
-        
-        // 例：石が落ちるたびにゲージを更新
-        updateGauge();
-        chargeSound.play();
-    } else {
-        if (ultAfter) {
-            console.log("ultAfterを通常に戻しました。");
-            ultAfter = false;
-        }
+  const row = await findAvailableRow(column, stonesData);
+  if (row < 0) return;
+
+  animateStoneDrop(column, row, color);
+
+  const chargeNum = isTurnChargeNum(turn);
+
+  // ★ attackType を渡す
+  await updateRoomWithStone(column, row, color, turnCount, chargeNum, attackType);
+
+  // ★ サウンドは「通常攻撃のみ」
+  if (attackType === 1 && !ultAfter) {
+    isTurnPlayerAttackVoice();
+    updateGauge();
+    chargeSound.play();
+  } else {
+    if (ultAfter) {
+      console.log("ultAfterを通常に戻しました。");
+      ultAfter = false;
     }
-    
-    await wait(1000);  // ここで2秒待機します
+  }
+
+  await wait(1000);
 }
 
 function isTurnPlayerAttackVoice() {
@@ -1281,65 +1283,140 @@ function isTurnPlayerUltVoice() {
     }
 }
 
-async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNum, normalAttack = true) {
+//async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNum, normalAttack = true) {
+//
+//    // rooms コレクションから roomID フィールドで一致するドキュメントを取得
+//    const roomsRef = collection(db, "rooms");
+//    const q = query(roomsRef, where("roomID", "==", roomID));  // roomIDが一致するドキュメントを検索
+//    const querySnapshot = await getDocs(q);
+//    let p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount;
+//    let isturn = turn === 'P1' ? 'P2' : 'P1';
+//    
+//    if (querySnapshot.empty) {
+//        return; // データが見つからない場合は処理を中断
+//    }
+//
+//    // ドキュメントが見つかった場合のみ更新処理を実行
+//    querySnapshot.forEach(async (doc) => {
+//        // ドキュメントデータを取得
+//        const roomData = doc.data();
+//        
+//        if(!normalAttack) {
+//            // ULT攻撃
+//            console.log("●必殺技攻撃", player_info);
+//            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
+//            [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
+//            changeStone = roomData.changeStone;
+//            
+//            // ホタル専用の処理
+//            if (playerLeft_CharaID === '009') isturn = isturn === 'P1' ? 'P2' : 'P1';
+//            
+//        } else if(ultAfter) {
+//            // 必殺技直後の通常攻撃
+//            console.log("●必殺技直後の通常攻撃", player_info);
+//            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData); // roomData を渡す
+//            [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
+//            changeStone = roomData.changeStone > 0 ? roomData.changeStone - 1 : 0;
+//            
+//        } else {
+//            // 通常攻撃
+//            console.log("●通常攻撃", player_info);
+//            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData); // roomData を渡す
+//            [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
+//            changeStone = roomData.changeStone > 0 ? roomData.changeStone - 1 : 0;
+//            
+//        }
+//        // Firestoreに更新処理を実行
+//        await updateDoc(doc.ref, {
+//            player1_ChargeNow: p1_chargeNow,
+//            player1_UltCount: p1_UltCount,
+//            player2_ChargeNow: p2_chargeNow,
+//            player2_UltCount: p2_UltCount,
+//            [`stones.${column}_${row}`]: {
+//                color: playerColor,
+//                turnCount: turnCount // ターン情報を追加
+//            },
+//            turn: isturn,
+//            turnCount: turnCount + 1, // 現在のターン数を更新
+//            changeStone: changeStone
+//        });
+//        
+//    });
+//}
 
-    // rooms コレクションから roomID フィールドで一致するドキュメントを取得
-    const roomsRef = collection(db, "rooms");
-    const q = query(roomsRef, where("roomID", "==", roomID));  // roomIDが一致するドキュメントを検索
-    const querySnapshot = await getDocs(q);
+async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNum, attackType) {
+
+  const roomsRef = collection(db, "rooms");
+  const q = query(roomsRef, where("roomID", "==", roomID));
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) return;
+
+  for (const docSnap of querySnapshot.docs) {
+
+    const roomData = docSnap.data();
+
     let p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount;
-    let isturn = turn === 'P1' ? 'P2' : 'P1';
-    
-    if (querySnapshot.empty) {
-        return; // データが見つからない場合は処理を中断
+
+    // 次のターン（基本は交代）
+    let nextTurn = (turn === "P1") ? "P2" : "P1";
+
+    // ★changeStoneはローカルで持つ（安全）
+    let nextChangeStone = roomData.changeStone ?? 0;
+
+    if (attackType === 2) {
+      // ULT攻撃
+      console.log("●必殺技攻撃", player_info);
+
+      [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+      [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
+      nextChangeStone = roomData.changeStone ?? 0;
+
+      // ホタル専用（ターン継続？）
+      if (playerLeft_CharaID === "009") {
+        nextTurn = (nextTurn === "P1") ? "P2" : "P1";
+      }
+
+    } else if (ultAfter) {
+      // 必殺技直後の通常攻撃
+      console.log("●必殺技直後の通常攻撃", player_info);
+
+      [p1_chargeNow, p2_chargeNow] = await getcharge(roomData);
+      [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
+      nextChangeStone = (roomData.changeStone ?? 0) > 0 ? (roomData.changeStone - 1) : 0;
+
+    } else {
+      // 通常攻撃 or 時間切れ
+      console.log(attackType === 3 ? "●時間切れ投下" : "●通常攻撃", player_info);
+
+      [p1_chargeNow, p2_chargeNow] = await getcharge(roomData);
+      [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
+      nextChangeStone = (roomData.changeStone ?? 0) > 0 ? (roomData.changeStone - 1) : 0;
     }
 
-    // ドキュメントが見つかった場合のみ更新処理を実行
-    querySnapshot.forEach(async (doc) => {
-        // ドキュメントデータを取得
-        const roomData = doc.data();
-        
-        if(!normalAttack) {
-            // ULT攻撃
-            console.log("●必殺技攻撃", player_info);
-            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
-            [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
-            changeStone = roomData.changeStone;
-            
-            // ホタル専用の処理
-            if (playerLeft_CharaID === '009') isturn = isturn === 'P1' ? 'P2' : 'P1';
-            
-        } else if(ultAfter) {
-            // 必殺技直後の通常攻撃
-            console.log("●必殺技直後の通常攻撃", player_info);
-            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData); // roomData を渡す
-            [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
-            changeStone = roomData.changeStone > 0 ? roomData.changeStone - 1 : 0;
-            
-        } else {
-            // 通常攻撃
-            console.log("●通常攻撃", player_info);
-            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData); // roomData を渡す
-            [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
-            changeStone = roomData.changeStone > 0 ? roomData.changeStone - 1 : 0;
-            
-        }
-        // Firestoreに更新処理を実行
-        await updateDoc(doc.ref, {
-            player1_ChargeNow: p1_chargeNow,
-            player1_UltCount: p1_UltCount,
-            player2_ChargeNow: p2_chargeNow,
-            player2_UltCount: p2_UltCount,
-            [`stones.${column}_${row}`]: {
-                color: playerColor,
-                turnCount: turnCount // ターン情報を追加
-            },
-            turn: isturn,
-            turnCount: turnCount + 1, // 現在のターン数を更新
-            changeStone: changeStone
-        });
-        
-    });
+    const updatePayload = {
+      player1_ChargeNow: p1_chargeNow,
+      player1_UltCount: p1_UltCount,
+      player2_ChargeNow: p2_chargeNow,
+      player2_UltCount: p2_UltCount,
+      [`stones.${column}_${row}`]: {
+        color: playerColor,
+        turnCount: turnCount
+      },
+      turn: nextTurn,
+      turnCount: turnCount + 1,
+      changeStone: nextChangeStone
+    };
+
+    // ★時間切れならTimeoutCountを加算（競合に強い increment）
+    if (attackType === 3) {
+      const isP1 = (player_info === "P1");
+      const field = isP1 ? "player1_TimeoutCount" : "player2_TimeoutCount";
+      updatePayload[field] = increment(1);
+    }
+
+    await updateDoc(docSnap.ref, updatePayload);
+  }
 }
 
 // 3. roomsが更新されたときに動く処理
@@ -1878,7 +1955,7 @@ async function updateTimeLimit() {
             }
             // ■■■■■2026/01/10　追加
             await recordTimeoutOncePerTurn();
-            dropStone(nowCol);
+            dropStone(nowCol, 3);
         }
         resetTimeLimit();
     }
@@ -2234,7 +2311,7 @@ function showCutIn() {
 async function ult_randomVertical1Drop(){
     nowCol = await getRandomEmptyColumn();
     console.log("ホタルの必殺技発動！:", nowCol);
-    dropStone(nowCol, false);
+    dropStone(nowCol, 2);
 }
 
 //------------------------------------------------------------------------------------------------

@@ -45,6 +45,8 @@ const nextButton = document.querySelector(".next-btn");
 
 let currentSlide = 0;
 
+const WAITING_EXPIRE_MS = 5 * 60 * 1000; // 5分
+
 //------------------------------------------------------------------------------------------------
 //サムネイルを表示する関数
 function displayThumbnails() {
@@ -317,6 +319,47 @@ function getUUIDFromCookie() {
 }
 
 //------------------------------------------------------------------------------------------------
+function startWaitingExpireTimer(roomDocRef) {
+  // まず doc を1回読んで createdAt を取る
+  getDoc(roomDocRef).then((snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    // createdAt が Date で入ってるなら、Firestore では Timestamp になることが多い
+    const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+    const expireAt = createdAt.getTime() + WAITING_EXPIRE_MS;
+    const delay = expireAt - Date.now();
+
+    // 既に期限切れなら即処理
+    const ms = Math.max(0, delay);
+
+    setTimeout(async () => {
+      try {
+        const latest = await getDoc(roomDocRef);
+        if (!latest.exists()) return;
+
+        const d = latest.data();
+        // まだ waiting のままなら削除
+        if (d.status === "waiting" && (d.player2_ID == null)) {
+          await deleteDoc(roomDocRef);
+
+          // UI を「解除」状態へ
+          NowMatching = false;
+          toggleInputs(false);
+          const matchButton = document.getElementById('matchButton');
+          matchButton.innerText = "マッチング";
+          matchButton.style.backgroundColor = "";
+          document.getElementById('statusMessage').innerText = "20分経過したのでキャンセルしました。";
+          document.getElementById('generatedId').innerText = "";
+        }
+      } catch (e) {
+        console.error("waiting expire delete failed:", e);
+      }
+    }, ms);
+  });
+}
+
+//------------------------------------------------------------------------------------------------
 
 //マッチングボタンのクリックイベント
 document.getElementById('matchButton').addEventListener('click', async () => {
@@ -458,7 +501,8 @@ document.getElementById('matchButton').addEventListener('click', async () => {
                 turnCount: 1,
                 changeStone: 0
             });
-
+            startWaitingExpireTimer(playerDocRef);
+            
             document.getElementById('generatedId').innerText = playerUUID;
             
             listenForMatches();
