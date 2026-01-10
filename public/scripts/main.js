@@ -45,7 +45,7 @@ const nextButton = document.querySelector(".next-btn");
 
 let currentSlide = 0;
 
-const WAITING_EXPIRE_MS = 5 * 60 * 1000; // 5分
+const WAITING_EXPIRE_MS = 15 * 60 * 1000; // 5分
 
 //------------------------------------------------------------------------------------------------
 //サムネイルを表示する関数

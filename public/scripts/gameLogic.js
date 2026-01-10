@@ -1346,10 +1346,15 @@ function isTurnPlayerUltVoice() {
 
 async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNum, attackType) {
 
+  if (attackType === 3) {
+    await updateRoomWithStone_timeoutTx(column, playerColor);
+    return;
+  }
+  
   const roomsRef = collection(db, "rooms");
   const q = query(roomsRef, where("roomID", "==", roomID));
   const querySnapshot = await getDocs(q);
-
+  
   if (querySnapshot.empty) return;
 
   for (const docSnap of querySnapshot.docs) {
@@ -1359,7 +1364,8 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
     let p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount;
 
     // 次のターン（基本は交代）
-    let nextTurn = (turn === "P1") ? "P2" : "P1";
+    let nextTurn = (roomData.turn === "P1") ? "P2" : "P1";
+
 
     // ★changeStoneはローカルで持つ（安全）
     let nextChangeStone = roomData.changeStone ?? 0;
@@ -1387,12 +1393,21 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 
     } else {
       // 通常攻撃 or 時間切れ
-      console.log(attackType === 3 ? "●時間切れ投下" : "●通常攻撃", player_info);
-
       [p1_chargeNow, p2_chargeNow] = await getcharge(roomData);
       [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
       nextChangeStone = (roomData.changeStone ?? 0) > 0 ? (roomData.changeStone - 1) : 0;
     }
+    if (roomData.turn !== player_info) {
+      console.warn("自分のターンじゃないので中断");
+      continue;
+    }
+    const stones = roomData.stones || {};
+    if (stones[`${column}_${row}`]) {
+      console.warn("row競合検知: サーバー上では埋まってたので中断");
+      continue;
+    }
+
+    const currentTurnCount = roomData.turnCount ?? 1;
 
     const updatePayload = {
       player1_ChargeNow: p1_chargeNow,
@@ -1401,23 +1416,73 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
       player2_UltCount: p2_UltCount,
       [`stones.${column}_${row}`]: {
         color: playerColor,
-        turnCount: turnCount
+        turnCount: currentTurnCount
       },
       turn: nextTurn,
-      turnCount: turnCount + 1,
+      turnCount: currentTurnCount + 1,
       changeStone: nextChangeStone
     };
-
-    // ★時間切れならTimeoutCountを加算（競合に強い increment）
-    if (attackType === 3) {
-      const isP1 = (player_info === "P1");
-      const field = isP1 ? "player1_TimeoutCount" : "player2_TimeoutCount";
-      updatePayload[field] = increment(1);
-    }
 
     await updateDoc(docSnap.ref, updatePayload);
   }
 }
+
+//--------------------------------------------------------------------------------
+// 時間切れ関係
+async function updateRoomWithStone_timeoutTx(column, playerColor) {
+  const roomsRef = collection(db, "rooms");
+  const q = query(roomsRef, where("roomID", "==", roomID));
+  const qs = await getDocs(q);
+  if (qs.empty) return;
+
+  // 通常 rooms は1件のはずなので1件だけ使う想定
+  const roomRef = qs.docs[0].ref;
+
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(roomRef);
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+
+    // ★サーバー上で「今ほんとに自分のターンか」を確認
+    if (data.turn !== player_info) return;
+
+    const stones = data.stones || {};
+
+    // ★サーバーのstonesで row を決める
+    const row = findAvailableRowFromStones(column, stones);
+    if (row < 0) return;
+
+    const currentTurnCount = data.turnCount ?? 1;
+    const nextTurn = (data.turn === "P1") ? "P2" : "P1";
+
+    const nextChangeStone =
+      (data.changeStone ?? 0) > 0 ? (data.changeStone - 1) : 0;
+
+    const timeoutField =
+      (player_info === "P1") ? "player1_TimeoutCount" : "player2_TimeoutCount";
+
+    tx.update(roomRef, {
+      [`stones.${column}_${row}`]: {
+        color: playerColor,
+        turnCount: currentTurnCount
+      },
+      turn: nextTurn,
+      turnCount: currentTurnCount + 1,
+      changeStone: nextChangeStone,
+      [timeoutField]: increment(1),
+    });
+  });
+}
+
+function findAvailableRowFromStones(column, stones) {
+  for (let r = rows - 1; r >= 0; r--) {
+    if (!stones[`${column}_${r}`]) return r;
+  }
+  return -1;
+}
+
+//--------------------------------------------------------------------------------
 
 // 3. roomsが更新されたときに動く処理
 function handleRoomUpdate() {
