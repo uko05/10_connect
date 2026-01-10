@@ -928,6 +928,10 @@ async function watchRoomUpdates() {
                     console.log("ドロップ列：", column);
                     console.log("ドロップ行：", row);
                     console.log("ドロップ色：", color);
+                    if (!isTurnPlayer()) {
+                        moveSound.currentTime = 0;
+                        moveSound.play();
+                    }
                 }
             }
             // 勝利した色の石を格納する。
