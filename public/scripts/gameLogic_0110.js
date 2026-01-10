@@ -336,6 +336,7 @@ async function displayThumbnails() {
     playerRight_ult = charaInfo2.voice_ult;
     pRight_ult = new Audio(playerRight_ult);
     pRight_ult.volume = 0.2;
+    
     timeLimit = isTurnPlayer() ? playerLeft_TimeLimit : playerRight_TimeLimit; 
     timeRemaining = timeLimit; 
             
@@ -833,40 +834,11 @@ async function watchRoomUpdates() {
                 console.log("対戦相手が部屋を離れました。試合を中断します。");
 
                 // 試合を終了してキャラクター画面に戻す処理
+                deleteRoomByRoomID();
+                
                 displayLeaveMessage();
-               
-                // ■■■■■2026/01/10　追加
-                if (player_info === "P1") await deleteRoomByRoomID();
-                return;
             }
             
-            // ■■■■■2026/01/10　追加
-            const isCleaner = (player_info === "P1");
-
-            const myTimeout =
-              (player_info === "P1")
-                ? (data.player1_TimeoutCount ?? 0)
-                : (data.player2_TimeoutCount ?? 0);
-
-            const enemyTimeout =
-              (player_info === "P1")
-                ? (data.player2_TimeoutCount ?? 0)
-                : (data.player1_TimeoutCount ?? 0);
-
-            if (enemyTimeout >= 2) {
-              console.log("相手が2回時間切れ。勝利として終了します。");
-              displayVictory(playerLeft_Color);
-              if (isCleaner) await deleteRoomByRoomID();
-              return;
-            }
-
-            if (myTimeout >= 2) {
-              console.log("自分が2回時間切れ。敗北として終了します。");
-              displayVictory(playerRight_Color);
-              if (isCleaner) await deleteRoomByRoomID();
-              return;
-            }
-
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
 
@@ -892,7 +864,6 @@ async function watchRoomUpdates() {
                     disp_TopStone(turn, nowCol);
 
                     // カットインを表示し、終了を待機
-                    playerRight_UltCount = check_UltCount; // ■■■■■2026/01/10　追加
                     await showCutIn();
                     onlyCutIn = 1;
                     return;
@@ -1038,7 +1009,7 @@ async function watchRoomUpdates() {
             // 初期化処理
             if (!ultAfter) loadTimeRemaining(); // ページ読み込み時に保存されている残り時間を取得
             createMemoryMarks();  // メモリ線を作成
-            //updateTimeLimit();    // タイムリミットの更新開始
+            updateTimeLimit();    // タイムリミットの更新開始
 
             console.log("▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲");
             
@@ -1780,15 +1751,7 @@ function loadTimeRemaining() {
         console.log("変数チェック②:", timeRemaining);
     }
     if (timeRemaining >= 100) timeRemaining = 100;
-
-    // ■■■■■2026/01/10　追加 
-    // 0やマイナスで復元されたら無効化して満タンにする
-    if (isInitialLoad && timeRemaining <= 0) {
-      timeRemaining = timeLimit;
-      saveTimeRemaining();
-    }
     console.log("◇ローカルストレージから残り時間を取得:", timeRemaining);
-    
 }
 
 // 残り時間をローカルストレージに保存
@@ -1807,8 +1770,8 @@ function clearTimeRemaining() {
 
 // 1秒ごとにゲージが減少
 async function updateTimeLimit() {
-    // ■■■■■2026/01/10　修正前 if (timeRemaining >= 0) {
-    if (timeRemaining > 0) {
+
+    if (timeRemaining >= 0) {
         // 残り時間に応じてゲージの幅を計算
         let width = (timeRemaining / timeLimit) * 100; // ゲージ幅を100%基準に計算
         timeLimitGauge.style.width = width + "%"; // ゲージ幅を更新
@@ -1839,8 +1802,6 @@ async function updateTimeLimit() {
                     highlightedColumn.remove();
                 }  
             }
-            // ■■■■■2026/01/10　追加
-            await recordTimeoutOncePerTurn();
             dropStone(nowCol);
         }
         resetTimeLimit();
@@ -1856,9 +1817,7 @@ function resetTimeLimit() {
         timeLimitTimer = null;
     }
     
-    // ■■■■■2026/01/10　修正前 timeLimit = isTurnPlayer() ? playerRight_TimeLimit : playerLeft_TimeLimit;  
-    timeLimit = isTurnPlayer() ? playerLeft_TimeLimit : playerRight_TimeLimit;
-
+    timeLimit = isTurnPlayer() ? playerRight_TimeLimit : playerLeft_TimeLimit;
     console.log("タイムリミットのリセット:", timeLimit);
     
     // 残り時間を初期値に戻す
@@ -1875,7 +1834,6 @@ function resetTimeLimit() {
 // ゲージのメモリを動的に作成する
 function createMemoryMarks() {
     let marksContainer = document.querySelector('.gauge-tlmarks');
-    marksContainer.innerHTML = ""; // ★追加：増殖防止
     let markCount = 10; // メモリ線の数
     for (let i = 1; i <= markCount; i++) {
         let mark = document.createElement('div');
@@ -1883,38 +1841,6 @@ function createMemoryMarks() {
         mark.style.left = `${(i / markCount) * 100}%`; // メモリの位置を計算
         marksContainer.appendChild(mark);
     }
-}
-
-// ■■■■■2026/01/10　追加
-async function recordTimeoutOncePerTurn() {
-  if (!roomID) return;
-
-  const roomRef = doc(db, "rooms", roomID);
-
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(roomRef);
-    if (!snap.exists()) return;
-
-    const data = snap.data();
-
-    // 自分がどっちか
-    const isP1 = (player_info === "P1");
-    const timeoutField = isP1 ? "player1_TimeoutCount" : "player2_TimeoutCount";
-    const lastField = isP1 ? "player1_lastTimeoutTurnCount" : "player2_lastTimeoutTurnCount";
-
-    const currentTurnCount = data.turnCount ?? 1;
-    const lastTimeoutTurnCount = data[lastField] ?? 0;
-
-    // 同じターンで既に記録済みなら何もしない（重複防止）
-    if (lastTimeoutTurnCount === currentTurnCount) return;
-
-    const nextTimeout = (data[timeoutField] ?? 0) + 1;
-
-    tx.update(roomRef, {
-      [timeoutField]: nextTimeout,
-      [lastField]: currentTurnCount,
-    });
-  });
 }
 
 async function getRandomEmptyColumn() {
