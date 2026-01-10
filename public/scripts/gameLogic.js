@@ -1,22 +1,25 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { db } from "./firebaseConfig.js"; // firebaseの設定ファイル
+
 import {
-    getFirestore,
-    collection,
-    addDoc,
-    onSnapshot,
-    query,
-    where,
-    deleteDoc,
-    doc,
-    getDocs,
-    getDoc,
-    runTransaction,
-    writeBatch,
-    updateDoc
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"; 
-import { characterData } from './characterData.js';
-//import { playSound } from './soundConfig.js';
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  where,
+  deleteDoc,
+  doc,
+  getDocs,
+  getDoc,
+  runTransaction,
+  writeBatch,
+  updateDoc,
+  increment,            // ★これを追加！
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+import { characterData } from "./characterData.js";
+
 
 //------------------------------------------------------------------------------------------------
 const toggleButton = document.getElementById('toggle-button');
@@ -1428,7 +1431,8 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 }
 
 //--------------------------------------------------------------------------------
-// 時間切れ関係（Tx版・ログ/例外ハンドリング付き）
+// 時間切れ関係（Tx版・ログ/例外ハンドリング付き・increment import前提）
+// 戻り値: true=書き込みした / false=書き込み無し（ターン不一致・満杯・room無し等）
 async function updateRoomWithStone_timeoutTx(column, playerColor) {
   try {
     const roomsRef = collection(db, "rooms");
@@ -1440,8 +1444,9 @@ async function updateRoomWithStone_timeoutTx(column, playerColor) {
       return false;
     }
 
-    // 通常1件想定
     const roomRef = qs.docs[0].ref;
+
+    let didUpdate = false;
 
     await runTransaction(db, async (tx) => {
       const snap = await tx.get(roomRef);
@@ -1487,6 +1492,7 @@ async function updateRoomWithStone_timeoutTx(column, playerColor) {
         color: playerColor,
         currentTurnCount,
         nextTurn,
+        nextChangeStone,
         timeoutField,
       });
 
@@ -1500,10 +1506,12 @@ async function updateRoomWithStone_timeoutTx(column, playerColor) {
         changeStone: nextChangeStone,
         [timeoutField]: increment(1),
       });
+
+      didUpdate = true;
     });
 
-    console.log("[timeoutTx] runTransaction 完了");
-    return true;
+    console.log("[timeoutTx] runTransaction 完了", { didUpdate });
+    return didUpdate;
 
   } catch (e) {
     console.error("[timeoutTx] 例外で失敗", e);
@@ -2035,6 +2043,11 @@ async function updateTimeLimit() {
         // タイムリミットが終了した場合の処理
         clearInterval(timeLimitTimer); // タイマーを停止
         timeLimitTimer = null;
+        
+         // ★ターン側じゃないなら、ここで終わる（勝手にリセットしない）
+         if (!isTurnPlayer()) {
+           return;
+         }
 
         // タイムリミット終了時の処理
         nowCol = await getRandomEmptyColumn();
