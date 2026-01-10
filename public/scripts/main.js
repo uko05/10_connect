@@ -233,7 +233,6 @@ window.addEventListener('beforeunload', async (event) => {
             //条件に合致するroomsドキュメントを削除
             const roomQuery = query(
                 roomsRef,
-                where("player1_ID", "==", playerId),
                 where("player2_ID", "==", null),
                 where("status", "==", "waiting")
             );
@@ -319,45 +318,73 @@ function getUUIDFromCookie() {
 }
 
 //------------------------------------------------------------------------------------------------
+let waitingExpireTimerId = null;
+
 function startWaitingExpireTimer(roomDocRef) {
-  // まず doc を1回読んで createdAt を取る
+  if (waitingExpireTimerId) {
+    clearTimeout(waitingExpireTimerId);
+    waitingExpireTimerId = null;
+  }
+
+  console.log("[expire] startWaitingExpireTimer called", roomDocRef.path);
+
   getDoc(roomDocRef).then((snap) => {
-    if (!snap.exists()) return;
+    if (!snap.exists()) {
+      console.log("[expire] doc not exists");
+      return;
+    }
+
     const data = snap.data();
-
-    // createdAt が Date で入ってるなら、Firestore では Timestamp になることが多い
     const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+
+    if (!(createdAt instanceof Date) || isNaN(createdAt.getTime())) {
+      console.log("[expire] createdAt invalid:", data.createdAt);
+      return;
+    }
+
     const expireAt = createdAt.getTime() + WAITING_EXPIRE_MS;
-    const delay = expireAt - Date.now();
+    const delay = Math.max(0, expireAt - Date.now());
 
-    // 既に期限切れなら即処理
-    const ms = Math.max(0, delay);
+    console.log("[expire] createdAt:", createdAt, "delay(ms):", delay);
 
-    setTimeout(async () => {
+    waitingExpireTimerId = setTimeout(async () => {
+      console.log("[expire] timeout fired!");
+
       try {
         const latest = await getDoc(roomDocRef);
-        if (!latest.exists()) return;
+        if (!latest.exists()) {
+          console.log("[expire] latest doc not exists (already deleted?)");
+          return;
+        }
 
         const d = latest.data();
-        // まだ waiting のままなら削除
-        if (d.status === "waiting" && (d.player2_ID == null)) {
-          await deleteDoc(roomDocRef);
+        console.log("[expire] latest status:", d.status, "player2_ID:", d.player2_ID);
 
-          // UI を「解除」状態へ
+        if (d.status === "waiting" && d.player2_ID == null) {
+          await deleteDoc(roomDocRef);
+          console.log("[expire] deleted room doc");
+
           NowMatching = false;
           toggleInputs(false);
+
           const matchButton = document.getElementById('matchButton');
           matchButton.innerText = "マッチング";
           matchButton.style.backgroundColor = "";
-          document.getElementById('statusMessage').innerText = "20分経過したのでキャンセルしました。";
+
+          document.getElementById('statusMessage').innerText =
+            `${WAITING_EXPIRE_MS / 60000}分経過したのでキャンセルしました。`;
           document.getElementById('generatedId').innerText = "";
+
+          playerDocRef = null;
+          waitingExpireTimerId = null;
         }
       } catch (e) {
-        console.error("waiting expire delete failed:", e);
+        console.error("[expire] failed:", e);
       }
-    }, ms);
+    }, delay);
   });
 }
+
 
 //------------------------------------------------------------------------------------------------
 
