@@ -453,7 +453,7 @@ async function dispP1Info(charaInfo, player_Name) {
 
 document.getElementById('specialMoveButton').addEventListener('click', () => {
     
-    if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 10) {
+    if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 7) {
         // アベンチュリンの場合の専用処理
         // 通常状態に戻す
         nowCol = 3;
@@ -1249,9 +1249,13 @@ async function dropStone(column, attackType = 1) {
 
   // ★ サウンドは「通常攻撃のみ」
   if (attackType === 1 && !ultAfter) {
-    isTurnPlayerAttackVoice();
+    pLeft_Attack.currentTime = 0;
+    pLeft_Attack.play();
+
     updateGauge();
+    chargeSound.currentTime = 0;
     chargeSound.play();
+
   } else {
     if (ultAfter) {
       console.log("ultAfterを通常に戻しました。");
