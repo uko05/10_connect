@@ -167,8 +167,6 @@ let timeRemaining = timeLimit; // 残り時間
 let timeLimitGauge = document.getElementById('timeLimitGauge');
 
 let onlyCutIn = 0;
-let lastAnimatedTurnCount = 0; // 直近でアニメ再生したターン
-
 //------------------------------------------------------------------------------------------------
 // 要素取得
 const modal = document.getElementById("helpModal");
@@ -913,13 +911,7 @@ async function watchRoomUpdates() {
             stonesData = data.stones || {};
             turn = data.turn;
             changeStone = data.changeStone;
-
-            // ★追加：このsnapshotで「直前に置かれた手」のターン番号を確定
-            const lastMoveTurnCount = (turnCount ?? 1) - 1;
-
-            // ★追加：同じ手を2回アニメしない
-            const shouldAnimateThisSnapshot = (!ultAfter && lastMoveTurnCount > lastAnimatedTurnCount);
-
+            
             if (!ultAfter) init_drawBoard();
             updateGauge();
             
@@ -931,8 +923,7 @@ async function watchRoomUpdates() {
             
             let stoneUpdated = false;
             for (const key in stonesData) {
-                if (shouldAnimateThisSnapshot && stonesData[key].turnCount === lastMoveTurnCount) {
-
+                if (stonesData[key].turnCount === turnCount - 1 && !ultAfter) {
                     const [column, row] = key.split('_').map(Number);
                     const color = stonesData[key].color;
                     animateStoneDrop(column, row, color);
@@ -946,10 +937,6 @@ async function watchRoomUpdates() {
                     }
                 }
             }
-            if (stoneUpdated) {
-              lastAnimatedTurnCount = lastMoveTurnCount;
-            }
-
             // 勝利した色の石を格納する。
             const result = checkWin(stonesData);
             
@@ -2735,46 +2722,6 @@ function getTopStoneInColumn(stonesData, column) {
 
 //------------------------------------------------------------------------------------------------
 
-//async function ult_downThinkingTime() {
-//    console.log("アベンチュリンの必殺技発動！");
-//
-//    try {
-//        const roomsRef = collection(db, "rooms");
-//        const q = query(roomsRef, where("roomID", "==", roomID));
-//        
-//        // getDocs に await を追加
-//        const querySnapshot = await getDocs(q);
-//
-//        // Firestore のデータを更新
-//        for (const roomDoc of querySnapshot.docs) {
-//            const roomData = roomDoc.data(); // roomData を定義
-//            
-//            let p1_Time = roomData.player1_TimeLimit;
-//            let p2_Time = roomData.player2_TimeLimit;
-//            
-//            if (player_info === 'P1') {
-//                p2_Time = Math.floor(p2_Time - 16);
-//                playerRight_TimeLimit = p2_Time;
-//            } else {
-//                p1_Time = Math.floor(p1_Time - 16);
-//                playerRight_TimeLimit = p1_Time;
-//            }
-//
-//            const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
-//            const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
-//            const roomDocRef = doc(db, "rooms", roomDoc.id);
-//            await updateDoc(roomDocRef, { 
-//                player1_ChargeNow: p1_chargeNow,
-//                player1_TimeLimit: p1_Time,
-//                player2_ChargeNow: p2_chargeNow,
-//                player2_TimeLimit: p2_Time,
-//            });
-//            console.log("思考時間が減少しました。");
-//        }
-//    } catch (error) {
-//        console.error("石の削除中にエラーが発生しました:", error);
-//    }
-//}
 async function ult_downThinkingTime() {
   console.log("アベンチュリンの必殺技発動！");
 
@@ -2827,10 +2774,10 @@ async function ult_Top2Delete() {
     console.log("雷電将軍の必殺技発動！：", stonesToDelete);
 
     // 石をハイライト
-    highlightStones(stonesToDelete, 200);
+    highlightStones(stonesToDelete);
 
     // 石を削除
-    deleteStones(stonesToDelete);
+    deleteStones(stonesToDelete, 300);
 }
 
 async function getTop2Stones() {
