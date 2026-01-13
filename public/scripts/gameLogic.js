@@ -2740,10 +2740,10 @@ async function ult_downThinkingTime() {
             let p2_Time = roomData.player2_TimeLimit;
             
             if (player_info === 'P1') {
-                p2_Time = Math.floor(p2_Time * 0.9);
+                p2_Time = Math.floor(p2_Time - 16);
                 playerRight_TimeLimit = p2_Time;
             } else {
-                p1_Time = Math.floor(p1_Time * 0.9);
+                p1_Time = Math.floor(p1_Time - 16);
                 playerRight_TimeLimit = p1_Time;
             }
 
