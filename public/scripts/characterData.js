@@ -113,7 +113,7 @@ export const characterData = [
         charge: 30, 
         chargeMax: 200,
         Ability: 'ロード・オブ・ルーレット', 
-        AbilityDetail: '【サポート】相手の思考時間を16％減少させる。この必殺技は6回まで使用可能。',
+        AbilityDetail: '【サポート】相手の思考時間を16秒減少させる。この必殺技は6回まで使用可能。',
         AbilityUseTurn: 1,  
         AbilityCutImage: 'public/chara/ult_aben.png', 
         voice_select: 'public/scripts/sound/aben_select.mp3',

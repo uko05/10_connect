@@ -167,8 +167,6 @@ let timeRemaining = timeLimit; // 残り時間
 let timeLimitGauge = document.getElementById('timeLimitGauge');
 
 let onlyCutIn = 0;
-let lastAnimatedTurnCount = 0; // 直近でアニメ再生したターン
-
 //------------------------------------------------------------------------------------------------
 // 要素取得
 const modal = document.getElementById("helpModal");
@@ -913,13 +911,7 @@ async function watchRoomUpdates() {
             stonesData = data.stones || {};
             turn = data.turn;
             changeStone = data.changeStone;
-
-            // ★追加：このsnapshotで「直前に置かれた手」のターン番号を確定
-            const lastMoveTurnCount = (turnCount ?? 1) - 1;
-
-            // ★追加：同じ手を2回アニメしない
-            const shouldAnimateThisSnapshot = (!ultAfter && lastMoveTurnCount > lastAnimatedTurnCount);
-
+            
             if (!ultAfter) init_drawBoard();
             updateGauge();
             
@@ -931,37 +923,20 @@ async function watchRoomUpdates() {
             
             let stoneUpdated = false;
             for (const key in stonesData) {
-                if (shouldAnimateThisSnapshot && stonesData[key].turnCount === lastMoveTurnCount) {
-
+                if (stonesData[key].turnCount === turnCount - 1 && !ultAfter) {
                     const [column, row] = key.split('_').map(Number);
                     const color = stonesData[key].color;
-                    
                     animateStoneDrop(column, row, color);
                     stoneUpdated = true;
-                    
-                    // 相手の手ならボイス
-                    const myColor = playerLeft_Color;
-                    const isEnemyMove = (color !== myColor);
                     console.log("ドロップ列：", column);
                     console.log("ドロップ行：", row);
                     console.log("ドロップ色：", color);
-                    
-                    if (isEnemyMove) {
-                      // 相手の攻撃ボイス
-                      if (pRight_Attack) {
-                        pRight_Attack.currentTime = 0;
-                        pRight_Attack.play().catch(()=>{});
-                      }
-                      // 石が落ちた音（任意）
-                      moveSound.currentTime = 0;
-                      moveSound.play().catch(()=>{});
+                    if (!isTurnPlayer()) {
+                        moveSound.currentTime = 0;
+                        moveSound.play();
                     }
                 }
             }
-            if (stoneUpdated) {
-                lastAnimatedTurnCount = lastMoveTurnCount;
-            }
-
             // 勝利した色の石を格納する。
             const result = checkWin(stonesData);
             
