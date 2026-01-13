@@ -922,21 +922,32 @@ async function watchRoomUpdates() {
             console.log("ターンフラグ：", isTurnPlayer());
             
             let stoneUpdated = false;
+            
             for (const key in stonesData) {
-                if (stonesData[key].turnCount === turnCount - 1 && !ultAfter) {
-                    const [column, row] = key.split('_').map(Number);
-                    const color = stonesData[key].color;
-                    animateStoneDrop(column, row, color);
-                    stoneUpdated = true;
-                    console.log("ドロップ列：", column);
-                    console.log("ドロップ行：", row);
-                    console.log("ドロップ色：", color);
-                    if (!isTurnPlayer()) {
-                        moveSound.currentTime = 0;
-                        moveSound.play();
-                    }
+              if (stonesData[key].turnCount === turnCount - 1 && !ultAfter) {
+                const [column, row] = key.split('_').map(Number);
+                const color = stonesData[key].color;
+
+                animateStoneDrop(column, row, color);
+                stoneUpdated = true;
+
+                // 相手の手ならボイス
+                const myColor = playerLeft_Color;
+                const isEnemyMove = (color !== myColor);
+
+                if (isEnemyMove) {
+                  // 相手の攻撃ボイス
+                  if (pRight_Attack) {
+                    pRight_Attack.currentTime = 0;
+                    pRight_Attack.play().catch(()=>{});
+                  }
+                  // 石が落ちた音（任意）
+                  moveSound.currentTime = 0;
+                  moveSound.play().catch(()=>{});
                 }
+              }
             }
+
             // 勝利した色の石を格納する。
             const result = checkWin(stonesData);
             
@@ -2774,10 +2785,10 @@ async function ult_Top2Delete() {
     console.log("雷電将軍の必殺技発動！：", stonesToDelete);
 
     // 石をハイライト
-    highlightStones(stonesToDelete);
+    highlightStones(stonesToDelete, 100);
 
     // 石を削除
-    deleteStones(stonesToDelete, 300);
+    deleteStones(stonesToDelete);
 }
 
 async function getTop2Stones() {

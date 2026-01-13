@@ -50,7 +50,7 @@ export const characterData = [
         src: 'public/chara/Raiden.png', 
         charaID: '004', 
         name: 'ナヴィア', 
-        charge: 11, 
+        charge: 13, 
         chargeMax: 200,
         Ability: '晴天を衝く霰弾のサルート', 
         AbilityDetail: '【破壊】上から横3列の石を全て破壊する。', 
