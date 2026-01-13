@@ -125,7 +125,7 @@ export const characterData = [
         src: 'public/chara/hotaru.png', 
         charaID: '009', 
         name: 'ホタル', 
-        charge: 13, 
+        charge: 16, 
         chargeMax: 200,
         Ability: 'ファイアフライ-Ⅳ-完全燃焼', 
         AbilityDetail: '【連続攻撃】ランダムな縦1列を選択する。その列に自分の石を投下する。(5ターン目から発動可能)', 
