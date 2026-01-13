@@ -947,7 +947,7 @@ async function watchRoomUpdates() {
                 }
             }
             if (stoneUpdated) {
-               lastAnimatedTurnCount = lastMoveTurnCount;
+              lastAnimatedTurnCount = lastMoveTurnCount;
             }
 
             // 勝利した色の石を格納する。
@@ -2797,6 +2797,9 @@ async function ult_downThinkingTime() {
       } else {
         p1_Time = Math.max(0, p1_Time - 16);
       }
+      
+      const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
+      const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
 
       // ローカル表示の更新（自分視点の right = 相手）
       playerRight_TimeLimit = (player_info === "P1") ? p2_Time : p1_Time;
@@ -2804,7 +2807,9 @@ async function ult_downThinkingTime() {
       // Firestore更新
       const roomDocRef = doc(db, "rooms", roomDoc.id);
       await updateDoc(roomDocRef, {
+        player1_ChargeNow: p1_chargeNow,
         player1_TimeLimit: p1_Time,
+        player2_ChargeNow: p2_chargeNow,
         player2_TimeLimit: p2_Time,
       });
 
