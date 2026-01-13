@@ -935,31 +935,19 @@ async function watchRoomUpdates() {
 
                     const [column, row] = key.split('_').map(Number);
                     const color = stonesData[key].color;
-                    
                     animateStoneDrop(column, row, color);
                     stoneUpdated = true;
-                    
-                    // 相手の手ならボイス
-                    const myColor = playerLeft_Color;
-                    const isEnemyMove = (color !== myColor);
                     console.log("ドロップ列：", column);
                     console.log("ドロップ行：", row);
                     console.log("ドロップ色：", color);
-                    
-                    if (isEnemyMove) {
-                      // 相手の攻撃ボイス
-                      if (pRight_Attack) {
-                        pRight_Attack.currentTime = 0;
-                        pRight_Attack.play().catch(()=>{});
-                      }
-                      // 石が落ちた音（任意）
-                      moveSound.currentTime = 0;
-                      moveSound.play().catch(()=>{});
+                    if (!isTurnPlayer()) {
+                        moveSound.currentTime = 0;
+                        moveSound.play();
                     }
                 }
             }
             if (stoneUpdated) {
-                lastAnimatedTurnCount = lastMoveTurnCount;
+               lastAnimatedTurnCount = lastMoveTurnCount;
             }
 
             // 勝利した色の石を格納する。
