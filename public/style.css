@@ -565,7 +565,6 @@ header{
   top: 0;
   z-index: 9999;
 }
-
 /* ===== スマホだけ適用 ===== */
 @media (max-width: 900px){
 
@@ -575,12 +574,28 @@ header{
     padding: 0;
   }
 
-  /* viewport は横だけ切って事故防止（縦は切らない） */
+  /* viewport（表示枠）：ここが最重要 */
   #lobbyViewport{
     margin: 0;
-    padding: 6px 0 0;   /* ヘッダー直下の詰め */
-    overflow-x: hidden;
-    overflow-y: visible;
+    padding: 0;
+    width: 100%;
+
+    /* ★高さを保証（iPhoneで強い） */
+    height: calc(100svh - var(--headerH, 56px));
+
+    /* ★中身を中央寄せ */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    /* ★縮小した見た目をこの枠で受け止める */
+    overflow: hidden;
+  }
+
+  /* 縮小の基準点：中央上に */
+  #lobbyWrap{
+    transform-origin: top center;
+    display: inline-block;
   }
 
   /* タイトルは少し小さめ */
@@ -589,7 +604,7 @@ header{
     line-height: 1.1;
   }
 
-  /* あそびかたボタン：画像を縮める（font-size/paddingは効きにくい） */
+  /* あそびかたボタン：画像を縮める */
   .help-btn{
     padding: 0;
   }
