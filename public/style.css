@@ -529,9 +529,10 @@ footer.legal-footer {
 }
 
 /* ===== Mobile scale viewport (Lobby) ===== */
-#lobbyViewport {
-  width: 100%;
-  overflow: hidden;
+#lobbyViewport{
+  display: flex;
+  justify-content: flex-start; /* 左寄せ */
+  align-items: flex-start;     /* 上寄せ */
 }
 
 main {
@@ -543,8 +544,21 @@ main {
   display: inline-block;
 }
 
+header{
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+}
+
 /* スマホだけ：左右の無駄スペース消す + mainの余白消す */
 @media (max-width: 900px){
-  body { align-items: stretch; }
-  main { padding-left: 0; }
+  main{
+    margin: 0;
+    padding: 0;     /* padding-left:0 だけじゃなく全padding消す */
+  }
+  #lobbyViewport{
+    padding: 0;
+    margin: 0;
+  }
 }
+

@@ -25,13 +25,32 @@ document.getElementById('version').textContent = APP_VERSION;
 const LOBBY_BASE_WIDTH = 1200; // .parent-container の固定幅
 const LOBBY_BASE_HEIGHT = 730; // .parent-container の固定高さ
 
-function setupLobbyLayout() {
-    const lobbyWrap = document.getElementById('lobbyWrap');
-    if (!lobbyWrap) return;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const scale = Math.min(1, (vw - 16) / LOBBY_BASE_WIDTH, (vh - 16) / LOBBY_BASE_HEIGHT);
-    lobbyWrap.style.transform = `scale(${scale})`;
+// function setupLobbyLayout() {
+//     const lobbyWrap = document.getElementById('lobbyWrap');
+//     if (!lobbyWrap) return;
+//     const vw = window.innerWidth;
+//     const vh = window.innerHeight;
+//     const scale = Math.min(1, (vw - 16) / LOBBY_BASE_WIDTH, (vh - 16) / LOBBY_BASE_HEIGHT);
+//     lobbyWrap.style.transform = `scale(${scale})`;
+// }
+
+function setupLobbyLayout(){
+  const lobbyWrap = document.getElementById('lobbyWrap');
+  if (!lobbyWrap) return;
+
+  const header = document.querySelector('header');
+  const headerH = header ? header.getBoundingClientRect().height : 0;
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight - headerH;  // ★ヘッダー分引く
+
+  const scale = Math.min(
+    1,
+    (vw - 16) / LOBBY_BASE_WIDTH,
+    (vh - 16) / LOBBY_BASE_HEIGHT
+  );
+
+  lobbyWrap.style.transform = `scale(${scale})`;
 }
 
 setupLobbyLayout();
