@@ -625,30 +625,39 @@ header h1{
     line-height: 1.1;
   }
 
-  /* あそびかたボタン：スマホは小さく */
   .help-btn{
     top: 6px;
-    right: 6px;
+    right: 14px; /* ← 6px→14pxとかにして内側へ */
     padding: 4px;
   }
+  
   .help-btn img{
     height: 26px;   /* ★スマホで小さく */
   }
 
   /* ② footer自体の行高を確保して、下半分切れ防止 */
   footer{
-    font-size: 10px;
+    font-size: 8px;
     line-height: 1.2;
     line-height: 1.35;
     padding-bottom: 6px;
   }
-
-  /* ③ バージョンが右で切れる対策（右に余白） */
+  
+  footer.legal-footer{
+    bottom: env(safe-area-inset-bottom);
+    padding: 6px 12px calc(6px + env(safe-area-inset-bottom)) 12px;
+    line-height: 1.35;
+    font-size: 10px;
+    box-sizing: border-box;
+  }
+  
   #version{
-    right: 10px;          /* もしposition指定がある前提 */
-    max-width: calc(100vw - 20px);
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: calc(28px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 8px;
   }
 }
