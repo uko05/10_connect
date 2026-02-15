@@ -684,6 +684,17 @@ nav ul li:hover > a {
     font-size: 28px;
 }
 
+#version {
+  position: fixed;
+  right: 16px;
+  bottom: 28px;
+  font-size: 12px;
+  color: #aaa;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  pointer-events: none;
+  z-index: 9999;
+}
+
 #legal-footer {
   position: fixed;
   left: 0; right: 0; bottom: 0;

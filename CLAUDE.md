@@ -67,3 +67,28 @@ There is no build step, no npm, and no test suite. Files are served directly.
 - `firebase.json` — Hosting config (rewrites all routes to index.html)
 - `firestore.rules` — Requires anonymous auth (`request.auth != null`)
 - GitHub Actions workflows in `.github/workflows/` handle CI/CD
+
+---
+
+## Versioning Rules
+
+This project uses semantic versioning:
+
+Format:
+vMAJOR.MINOR.PATCH
+
+- PATCH (0.0.X): Bug fixes, refactoring without behavior change
+- MINOR (0.X.0): New features, non-breaking changes
+- MAJOR (X.0.0): Breaking changes or major architecture updates
+
+### Mandatory Rule
+
+Any functional change MUST increment APP_VERSION in:
+
+public/scripts/version.js
+
+Claude Code must:
+1. Update APP_VERSION when making functional changes
+2. Never leave version unchanged after modifying behavior
+3. Keep version synchronized across index.html and battle.html
+

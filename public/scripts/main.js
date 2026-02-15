@@ -16,6 +16,10 @@ import {
     updateDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"; 
 import { characterData } from './characterData.js';
+import { APP_VERSION } from './version.js';
+
+// バージョン表示
+document.getElementById('version').textContent = APP_VERSION;
 
 let playerDocRef = null;
 let NowMatching = false;  //既にマッチング処理が進行中かどうかを示すフラグ

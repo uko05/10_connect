@@ -20,7 +20,11 @@ import {
 
 import { characterData } from "./characterData.js";
 import { drawPiece as _drawPiece, drawPieceWithParticles as _drawPieceWithParticles, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone } from "./renderer.js";
+import { APP_VERSION } from "./version.js";
 
+
+// バージョン表示
+document.getElementById('version').textContent = APP_VERSION;
 
 //------------------------------------------------------------------------------------------------
 const toggleButton = document.getElementById('toggle-button');
