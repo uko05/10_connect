@@ -523,53 +523,74 @@ footer.legal-footer {
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
 /* スマホのスタイル */
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
+
+/* 基準サイズ（PCレイアウトは固定のまま） */
 .parent-container{
   width: 1200px;
   height: 730px;
 }
 
-/* ===== Mobile scale viewport (Lobby) ===== */
+/* ===== Lobby Viewport =====
+   - 常に“中身(#lobbyWrap)を中央寄せ”
+   - 縦はヘッダーの下から開始
+*/
 #lobbyViewport{
   display: flex;
-  justify-content: center;   /* ←中央に */
+  justify-content: center;
   align-items: flex-start;
-}
-
-main {
   width: 100%;
 }
 
+/* main は横いっぱい */
+main{
+  width: 100%;
+}
+
+/* ★重要：中央基準でスケールさせる
+   - left/top originだと「左上に寄って右下しか見えない」事故が起きやすい
+*/
 #lobbyWrap{
-  transform-origin: 0 0;  /* top-left */
+  transform-origin: top center;
   display: inline-block;
 }
 
+/* ヘッダーは常に見える */
 header{
   position: sticky;
   top: 0;
   z-index: 9999;
 }
 
-/* スマホだけ：左右の無駄スペース消す + mainの余白消す */
+/* ===== スマホだけ適用 ===== */
 @media (max-width: 900px){
 
+  /* 余計な余白を消す */
   main{
     margin: 0;
-    padding: 0;     /* padding-left:0 だけじゃなく全padding消す */
-  }
-  
-  #lobbyViewport{
     padding: 0;
+  }
+
+  /* viewport は横だけ切って事故防止（縦は切らない） */
+  #lobbyViewport{
     margin: 0;
+    padding: 6px 0 0;   /* ヘッダー直下の詰め */
+    overflow-x: hidden;
+    overflow-y: visible;
   }
-  
+
+  /* タイトルは少し小さめ */
   header h1{
-    font-size: 18px;   /* 今より小さく */
+    font-size: 16px;
+    line-height: 1.1;
   }
 
+  /* あそびかたボタン：画像を縮める（font-size/paddingは効きにくい） */
   .help-btn{
-    font-size: 14px;
-    padding: 6px 12px;
+    padding: 0;
   }
-
+  .help-btn img{
+    height: 32px;
+    width: auto;
+    display: block;
+  }
 }
