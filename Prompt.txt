@@ -1,24 +1,46 @@
-スマホ対応のため、ステージ（canvas + 枠）サイズ決定を1か所に集約したいです。
+方針：transform: scale() 方式は維持しつつ、
+「#lobbyWrap 自体の width/height を scale 後サイズに変更する」のはやめて、
+副作用が少ない viewport ラッパー方式で直したい。
 
 要件：
-- battle.html の盤面周りを #boardWrap で包む（なければ追加）
-- #boardWrap は transform-origin: top center を使う（CSS or JSで）
+- Firestore / ゲームロジックは触らない
+- 1200×730 固定レイアウト（.parent-container）を崩さない
+- スマホ横（例：844×390）で「左上だけ見える」問題を解消し、全体が収まること
+- marginLeft をJSでいじらない
+- #lobbyWrap の width/height をJSでいじらない（内部flexが壊れる可能性があるため）
+- 必要ならスマホ時に main の padding-left: 250px を 0 にする（描画可能幅確保）
 
-- JSに setupStageLayout() を新設して、そこで
-  - 画面幅から scale を計算して #boardWrap に transform: scale(scale) を適用
-  - スケール基準は盤面の論理幅（cellSize * 7）
-    scale = Math.min(1, (viewportWidth - 16) / (cellSize * 7))
-  - 既存の cellSize=110 や canvas内部ロジックは変更しない（表示スケール方式）
-  - setupStageLayout() は初期化時と resize / orientationchange で呼ぶ
+実装内容：
 
-- タップ/クリック位置の列判定だけ、scale補正を入れてズレないようにする
-  - const rect = canvas.getBoundingClientRect()
-  - const x = (clientX - rect.left) / scale
-  - const col = Math.floor(x / cellSize)
+1) index.html
+#lobbyWrap の外側に viewport を追加する：
+<div id="lobbyViewport">
+  <div id="lobbyWrap"> ...既存... </div>
+</div>
 
-- それ以外のロジック（Firestore/ult_*/勝敗判定/アニメ）は触らない
+2) style.css
+viewport側で収める（clip）：
+#lobbyViewport {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
 
-動作確認：
-- PC表示が崩れない
-- スマホ幅で盤面が横にはみ出さない
-- タップした列がズレない
+#lobbyWrap {
+  transform-origin: 0 0;   /* top-left */
+  display: inline-block;
+}
+
+スマホ時は main の padding-left を無効化：
+@media (max-width: 900px){
+  main { padding-left: 0; }
+}
+
+必要なら #lobbyViewport { height: 100vh; } も検討してほしい。
+
+3) public/scripts/main.js（setupLobbyLayout）
+#lobbyWrap には transform のみ適用し、
+width/height/margin の操作はしない。
+scale は Math.min(1, (vw-16)/1200, (vh-16)/730) でOK。
+
+この方針で差分パッチ（index.html / style.css / main.js）を作ってください。

@@ -523,13 +523,24 @@ footer.legal-footer {
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
 /* スマホのスタイル */
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
-#lobbyWrap {
-  display: inline-block;
-  transform-origin: top left; /* ★左上基準にする */
-}
-
 .parent-container{
   width: 1200px;
   height: 730px;
+}
+/* ===== Mobile scale viewport (Lobby) ===== */
+#lobbyViewport{
+  width: 100%;
+  height: 100vh;      /* まず確実に表示領域を確保 */
+  overflow: hidden;   /* ここで収める */
+}
+
+#lobbyWrap{
+  transform-origin: 0 0;  /* top-left */
+  display: inline-block;
+}
+
+/* スマホでは main の左余白を消す（重要） */
+@media (max-width: 900px){
+  main{ padding-left: 0; }
 }
 
