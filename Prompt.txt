@@ -1,0 +1,24 @@
+スマホ対応のため、ステージ（canvas + 枠）サイズ決定を1か所に集約したいです。
+
+要件：
+- battle.html の盤面周りを #boardWrap で包む（なければ追加）
+- #boardWrap は transform-origin: top center を使う（CSS or JSで）
+
+- JSに setupStageLayout() を新設して、そこで
+  - 画面幅から scale を計算して #boardWrap に transform: scale(scale) を適用
+  - スケール基準は盤面の論理幅（cellSize * 7）
+    scale = Math.min(1, (viewportWidth - 16) / (cellSize * 7))
+  - 既存の cellSize=110 や canvas内部ロジックは変更しない（表示スケール方式）
+  - setupStageLayout() は初期化時と resize / orientationchange で呼ぶ
+
+- タップ/クリック位置の列判定だけ、scale補正を入れてズレないようにする
+  - const rect = canvas.getBoundingClientRect()
+  - const x = (clientX - rect.left) / scale
+  - const col = Math.floor(x / cellSize)
+
+- それ以外のロジック（Firestore/ult_*/勝敗判定/アニメ）は触らない
+
+動作確認：
+- PC表示が崩れない
+- スマホ幅で盤面が横にはみ出さない
+- タップした列がズレない

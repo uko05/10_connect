@@ -138,6 +138,7 @@ const ctx = canvas.getContext('2d');
 const rows = 6;
 const cols = 7;
 const cellSize = 110; // セルのサイズ
+let boardScale = 1; // 盤面の表示スケール（setupStageLayout で更新）
 let nowCol = 3;
 
 // 列の強調表示を制御するための要素を管理
@@ -710,6 +711,20 @@ function initializeAudioPlayback() {
 
 //------------------------------------------------------------------------------------------------
 
+function setupStageLayout() {
+    const boardWrap = document.getElementById('boardWrap');
+    if (!boardWrap) return;
+    const viewportWidth = window.innerWidth;
+    boardScale = Math.min(1, (viewportWidth - 16) / (cellSize * cols));
+    boardWrap.style.transform = `scale(${boardScale})`;
+}
+
+setupStageLayout();
+window.addEventListener('resize', setupStageLayout);
+window.addEventListener('orientationchange', setupStageLayout);
+
+//------------------------------------------------------------------------------------------------
+
 function highlightColumn(col) {
     const canvasRect = canvas.getBoundingClientRect();
 
@@ -759,9 +774,9 @@ function handleMoveColumn(event) {
     // ターンプレイヤーか確認
     if (isTurnPlayer()) {
         moveSound.play();
-        // イベントの位置から列を計算
+        // イベントの位置から列を計算（scale補正あり）
         const rect = topCanvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
+        const x = (event.clientX - rect.left) / boardScale;
         const col = Math.floor(x / cellSize); // 列の計算
         
         // 列の強調表示

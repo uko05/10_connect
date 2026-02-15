@@ -695,6 +695,11 @@ nav ul li:hover > a {
   z-index: 9999;
 }
 
+#boardWrap {
+  display: inline-block;
+  transform-origin: top center;
+}
+
 #legal-footer {
   position: fixed;
   left: 0; right: 0; bottom: 0;
