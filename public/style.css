@@ -653,7 +653,7 @@ header h1{
   }
   
   #version{
-    right: 18px;
+    right: 24px;
     bottom: calc(28px + env(safe-area-inset-bottom));
     max-width: calc(100vw - 24px);
     white-space: nowrap;
