@@ -525,6 +525,11 @@ footer.legal-footer {
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
 #lobbyWrap {
   display: inline-block;
-  transform-origin: top center;
+  transform-origin: top left; /* ★左上基準にする */
+}
+
+.parent-container{
+  width: 1200px;
+  height: 730px;
 }
 
