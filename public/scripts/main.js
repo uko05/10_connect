@@ -32,8 +32,11 @@ function setupLobbyLayout() {
   const header = document.querySelector("header");
   const headerH = header ? header.getBoundingClientRect().height : 0;
 
-  const vw = document.documentElement.clientWidth;
-  const vh = document.documentElement.clientHeight - headerH;
+const vv = window.visualViewport;
+const main = document.querySelector("main");
+const vw = main ? main.clientWidth : (vv ? vv.width : document.documentElement.clientWidth);
+const vh = (vv ? vv.height : document.documentElement.clientHeight) - headerH;
+
 
   const scale = Math.min(
     1,
@@ -166,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         voicevolumeSlider.addEventListener('input', (event) => {
             const newVolume = parseFloat(event.target.value); //数値として取得
             console.log("○ボイス音量変更：", newVolume);
-            charaSound.volume = newVolume; //音量を更新
+            if (charaSound) charaSound.volume = newVolume;
         });
     } else {
         console.error("voicevolumeSlider が見つかりません");
@@ -178,8 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // ★スケール調整（追加したやつ）
     setupLobbyLayout();
-    window.addEventListener("resize", setupLobbyLayout);
-    window.addEventListener("orientationchange", setupLobbyLayout);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", setupLobbyLayout);
+      window.visualViewport.addEventListener("scroll", setupLobbyLayout);
+    }
 });
 
 //ローカルストレージから残り時間を取得
@@ -198,6 +203,9 @@ const childNodes = document.querySelector('.child-nodes');
 
 //初期状態でサイドバーを隠す
 sidebar.classList.add('hidden');
+const mainEl = document.querySelector("main");
+if (mainEl) mainEl.classList.add("sidebar-collapsed");
+
 toggleButton.setAttribute('aria-expanded', false);
 toggleButton.setAttribute('aria-label', 'メニューを開く');
 
@@ -206,6 +214,15 @@ toggleButton.addEventListener('click', () => {
     const isExpanded = !sidebar.classList.contains('hidden');
     toggleButton.setAttribute('aria-expanded', isExpanded);
     toggleButton.setAttribute('aria-label', isExpanded ? 'メニューを閉じる' : 'メニューを開く');
+    
+    // ★追加：main の padding-left を状態に合わせて切り替える
+    const mainEl = document.querySelector("main");
+    if (mainEl) {
+      mainEl.classList.toggle("sidebar-collapsed", !isExpanded);
+    }
+
+    // ★ついでにレイアウト再計算
+    setupLobbyLayout();
 });
 
 parentNode.addEventListener('click', (event) => {

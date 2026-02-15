@@ -530,6 +530,11 @@ footer.legal-footer {
   height: 730px;
 }
 
+/* サイドバーが隠れてる時は余白を消す */
+main.sidebar-collapsed{
+  padding-left: 0 !important;
+}
+
 /* ===== Lobby Viewport =====
    - 常に“中身(#lobbyWrap)を中央寄せ”
    - 縦はヘッダーの下から開始
