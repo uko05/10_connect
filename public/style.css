@@ -531,8 +531,8 @@ footer.legal-footer {
 /* ===== Mobile scale viewport (Lobby) ===== */
 #lobbyViewport{
   display: flex;
-  justify-content: flex-start; /* 左寄せ */
-  align-items: flex-start;     /* 上寄せ */
+  justify-content: center;   /* ←中央に */
+  align-items: flex-start;
 }
 
 main {
@@ -552,13 +552,24 @@ header{
 
 /* スマホだけ：左右の無駄スペース消す + mainの余白消す */
 @media (max-width: 900px){
+
   main{
     margin: 0;
     padding: 0;     /* padding-left:0 だけじゃなく全padding消す */
   }
+  
   #lobbyViewport{
     padding: 0;
     margin: 0;
   }
-}
+  
+  header h1{
+    font-size: 18px;   /* 今より小さく */
+  }
 
+  .help-btn{
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+
+}
