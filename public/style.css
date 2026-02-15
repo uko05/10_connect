@@ -648,11 +648,12 @@ header h1{
     padding: 6px 12px calc(15px + env(safe-area-inset-bottom)) 12px;
     line-height: 1.35;
     font-size: 6px;
+    right: 18px;
     box-sizing: border-box;
   }
   
   #version{
-    right: calc(12px + env(safe-area-inset-right));
+    right: 18px;
     bottom: calc(28px + env(safe-area-inset-bottom));
     max-width: calc(100vw - 24px);
     white-space: nowrap;
