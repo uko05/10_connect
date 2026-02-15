@@ -711,11 +711,14 @@ function initializeAudioPlayback() {
 
 //------------------------------------------------------------------------------------------------
 
+const BOARD_BASE_HEIGHT = 110 + 660 + 30; // topCanvas + canvas + timeLimitContainer
+
 function setupStageLayout() {
     const boardWrap = document.getElementById('boardWrap');
     if (!boardWrap) return;
-    const viewportWidth = window.innerWidth;
-    boardScale = Math.min(1, (viewportWidth - 16) / (cellSize * cols));
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    boardScale = Math.min(1, (vw - 16) / (cellSize * cols), (vh - 16) / BOARD_BASE_HEIGHT);
     boardWrap.style.transform = `scale(${boardScale})`;
 }
 

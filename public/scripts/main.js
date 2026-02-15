@@ -23,12 +23,14 @@ document.getElementById('version').textContent = APP_VERSION;
 
 // スマホ対応：ロビー画面のスケーリング
 const LOBBY_BASE_WIDTH = 1200; // .parent-container の固定幅
+const LOBBY_BASE_HEIGHT = 730; // .parent-container の固定高さ
 
 function setupLobbyLayout() {
     const lobbyWrap = document.getElementById('lobbyWrap');
     if (!lobbyWrap) return;
-    const viewportWidth = window.innerWidth;
-    const scale = Math.min(1, (viewportWidth - 16) / LOBBY_BASE_WIDTH);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const scale = Math.min(1, (vw - 16) / LOBBY_BASE_WIDTH, (vh - 16) / LOBBY_BASE_HEIGHT);
     lobbyWrap.style.transform = `scale(${scale})`;
 }
 
