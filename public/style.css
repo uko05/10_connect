@@ -571,7 +571,7 @@ header h1{
 .help-btn{
   position: fixed;
   top: 10px;
-  right: 10px;
+  right: 20px;
 
   /* ★ヘッダーやスケール要素より前に出す */
   z-index: 1000000;
@@ -603,6 +603,8 @@ header h1{
     width: 100%;
     position: relative;
     z-index: 1;
+    padding-bottom: 18px;  /* ←フッター分の逃げ */
+    box-sizing: border-box;
 
     height: calc(100svh - var(--headerH, 56px));
     display: flex;
@@ -633,12 +635,20 @@ header h1{
     height: 26px;   /* ★スマホで小さく */
   }
 
-  /* フッター文字を小さく */
+  /* ② footer自体の行高を確保して、下半分切れ防止 */
   footer{
     font-size: 10px;
     line-height: 1.2;
+    line-height: 1.35;
+    padding-bottom: 6px;
   }
+
+  /* ③ バージョンが右で切れる対策（右に余白） */
   #version{
-    font-size: 10px;
+    right: 10px;          /* もしposition指定がある前提 */
+    max-width: calc(100vw - 20px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
