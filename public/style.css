@@ -590,7 +590,7 @@ header h1{
 }
 
 /* ===== スマホだけ適用 ===== */
-@media (max-width: 900px){
+@media (max-width: 1024px){
 
   main{
     margin: 0;
@@ -648,7 +648,7 @@ header h1{
     padding: 6px 12px calc(15px + env(safe-area-inset-bottom)) 12px;
     line-height: 1.35;
     font-size: 6px;
-    right: 18px;
+    right: 10px;
     box-sizing: border-box;
   }
   
