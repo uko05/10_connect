@@ -21,6 +21,21 @@ import { APP_VERSION } from './version.js';
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;
 
+// スマホ対応：ロビー画面のスケーリング
+const LOBBY_BASE_WIDTH = 1200; // .parent-container の固定幅
+
+function setupLobbyLayout() {
+    const lobbyWrap = document.getElementById('lobbyWrap');
+    if (!lobbyWrap) return;
+    const viewportWidth = window.innerWidth;
+    const scale = Math.min(1, (viewportWidth - 16) / LOBBY_BASE_WIDTH);
+    lobbyWrap.style.transform = `scale(${scale})`;
+}
+
+setupLobbyLayout();
+window.addEventListener('resize', setupLobbyLayout);
+window.addEventListener('orientationchange', setupLobbyLayout);
+
 let playerDocRef = null;
 let NowMatching = false;  //既にマッチング処理が進行中かどうかを示すフラグ
 let roomDocRef = null; //ここで roomDocRef を宣言

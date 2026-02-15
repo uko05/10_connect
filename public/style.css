@@ -523,17 +523,8 @@ footer.legal-footer {
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
 /* スマホのスタイル */
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
-@media screen and (max-width: 950px) {
-  
-  .parent-container {
-    transform: scale(0.8);
-    transform-origin: top center;
-    margin: 0 auto;
-  }
-
-  #matchButton {
-      color: green; /* テキストを白色に */
-  }
-
+#lobbyWrap {
+  display: inline-block;
+  transform-origin: top center;
 }
 
