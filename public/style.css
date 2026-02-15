@@ -521,7 +521,7 @@ footer.legal-footer {
 }
 /* ------------------------------------------------------------------------------------------- */
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
-/* スマホのスタイル */
+/* スマホのスタイル（Lobby） */
 /* ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆ */
 
 /* 基準サイズ（PCレイアウトは固定のまま） */
@@ -535,10 +535,7 @@ main.sidebar-collapsed{
   padding-left: 0 !important;
 }
 
-/* ===== Lobby Viewport =====
-   - 常に“中身(#lobbyWrap)を中央寄せ”
-   - 縦はヘッダーの下から開始
-*/
+/* ===== Lobby Viewport ===== */
 #lobbyViewport{
   display: flex;
   justify-content: center;
@@ -551,86 +548,92 @@ main{
   width: 100%;
 }
 
-/* ★重要：中央基準でスケールさせる
-   - left/top originだと「左上に寄って右下しか見えない」事故が起きやすい
-*/
+/* 中身は上中央基準でスケール */
 #lobbyWrap{
   transform-origin: top center;
   display: inline-block;
 }
 
-/* ヘッダーは常に見える */
+/* ヘッダーは常に見える（※クリックを邪魔しないようにする） */
 header{
   position: sticky;
   top: 0;
-  z-index: 9999;
+  z-index: 99999;
+  pointer-events: none; /* ★これ重要：ヘッダーがクリックを吸わない */
 }
+header h1{
+  pointer-events: none;
+}
+
+/* ===================== */
+/* ★ あそびかたボタン（PC/スマホ共通で「最前面＆固定」） */
+/* ===================== */
+.help-btn{
+  position: fixed;
+  top: 10px;
+  right: 10px;
+
+  /* ★ヘッダーやスケール要素より前に出す */
+  z-index: 1000000;
+
+  background: none;
+  border: none;
+  padding: 6px;          /* 当たり判定確保 */
+  line-height: 0;
+  cursor: pointer;
+  pointer-events: auto;  /* 念のため */
+}
+.help-btn img{
+  height: 40px;          /* PCの基本サイズ（好みで調整OK） */
+  width: auto;
+  display: block;
+}
+
 /* ===== スマホだけ適用 ===== */
 @media (max-width: 900px){
 
-  /* 余計な余白を消す */
   main{
     margin: 0;
     padding: 0;
   }
 
-  /* viewport（表示枠）：ここが最重要 */
   #lobbyViewport{
     margin: 0;
     padding: 0;
     width: 100%;
     position: relative;
     z-index: 1;
-    
-    /* ★高さを保証（iPhoneで強い） */
-    height: calc(100svh - var(--headerH, 56px));
 
-    /* ★中身を中央寄せ */
+    height: calc(100svh - var(--headerH, 56px));
     display: flex;
     justify-content: center;
     align-items: flex-start;
 
-    /* ★縮小した見た目をこの枠で受け止める */
     overflow: hidden;
   }
 
-  /* 縮小の基準点：中央上に */
   #lobbyWrap{
     transform-origin: top center;
     display: inline-block;
   }
-  
-  header *{
-    pointer-events: auto;
-  }
-  
-  header{
-    position: sticky;
-    top: 0;
-    z-index: 99999;  /* 超強く */
-  }
-  
-  /* タイトルは少し小さめ */
+
+  /* タイトルは小さめ */
   header h1{
     font-size: 16px;
     line-height: 1.1;
   }
 
-  /* あそびかたボタン：画像を縮める */
+  /* あそびかたボタン：スマホは小さく */
   .help-btn{
-    padding: 6px;        /* 当たり判定確保 */
-    line-height: 0;
-    position: relative;
-    z-index: 999999; /* ボタンはさらに上 */
-    pointer-events: auto;
+    top: 6px;
+    right: 6px;
+    padding: 4px;
   }
-  
   .help-btn img{
-    height: 24px;
-    width: auto;
-    display: block;
+    height: 26px;   /* ★スマホで小さく */
   }
-  
+
+  /* フッター文字を小さく */
   footer{
     font-size: 10px;
     line-height: 1.2;
