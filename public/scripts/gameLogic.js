@@ -21,6 +21,20 @@ import {
 import { characterData } from "./characterData.js";
 import { drawPiece as _drawPiece, drawPieceWithParticles as _drawPieceWithParticles, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone } from "./renderer.js";
 import { APP_VERSION } from "./version.js";
+import {
+    chargeSound, moveSound, highlightSound, AbilityStandby,
+    initializeAudioPlayback as _initializeAudioPlayback,
+    setupSystemVolumeSlider
+} from "./audioManager.js";
+import {
+    getRandomTwoNumbers as _getRandomTwoNumbers,
+    getRandomThreeNumbers as _getRandomThreeNumbers,
+    getTopStoneInColumn as _getTopStoneInColumn,
+    getTop2Stones as _getTop2Stones,
+    getRandomElements as _getRandomElements,
+    changeStonesColor as _changeStonesColor,
+    getStonesToChange as _getStonesToChange
+} from "./abilities.js";
 
 
 // バージョン表示
@@ -134,18 +148,7 @@ let stonesData = null;
 let selectedCharacter = false;
 let ultAfter = false;
 
-// 音声 
-const chargeSound = new Audio('public/scripts/sound/charge.mp3');
-chargeSound.volume = 0.2;
-
-const moveSound = new Audio('public/scripts/sound/moveSound.wav');
-moveSound.volume = 0.2;
-
-const highlightSound = new Audio('public/scripts/sound/stone_highlight.wav');
-highlightSound.volume = 0.2;
-
-const AbilityStandby = new Audio('public/scripts/sound/AbilityStandby.mp3');
-AbilityStandby.volume = 0.2;
+// 音声（chargeSound, moveSound, highlightSound, AbilityStandby は audioManager.js から import）
 
 let selectSoundUrl = null;
 let selectSound = null;
@@ -685,17 +688,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('click', initializeAudioPlayback, { once: true });
     
     // スライダーのイベントリスナーを設定
-    if (systemvolumeSlider) {
-        systemvolumeSlider.addEventListener('input', (event) => {
-            const newVolume = parseFloat(event.target.value); // 数値として取得
-            if (chargeSound) chargeSound.volume = newVolume; // 音量を更新
-            if (moveSound) moveSound.volume = newVolume; // 音量を更新
-            if (highlightSound) highlightSound.volume = newVolume; // 音量を更新
-            if (AbilityStandby) AbilityStandby.volume = newVolume; // 音量を更新
-        });
-    } else {
-        console.error("systemvolumeSlider が見つかりません");
-    }
+    setupSystemVolumeSlider(systemvolumeSlider);
 
     if (voicevolumeSlider) {
         voicevolumeSlider.addEventListener('input', (event) => {
@@ -712,30 +705,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function initializeAudioPlayback() {
-    const audioFiles = [pLeft_Attack, pRight_Attack, pLeft_ult, pRight_ult, chargeSound];
-
-    audioFiles.forEach(audio => {
-        // 再生前にミュートを設定
-        audio.volume = 0.2; 
-        audio.muted = true;
-        // 再生を試みる
-        audio.play()
-            .then(() => {
-                // 再生終了後に停止してリセット
-                audio.pause();
-                audio.currentTime = 0; // 再生位置をリセット
-            })
-            .catch(error => {
-                console.warn(`Failed to initialize ${audio.src}:`, error);
-            });
-    });
-
-    // ミュート解除（すべての音声が停止してから）
-    setTimeout(() => {
-        audioFiles.forEach(audio => {
-            audio.muted = false; // ミュート解除
-        });
-    }, 1000); // 必要に応じて調整
+    _initializeAudioPlayback([pLeft_Attack, pRight_Attack, pLeft_ult, pRight_ult]);
 }
 
 //------------------------------------------------------------------------------------------------
@@ -2390,29 +2360,11 @@ async function ult_randomCenter2Delete(){
 }
 
 function getRandomTwoNumbers() {
-    const numbers = [2, 3, 4]; // 候補となる列番号
-    const result = [];
-
-    while (result.length < 2) {
-        const randomIndex = Math.floor(Math.random() * numbers.length); // 配列のランダムなインデックスを取得
-        const column = numbers.splice(randomIndex, 1)[0]; // 選ばれた列番号を取得し、候補から削除
-        result.push({ column, row: 1 }); // { column, row } 形式で結果リストに追加 (row は 1 固定)
-    }
-
-    return result;
+    return _getRandomTwoNumbers();
 }
 
 function getRandomThreeNumbers() {
-    const numbers = [0, 1, 5, 6]; // 候補となる列番号
-    const result = [];
-
-    while (result.length < 3) {
-        const randomIndex = Math.floor(Math.random() * numbers.length); // 配列のランダムなインデックスを取得
-        const column = numbers.splice(randomIndex, 1)[0]; // 選ばれた列番号を取得し、候補から削除
-        result.push({ column, row: 1 }); // { column, row } 形式で結果リストに追加 (row は 1 固定)
-    }
-
-    return result;
+    return _getRandomThreeNumbers();
 }
 
 //------------------------------------------------------------------------------------------------
@@ -2654,12 +2606,7 @@ async function getRandomTopStones(count) {
 
 // 指定された列で一番上の石を取得するヘルパー関数
 function getTopStoneInColumn(stonesData, column) {
-    const rows = Object.keys(stonesData)
-        .filter(key => key.startsWith(`${column}_`))
-        .map(key => parseInt(key.split('_')[1]))
-        .sort((a, b) => a - b);
-
-    return rows.length > 0 ? rows[0] : null; // 一番上の石の行番号を返す（なければnull）
+    return _getTopStoneInColumn(stonesData, column);
 }
 
 //------------------------------------------------------------------------------------------------
@@ -2723,23 +2670,7 @@ async function ult_Top2Delete() {
 }
 
 async function getTop2Stones() {
-    try {
-        const stonesToDelete = []; // 削除対象のキーを格納する配列
-
-        // 列番号は 0 〜 6、行番号は 0 と 1 を対象
-        for (let column = 0; column <= 6; column++) {
-            for (let row = 0; row <= 2; row++) {
-                const key = `${column}_${row}`;
-                stonesToDelete.push(key);
-            }
-        }
-
-        console.log("削除対象のキー（getTop2Stones）:", stonesToDelete);
-        return stonesToDelete;
-    } catch (error) {
-        console.error("getTop2Stones 実行中にエラーが発生しました:", error);
-        return [];
-    }
+    return _getTop2Stones();
 }
 
 //------------------------------------------------------------------------------------------------
@@ -2835,19 +2766,7 @@ async function ult_madness() {
 
 // 石の色を逆転する関数
 async function changeStonesColor(stonesData, redChangeStones, yellowChangeStones) {
-    // 赤→黄に変更
-    redChangeStones.forEach((key) => {
-        if (stonesData[key]) {
-            stonesData[key].color = "yellow";
-        }
-    });
-
-    // 黄→赤に変更
-    yellowChangeStones.forEach((key) => {
-        if (stonesData[key]) {
-            stonesData[key].color = "red";
-        }
-    });
+    return _changeStonesColor(stonesData, redChangeStones, yellowChangeStones);
 }
 
 // Firestoreに新しいstonesDataを更新する関数
@@ -2878,39 +2797,12 @@ async function updateRoomWithNewStones(roomDocId, stonesData, p1_chargeNow, p2_c
 
 // 赤と黄色の変更する石の座標を取得する関数
 async function getStonesToChange(stonesData, count) {
-    const redStones = [];
-    const yellowStones = [];
-
-    // 石を色別に分類
-    for (const [key, stone] of Object.entries(stonesData)) {
-        if (stone.color === "red") {
-            redStones.push(key);
-        } else if (stone.color === "yellow") {
-            yellowStones.push(key);
-        }
-    }
-
-    // ランダムに指定数の石を選択
-    const redChangeStones = getRandomElements(redStones, count);
-    const yellowChangeStones = getRandomElements(yellowStones, count);
-
-    return [redChangeStones, yellowChangeStones];
+    return _getStonesToChange(stonesData, count);
 }
 
 // ランダムに指定数の要素を取得する関数
 function getRandomElements(array, count) {
-    if (array.length < count) {
-        console.warn("取得しようとしている数が配列のサイズを超えています。全ての要素を返します。");
-        return array;
-    }
-
-    const result = [];
-    const tempArray = [...array]; // 元の配列をコピー
-    while (result.length < count) {
-        const randomIndex = Math.floor(Math.random() * tempArray.length);
-        result.push(tempArray.splice(randomIndex, 1)[0]);
-    }
-    return result;
+    return _getRandomElements(array, count);
 }
 
 //------------------------------------------------------------------------------------------------
