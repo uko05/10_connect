@@ -579,7 +579,9 @@ header{
     margin: 0;
     padding: 0;
     width: 100%;
-
+    position: relative;
+    z-index: 1;
+    
     /* ★高さを保証（iPhoneで強い） */
     height: calc(100svh - var(--headerH, 56px));
 
@@ -597,7 +599,17 @@ header{
     transform-origin: top center;
     display: inline-block;
   }
-
+  
+  header *{
+    pointer-events: auto;
+  }
+  
+  header{
+    position: sticky;
+    top: 0;
+    z-index: 99999;  /* 超強く */
+  }
+  
   /* タイトルは少し小さめ */
   header h1{
     font-size: 16px;
@@ -606,11 +618,24 @@ header{
 
   /* あそびかたボタン：画像を縮める */
   .help-btn{
-    padding: 0;
+    padding: 6px;        /* 当たり判定確保 */
+    line-height: 0;
+    position: relative;
+    z-index: 999999; /* ボタンはさらに上 */
+    pointer-events: auto;
   }
+  
   .help-btn img{
-    height: 32px;
+    height: 24px;
     width: auto;
     display: block;
+  }
+  
+  footer{
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  #version{
+    font-size: 10px;
   }
 }
