@@ -161,7 +161,7 @@ nav ul li:hover > a {
 /* ------------------------------------------------------------------------------------------- */
 header {
     width: 100%;
-    background-color: white;
+    background-color: transparent;
     padding: 10px;
     text-align: center;
     position: sticky;
@@ -605,30 +605,18 @@ main.sidebar-collapsed{
     height: 26px;   /* ★スマホで小さく */
   }
 
-  /* ② footer自体の行高を確保して、下半分切れ防止 */
-  footer{
-    font-size: 8px;
-    line-height: 1.2;
-    line-height: 1.35;
-    padding-bottom: 6px;
-  }
-  
   footer.legal-footer{
-    bottom: env(safe-area-inset-bottom);
-    padding: 6px 12px calc(15px + env(safe-area-inset-bottom)) 12px;
+    bottom: env(safe-area-inset-bottom, 0px);
+    padding: 4px 8px;
     line-height: 1.35;
     font-size: 6px;
-    right: 10px;
     box-sizing: border-box;
   }
-  
+
   #version{
-    right: 24px;
-    bottom: calc(28px + env(safe-area-inset-bottom));
-    max-width: calc(100vw - 24px);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    right: 8px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     font-size: 8px;
+    white-space: nowrap;
   }
 }
