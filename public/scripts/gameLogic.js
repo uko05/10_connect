@@ -35,6 +35,7 @@ import {
     changeStonesColor as _changeStonesColor,
     getStonesToChange as _getStonesToChange
 } from "./abilities.js";
+import { setupScaledLayout } from "./layoutScaler.js";
 
 
 // バージョン表示
@@ -711,20 +712,9 @@ function initializeAudioPlayback() {
 
 //------------------------------------------------------------------------------------------------
 
-const BOARD_BASE_HEIGHT = 110 + 660 + 30; // topCanvas + canvas + timeLimitContainer
-
-function setupStageLayout() {
-    const boardWrap = document.getElementById('boardWrap');
-    if (!boardWrap) return;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    boardScale = Math.min(1, (vw - 16) / (cellSize * cols), (vh - 16) / BOARD_BASE_HEIGHT);
-    boardWrap.style.transform = `scale(${boardScale})`;
-}
-
-setupStageLayout();
-window.addEventListener('resize', setupStageLayout);
-window.addEventListener('orientationchange', setupStageLayout);
+setupScaledLayout('boardWrap', cellSize * cols, 110 + 660 + 30, (scale) => {
+    boardScale = scale;
+});
 
 //------------------------------------------------------------------------------------------------
 

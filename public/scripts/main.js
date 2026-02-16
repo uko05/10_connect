@@ -17,35 +17,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"; 
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
+import { setupScaledLayout } from './layoutScaler.js';
 
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;
 
 // スマホ対応：ロビー画面のスケーリング
-const LOBBY_BASE_WIDTH = 1200; // .parent-container の固定幅
-const LOBBY_BASE_HEIGHT = 730; // .parent-container の固定高さ
-
-function setupLobbyLayout() {
-  const lobbyWrap = document.getElementById("lobbyWrap");
-  if (!lobbyWrap) return;
-
-  const header = document.querySelector("header");
-  const headerH = header ? header.getBoundingClientRect().height : 0;
-
-const vv = window.visualViewport;
-const main = document.querySelector("main");
-const vw = main ? main.clientWidth : (vv ? vv.width : document.documentElement.clientWidth);
-const vh = (vv ? vv.height : document.documentElement.clientHeight) - headerH;
-
-
-  const scale = Math.min(
-    1,
-    (vw - 16) / LOBBY_BASE_WIDTH,
-    (vh - 16) / LOBBY_BASE_HEIGHT
-  );
-
-  lobbyWrap.style.transform = `scale(${scale})`;
-}
+const setupLobbyLayout = setupScaledLayout('lobbyWrap', 1200, 730);
 
 let playerDocRef = null;
 let NowMatching = false;  //既にマッチング処理が進行中かどうかを示すフラグ
@@ -179,12 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem("lastTimestamp", Date.now()); //現在のタイムスタンプを保存
     loadTimeRemaining();
     
-    // ★スケール調整（追加したやつ）
+    // ★スケール再計算（サムネイル描画後に幅が確定するため）
     setupLobbyLayout();
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", setupLobbyLayout);
-      window.visualViewport.addEventListener("scroll", setupLobbyLayout);
-    }
 });
 
 //ローカルストレージから残り時間を取得
