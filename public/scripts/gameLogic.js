@@ -35,7 +35,7 @@ import {
     changeStonesColor as _changeStonesColor,
     getStonesToChange as _getStonesToChange
 } from "./abilities.js";
-import { setupScaledLayout } from "./layoutScaler.js";
+import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 
 
 // バージョン表示
@@ -734,12 +734,34 @@ function initializeAudioPlayback() {
 
 //------------------------------------------------------------------------------------------------
 
-// スマホ時はbaseHeightを縮小して縦いっぱいに盤面を最大化
+// スマホ時はDOM実測でbaseHeightを取得して盤面を最大化
 const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
-const baseH = isMobileLayout ? (60 + 660 + 20) : (110 + 660 + 30);
-setupScaledLayout('boardWrap', cellSize * cols, baseH, (scale) => {
-    boardScale = scale;
-});
+let refreshBoardLayout; // 手動再計算用
+if (isMobileLayout) {
+    // スマホ: boardWrap.scrollHeight を実測してスケール計算
+    refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, (scale) => {
+        boardScale = scale;
+        // ③ タイムバーの幅を盤面の見た目幅に合わせる
+        syncTimeBarWidth();
+    });
+} else {
+    // PC: 固定baseHeight
+    const baseH = 110 + 660 + 30;
+    refreshBoardLayout = setupScaledLayout('boardWrap', cellSize * cols, baseH, (scale) => {
+        boardScale = scale;
+        // ③ タイムバーの幅を盤面の見た目幅に合わせる
+        syncTimeBarWidth();
+    });
+}
+
+// ③ 緑バー幅を盤面（boardWrap）の論理幅に合わせる
+// timeLimitContainer は boardWrap 内にあるため transform:scale() で一緒にスケールされる
+// CSS width を canvas 幅に固定して盤面と見た目幅が一致するようにする
+function syncTimeBarWidth() {
+    const timeBar = document.getElementById('timeLimitContainer');
+    if (!timeBar) return;
+    timeBar.style.width = (cellSize * cols) + 'px'; // 770px = canvas幅
+}
 
 //------------------------------------------------------------------------------------------------
 
