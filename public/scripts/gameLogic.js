@@ -754,7 +754,7 @@ function highlightColumn(col) {
 
     // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
     const colWidth = canvasRect.width / cols;
-    highlightedColumn.style.position = 'absolute';
+    highlightedColumn.style.position = 'fixed';
     highlightedColumn.style.width = `${colWidth}px`;
     highlightedColumn.style.height = `${canvasRect.height}px`;
     highlightedColumn.style.left = `${canvasRect.left + col * colWidth}px`;
@@ -1862,7 +1862,7 @@ async function highlightWinningCells(winPositions) {
         // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
         const cellW = canvasRect.width / cols;
         const cellH = canvasRect.height / rows;
-        highlightedCell.style.position = 'absolute';
+        highlightedCell.style.position = 'fixed';
         highlightedCell.style.width = `${cellW}px`;
         highlightedCell.style.height = `${cellH}px`;
         highlightedCell.style.left = `${canvasRect.left + col * cellW}px`;
@@ -2567,7 +2567,7 @@ async function highlightStones(stonesToDelete, wt = 500) {
         // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
         const cellW = canvasRect.width / cols;
         const cellH = canvasRect.height / rows;
-        highlightedCell.style.position = 'absolute';
+        highlightedCell.style.position = 'fixed';
         highlightedCell.style.width = `${cellW}px`;
         highlightedCell.style.height = `${cellH}px`;
         highlightedCell.style.left = `${canvasRect.left + col * cellW}px`;

@@ -1202,8 +1202,8 @@ nav ul li:hover > a {
   /* --- 左右配置を維持（PC同様: left - center - right） --- */
   #leftPane,
   #rightPane {
-    flex: 0 0 auto;
-    width: 80px;
+    flex: 0 0 120px;
+    width: 120px;
     padding: 2px;
     box-sizing: border-box;
     background-color: rgba(255,255,255,0.85);
@@ -1220,7 +1220,7 @@ nav ul li:hover > a {
     padding: 0;
     overflow: hidden;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .board {
@@ -1248,12 +1248,6 @@ nav ul li:hover > a {
   }
 
   /* --- キャラ情報簡略化 --- */
-
-  /* ラベル見出し（「キャラ」「必殺技」等）を非表示、値は表示 */
-  #leftPane .label,
-  #rightPane .label {
-    display: none;
-  }
 
   /* 必殺技詳細を非表示 */
   #leftPane .abilityDetail,
@@ -1319,16 +1313,21 @@ nav ul li:hover > a {
     height: 20px;
   }
 
-  /* ヘルプボタン */
+  /* ヘルプボタン（右下に表示、クリック範囲をボタンのみに限定） */
   .help-btn {
     position: fixed;
-    top: 8px;
-    right: 8px;
+    bottom: 10px;
+    right: 10px;
+    top: auto;
     z-index: 100001;
     padding: 4px;
+    width: auto;
+    height: auto;
+    pointer-events: auto;
   }
   .help-btn img {
     height: 28px;
+    width: auto;
   }
 
   /* value-tate 縮小 */
