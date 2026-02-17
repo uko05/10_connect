@@ -562,6 +562,48 @@ main.sidebar-collapsed{
 /* ===== スマホだけ適用 ===== */
 @media (max-width: 1024px){
 
+  /* header / footer 非表示 */
+  header { display: none !important; }
+  footer.legal-footer { display: none !important; }
+  #version { display: none !important; }
+
+  /* サイドバー非表示（ハンバーガーのみ残す） */
+  .sidebar {
+    transform: translateX(-100%) !important;
+    z-index: 100000;
+    transition: transform 0.3s ease;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* ハンバーガーボタン単独fixed表示 */
+  #toggle-button {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 100001;
+    background-color: rgba(68, 68, 68, 0.85);
+    border: 2px solid #fff;
+    border-radius: 5px;
+    color: white;
+    font-size: 18px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+
+  /* オーバーレイ */
+  #sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 99999;
+  }
+  #sidebar-overlay.active {
+    display: block;
+  }
+
   main{
     margin: 0;
     padding: 0;
@@ -573,10 +615,9 @@ main.sidebar-collapsed{
     width: 100%;
     position: relative;
     z-index: 1;
-    padding-bottom: 18px;  /* ←フッター分の逃げ */
     box-sizing: border-box;
 
-    height: calc(100svh - var(--headerH, 56px));
+    height: 100svh;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -589,34 +630,13 @@ main.sidebar-collapsed{
     display: inline-block;
   }
 
-  /* タイトルは小さめ */
-  header h1{
-    font-size: 16px;
-    line-height: 1.1;
-  }
-
   .help-btn{
     top: 6px;
-    right: 18px; /* ← 6px→14pxとかにして内側へ */
+    right: 18px;
     padding: 4px;
   }
-  
+
   .help-btn img{
-    height: 26px;   /* ★スマホで小さく */
-  }
-
-  footer.legal-footer{
-    bottom: env(safe-area-inset-bottom, 0px);
-    padding: 4px 8px;
-    line-height: 1.35;
-    font-size: 6px;
-    box-sizing: border-box;
-  }
-
-  #version{
-    right: 8px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    font-size: 8px;
-    white-space: nowrap;
+    height: 26px;
   }
 }

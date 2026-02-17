@@ -183,21 +183,42 @@ if (mainEl) mainEl.classList.add("sidebar-collapsed");
 toggleButton.setAttribute('aria-expanded', false);
 toggleButton.setAttribute('aria-label', 'メニューを開く');
 
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
 toggleButton.addEventListener('click', () => {
-    sidebar.classList.toggle('hidden'); //hiddenクラスを切り替え
-    const isExpanded = !sidebar.classList.contains('hidden');
-    toggleButton.setAttribute('aria-expanded', isExpanded);
-    toggleButton.setAttribute('aria-label', isExpanded ? 'メニューを閉じる' : 'メニューを開く');
-    
-    // ★追加：main の padding-left を状態に合わせて切り替える
-    const mainEl = document.querySelector("main");
-    if (mainEl) {
-      mainEl.classList.toggle("sidebar-collapsed", !isExpanded);
+    const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+    if (isMobile) {
+        // スマホ: mobile-openクラスで制御
+        const isOpen = sidebar.classList.toggle('mobile-open');
+        if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpen);
+        toggleButton.setAttribute('aria-expanded', isOpen);
+        toggleButton.setAttribute('aria-label', isOpen ? 'メニューを閉じる' : 'メニューを開く');
+    } else {
+        // PC: 従来のhiddenクラスで制御
+        sidebar.classList.toggle('hidden');
+        const isExpanded = !sidebar.classList.contains('hidden');
+        toggleButton.setAttribute('aria-expanded', isExpanded);
+        toggleButton.setAttribute('aria-label', isExpanded ? 'メニューを閉じる' : 'メニューを開く');
+
+        const mainEl = document.querySelector("main");
+        if (mainEl) {
+          mainEl.classList.toggle("sidebar-collapsed", !isExpanded);
+        }
     }
 
-    // ★ついでにレイアウト再計算
+    // レイアウト再計算
     setupLobbyLayout();
 });
+
+// オーバーレイタップでサイドバーを閉じる
+if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+        sidebar.classList.remove('mobile-open');
+        sidebarOverlay.classList.remove('active');
+        toggleButton.setAttribute('aria-expanded', false);
+        toggleButton.setAttribute('aria-label', 'メニューを開く');
+    });
+}
 
 parentNode.addEventListener('click', (event) => {
     event.preventDefault(); //デフォルトのリンク動作を防止
