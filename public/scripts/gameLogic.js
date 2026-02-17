@@ -54,12 +54,34 @@ sidebar.classList.add('hidden');
 toggleButton.setAttribute('aria-expanded', false);
 toggleButton.setAttribute('aria-label', 'メニューを開く');
 
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
 toggleButton.addEventListener('click', () => {
-    sidebar.classList.toggle('hidden'); // hiddenクラスを切り替え
-    const isExpanded = !sidebar.classList.contains('hidden');
-    toggleButton.setAttribute('aria-expanded', isExpanded);
-    toggleButton.setAttribute('aria-label', isExpanded ? 'メニューを閉じる' : 'メニューを開く');
+    const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+    if (isMobile) {
+        // スマホ: mobile-openクラスで制御
+        const isOpen = sidebar.classList.toggle('mobile-open');
+        if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpen);
+        toggleButton.setAttribute('aria-expanded', isOpen);
+        toggleButton.setAttribute('aria-label', isOpen ? 'メニューを閉じる' : 'メニューを開く');
+    } else {
+        // PC: 従来のhiddenクラスで制御
+        sidebar.classList.toggle('hidden');
+        const isExpanded = !sidebar.classList.contains('hidden');
+        toggleButton.setAttribute('aria-expanded', isExpanded);
+        toggleButton.setAttribute('aria-label', isExpanded ? 'メニューを閉じる' : 'メニューを開く');
+    }
 });
+
+// オーバーレイタップでサイドバーを閉じる
+if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+        sidebar.classList.remove('mobile-open');
+        sidebarOverlay.classList.remove('active');
+        toggleButton.setAttribute('aria-expanded', false);
+        toggleButton.setAttribute('aria-label', 'メニューを開く');
+    });
+}
 
 parentNode.addEventListener('click', (event) => {
     event.preventDefault(); // デフォルトのリンク動作を防止
@@ -730,11 +752,12 @@ function highlightColumn(col) {
     highlightedColumn = document.createElement('div');
     highlightedColumn.classList.add('column', 'selected');
 
-    // ハイライトのスタイルを設定
+    // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
+    const colWidth = canvasRect.width / cols;
     highlightedColumn.style.position = 'absolute';
-    highlightedColumn.style.width = `${cellSize}px`;
+    highlightedColumn.style.width = `${colWidth}px`;
     highlightedColumn.style.height = `${canvasRect.height}px`;
-    highlightedColumn.style.left = `${canvasRect.left + col * cellSize}px`;
+    highlightedColumn.style.left = `${canvasRect.left + col * colWidth}px`;
     highlightedColumn.style.top = `${canvasRect.top}px`;
     highlightedColumn.style.pointerEvents = 'none';
 
@@ -1836,20 +1859,22 @@ async function highlightWinningCells(winPositions) {
         const highlightedCell = document.createElement('div');
         highlightedCell.classList.add('cell', 'selected'); // CSSのクラスを適用
 
-        // ハイライトのスタイルを設定
+        // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
+        const cellW = canvasRect.width / cols;
+        const cellH = canvasRect.height / rows;
         highlightedCell.style.position = 'absolute';
-        highlightedCell.style.width = `${cellSize}px`; // セル幅
-        highlightedCell.style.height = `${cellSize}px`; // セル高さ
-        highlightedCell.style.left = `${canvasRect.left + col * cellSize}px`; // 列の位置をCanvas基準で計算
-        highlightedCell.style.top = `${canvasRect.top + row * cellSize}px`; // 行の位置をCanvas基準で計算
-        highlightedCell.style.pointerEvents = 'none'; // マウスイベントを無効化
+        highlightedCell.style.width = `${cellW}px`;
+        highlightedCell.style.height = `${cellH}px`;
+        highlightedCell.style.left = `${canvasRect.left + col * cellW}px`;
+        highlightedCell.style.top = `${canvasRect.top + row * cellH}px`;
+        highlightedCell.style.pointerEvents = 'none';
 
         // ボード全体の親要素に追加
         document.body.appendChild(highlightedCell);
 
         // 音声再生
         try {
-        
+
         } catch (error) {
             console.error("音声の再生エラー:", error);
         }
@@ -2539,13 +2564,15 @@ async function highlightStones(stonesToDelete, wt = 500) {
         const highlightedCell = document.createElement('div');
         highlightedCell.classList.add('cell', 'selected'); // CSSのクラスを適用
 
-        // ハイライトのスタイルを設定
+        // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
+        const cellW = canvasRect.width / cols;
+        const cellH = canvasRect.height / rows;
         highlightedCell.style.position = 'absolute';
-        highlightedCell.style.width = `${cellSize}px`; // セル幅
-        highlightedCell.style.height = `${cellSize}px`; // セル高さ
-        highlightedCell.style.left = `${canvasRect.left + col * cellSize}px`; // 列の位置をCanvas基準で計算
-        highlightedCell.style.top = `${canvasRect.top + row * cellSize}px`; // 行の位置をCanvas基準で計算
-        highlightedCell.style.pointerEvents = 'none'; // マウスイベントを無効化
+        highlightedCell.style.width = `${cellW}px`;
+        highlightedCell.style.height = `${cellH}px`;
+        highlightedCell.style.left = `${canvasRect.left + col * cellW}px`;
+        highlightedCell.style.top = `${canvasRect.top + row * cellH}px`;
+        highlightedCell.style.pointerEvents = 'none';
 
         // ボード全体の親要素に追加
         document.body.appendChild(highlightedCell);
