@@ -1,7 +1,8 @@
 // layoutScaler.js - スマホ対応スケーリング共通関数
 
 /**
- * visualViewport / header高さを考慮してスケールを計算する
+ * レイアウトビューポート / header高さを考慮してスケールを計算する
+ * 高さは window.innerHeight を使用（キーボード表示時にも安定）
  * @param {number} baseWidth - コンテンツの論理幅
  * @param {number} baseHeight - コンテンツの論理高さ
  * @returns {number} scale（0〜1）
@@ -10,10 +11,10 @@ export function calcFitScale(baseWidth, baseHeight) {
     const header = document.querySelector("header");
     const headerH = header ? header.getBoundingClientRect().height : 0;
 
-    const vv = window.visualViewport;
     const main = document.querySelector("main");
+    const vv = window.visualViewport;
     const vw = main ? main.clientWidth : (vv ? vv.width : document.documentElement.clientWidth);
-    const vh = (vv ? vv.height : document.documentElement.clientHeight) - headerH;
+    const vh = window.innerHeight - headerH;
 
     return Math.min(1, (vw - 16) / baseWidth, (vh - 16) / baseHeight);
 }
