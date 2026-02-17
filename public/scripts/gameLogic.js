@@ -734,7 +734,10 @@ function initializeAudioPlayback() {
 
 //------------------------------------------------------------------------------------------------
 
-setupScaledLayout('boardWrap', cellSize * cols, 110 + 660 + 30, (scale) => {
+// スマホ時はbaseHeightを縮小して縦いっぱいに盤面を最大化
+const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
+const baseH = isMobileLayout ? (60 + 660 + 20) : (110 + 660 + 30);
+setupScaledLayout('boardWrap', cellSize * cols, baseH, (scale) => {
     boardScale = scale;
 });
 

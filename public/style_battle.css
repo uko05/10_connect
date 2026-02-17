@@ -1202,12 +1202,12 @@ nav ul li:hover > a {
   /* --- 左右配置を維持（PC同様: left - center - right） --- */
   #leftPane,
   #rightPane {
-    flex: 0 0 100px;
-    width: 100px;
+    flex: 0 0 80px;
+    width: 80px;
     padding: 1px;
     box-sizing: border-box;
     background-color: rgba(255,255,255,0.85);
-    font-size: 9px;
+    font-size: 8px;
     overflow-y: auto;
     height: 100vh;
     height: 100svh;
@@ -1233,6 +1233,18 @@ nav ul li:hover > a {
   }
 
   /* boardWrap / canvas のサイズは transform:scale() に任せる（width:100%で上書きしない） */
+
+  /* 石投下エリアを縮小してbaseHeightに合わせる */
+  #connect4Canvas_top {
+    height: 60px;
+    object-fit: cover;
+    object-position: bottom;
+  }
+
+  /* タイムゲージ縮小 */
+  #timeLimitContainer {
+    height: 20px;
+  }
 
   /* 必殺技名を縮小 */
   #leftPane .abilityName,
@@ -1305,7 +1317,7 @@ nav ul li:hover > a {
     pointer-events: auto;
   }
   .help-btn img {
-    height: 28px;
+    height: 18px;
     width: auto;
   }
 
@@ -1323,10 +1335,10 @@ nav ul li:hover > a {
     padding: 1px;
   }
 
-  /* 必殺技説明テキスト欄をスマホで拡大（viewport追従） */
+  /* 必殺技説明テキスト欄をスマホで1.5倍（viewport追従） */
   #AbilityDetail_1,
   #AbilityDetail_2 {
-    height: min(40vh, 400px);
+    height: min(30vh, 300px);
     overflow-y: auto;
   }
 
