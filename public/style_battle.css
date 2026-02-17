@@ -1228,32 +1228,7 @@ nav ul li:hover > a {
     align-items: center;
   }
 
-  #boardWrap {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  #connect4Canvas_top {
-    width: 100%;
-    height: auto;
-  }
-
-  #connect4Canvas {
-    width: 100%;
-    height: auto;
-    max-width: 100%;
-    max-height: none;
-  }
-
-  /* --- キャラ情報簡略化 --- */
-
-  /* 必殺技詳細を非表示 */
-  #leftPane .abilityDetail,
-  #rightPane .abilityDetail {
-    display: none;
-  }
+  /* boardWrap / canvas のサイズは transform:scale() に任せる（width:100%で上書きしない） */
 
   /* 必殺技名を縮小 */
   #leftPane .abilityName,
