@@ -1202,9 +1202,9 @@ nav ul li:hover > a {
   /* --- 左右配置を維持（PC同様: left - center - right） --- */
   #leftPane,
   #rightPane {
-    flex: 0 0 120px;
-    width: 120px;
-    padding: 2px;
+    flex: 0 0 100px;
+    width: 100px;
+    padding: 1px;
     box-sizing: border-box;
     background-color: rgba(255,255,255,0.85);
     font-size: 9px;
@@ -1218,14 +1218,18 @@ nav ul li:hover > a {
     height: 100vh;
     height: 100svh;
     padding: 0;
+    margin: 0;
     overflow: hidden;
     align-items: center;
     justify-content: flex-start;
+    gap: 0;
   }
 
   .board {
     width: 100%;
     align-items: center;
+    padding: 0;
+    margin: 0;
   }
 
   /* boardWrap / canvas のサイズは transform:scale() に任せる（width:100%で上書きしない） */
@@ -1317,6 +1321,13 @@ nav ul li:hover > a {
   .info-item-tate {
     font-size: 8px;
     padding: 1px;
+  }
+
+  /* 必殺技説明テキスト欄をスマホで拡大（viewport追従） */
+  #AbilityDetail_1,
+  #AbilityDetail_2 {
+    height: min(40vh, 400px);
+    overflow-y: auto;
   }
 
   /* characterInfoContainer 縮小 */

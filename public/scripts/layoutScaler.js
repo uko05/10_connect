@@ -22,7 +22,8 @@ export function calcFitScale(baseWidth, baseHeight, containerEl) {
     }
     const vh = window.innerHeight - headerH;
 
-    return Math.min(1, (vw - 16) / baseWidth, (vh - 16) / baseHeight);
+    const margin = containerEl ? 4 : 16;
+    return Math.min(1, (vw - margin) / baseWidth, (vh - margin) / baseHeight);
 }
 
 /**
