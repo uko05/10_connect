@@ -741,27 +741,16 @@ if (isMobileLayout) {
     // スマホ: boardWrap.scrollHeight を実測してスケール計算
     refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, (scale) => {
         boardScale = scale;
-        // ③ タイムバーの幅を盤面の見た目幅に合わせる
-        syncTimeBarWidth();
     });
 } else {
     // PC: 固定baseHeight
     const baseH = 110 + 660 + 30;
     refreshBoardLayout = setupScaledLayout('boardWrap', cellSize * cols, baseH, (scale) => {
         boardScale = scale;
-        // ③ タイムバーの幅を盤面の見た目幅に合わせる
-        syncTimeBarWidth();
     });
 }
-
-// ③ 緑バー幅を盤面（boardWrap）の論理幅に合わせる
-// timeLimitContainer は boardWrap 内にあるため transform:scale() で一緒にスケールされる
-// CSS width を canvas 幅に固定して盤面と見た目幅が一致するようにする
-function syncTimeBarWidth() {
-    const timeBar = document.getElementById('timeLimitContainer');
-    if (!timeBar) return;
-    timeBar.style.width = (cellSize * cols) + 'px'; // 770px = canvas幅
-}
+// ③ 緑バー（timeLimitContainer）は boardWrap 内にあるため
+//    transform:scale() で盤面と一緒にスケールされる → CSS width:100% で盤面幅と自動一致
 
 //------------------------------------------------------------------------------------------------
 

@@ -742,16 +742,18 @@ nav ul li:hover > a {
 #connect4Canvas_top {
     width: 770px; /* 実際の幅と高さに合わせる */
     height: 110px;
+    display: block; /* inline要素のままだと横並びの原因になる */
 }
 
 #connect4Canvas {
     border: 2px solid #333;
     border-radius: 10px; /* 角を丸くする場合 */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 影を追加して立体感を出す */
-    width: 100%; /* 親要素の幅に合わせる */
+    width: 770px; /* canvas論理幅に固定（boardWrap内で統一） */
     height: auto; /* アスペクト比を保つ */
-    max-width: 770px; /* 必要に応じて最大幅を指定 */
     max-height: 660px;
+    box-sizing: border-box; /* borderを含めて770pxに収める → 緑バーと幅が揃う */
+    display: block; /* inline要素のままだと横並びの原因になる */
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -1232,7 +1234,12 @@ nav ul li:hover > a {
     margin: 0;
   }
 
-  /* boardWrap / canvas のサイズは transform:scale() に任せる（width:100%で上書きしない） */
+  /* boardWrap: 子要素（canvas_top / canvas / timer）を縦積みに固定 */
+  #boardWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 
   /* 石投下エリアを最小化して盤面を最大化 */
   #connect4Canvas_top {

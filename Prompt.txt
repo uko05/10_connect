@@ -1,41 +1,53 @@
-【状況】
-スマホ版 battle 画面の最新修正版を確認。まだ不具合＋要件未達があります。
-※①②はスマホのみ修正（PCに影響NG）。③はPC/スマホ両方で修正してください。
+CC修正確認しました。次は「緑バー（残り時間バー）」まわりのバグ対応を最優先でお願いします。
 
-【① デグレ：左右キャラクターエリアが狭くなった（スマホのみ）】
-前の状態より左右のキャラクター情報パネル（left/right panel）が細くなって、内容が窮屈になっています。
-スマホ用CSSで left/right panel の幅が縮んでいる変更が入っているはずなので、
-「狭まる前の幅」に戻して、PC表示には影響しない形にしてください。
-（※スマホ用メディアクエリ内の width/padding 変更が原因の可能性高）
+【前提（超重要）】
+- バトル画面の左右キャラクター情報エリア（leftPanel/rightPanel）は、PC/スマホ両方で現状“完成”です。
+- 今後の修正で leftPanel/rightPanel の幅・レイアウト・表示内容に影響が出ないようにしてください。
+  （触る必要がある場合は、center側だけで完結させる or 影響ゼロを担保したうえで実施）
 
-【② 盤面サイズが変わってない（スマホのみ）】
-中央の boardWrap/盤面の“体感サイズ”が、相変わらず以前とほぼ同じで小さいままです。
-スマホでは「縦方向の空き」をもっと盤面に割り当てて、
-盤面（投下エリア含む）が画面内で最大化されるようにしてください。
+==================================================
+【優先：緑バー（残り時間バー）のバグ】
 
-要件（スマホ）：
-- boardWrap が画面の縦幅ギリギリまで使う（欠けない範囲で最大化）
-- それに合わせて横も可能な限り最大化
-- 左右パネルと中央盤面の隙間を減らし、中央を“使い切る”
+■PC版の現象
+1) 緑バーの「幅」は盤面（boardWrap/board）に近いが、位置が左にズレており、
+   “盤面の真下”にセンター揃えで来ていない。
+   → 盤面の中央真下にぴったり揃うように、left/top を合わせてください。
 
-ヒント：
-- 現状は scale 計算の縦基準（vh/baseHeight）がボトルネックになって盤面が縮み続けている可能性が高いです。
-- 「固定の baseHeight 見積もり」ではなく、DOM実測（getBoundingClientRect）で上UI/下UIの高さを取って、残りを盤面へ配分する方式が安定します。
-- iOS Safari の viewport ゆらぎを避けるなら、スマホ時はラッパを position: fixed; inset:0; にして内部だけでレイアウトする方法でもOKです。
-- transform: scale() を継続するなら、クリック判定/ハイライトは clientX/Y 直ではズレるため、必ず boardWrap.getBoundingClientRect() 基準で列判定 or scale補正してください。
+■スマホ版の現象
+2) 緑バーの「幅」が盤面幅と一致していない（盤面より長い/短い）。
+3) 重大：盤面の上にあるべき「石投下場所選択エリア（connect4Canvas_top等）」が
+   盤面の“左側”に回り込んで横並びになっている。
+   → その結果、
+      (a) 中央が横圧迫されて盤面が大きくなりきれない
+      (b) 緑バーが「横並び全体の幅」を拾って不自然に長くなる
+   という状態になっている可能性が高いです。
 
-【③ 仕様変更：残り時間の緑バー幅を盤面（中央フィールド）幅に合わせる（PC/スマホ両方）】
-下部の残り時間を示す緑のバー（time bar / gauge）の横幅が、
-中央の盤面（boardWrap あるいは盤面canvas領域）の横幅と一致するようにしてください。
+==================================================
+【修正方針（要望）】
 
-要件（PC/スマホ共通）：
-- 緑バーのコンテナ幅 = 盤面の見た目幅（boardWrap or board表示領域）
-- 盤面が scale されるなら、その scale 後の見た目幅に追従すること
-  （例：boardWrap の rect.width を使って time bar の width を合わせる等）
+A) スマホ時のcenter側レイアウトを “縦積み” に固定してください
+   - 上：投下エリア（connect4Canvas_top）
+   - 中：盤面（boardWrap）
+   - 下：緑バー（timeLimitContainer）
+   この3つが絶対に横並びに回り込まないように、center側だけで制御してください。
+   （※左右パネルには触れない）
 
-【追加で確認したいログ（もし可能なら）】
-スマホ実機で以下を console.log して、何がボトルネックか特定してください：
-- boardWrap.getBoundingClientRect() (width/height/top/left)
-- left/right/center panel の rect
-- calcFitScale() の最終 scale 値と、計算に使った vw/vh（innerHeight or visualViewport.height）
-- time bar 要素の rect（盤面と一致しているか）
+B) 緑バーの位置と幅は「見た目の盤面」に完全一致が要件です（PC/スマホ共通）
+   transform: scale() を使っている場合、親幅や固定canvas幅ではなく
+   boardWrap.getBoundingClientRect() の width/left を基準に合わせてください。
+   （clientX/Yベースや未補正のDOM座標基準だとズレます）
+
+==================================================
+【原因切り分けのため、確認してほしい計測（PC/スマホそれぞれ）】
+- boardWrap.getBoundingClientRect(): left/top/width/height
+- timeLimitContainer.getBoundingClientRect(): left/top/width/height
+- connect4Canvas_top.getBoundingClientRect(): left/top/width/height
+- centerPanel の computed style: display / flex-direction / gap / overflow / align-items / justify-content
+- transform: scale() を使用している場合：scale値 と transform-origin
+
+【質問】
+スマホで「投下エリアが盤面左に回り込む」トリガーになっているCSS/DOM要因は何ですか？
+（親flexがrowになっている、top要素だけwidth/position指定が違う、wrapされている等）
+ここを直せば、盤面最大化と緑バー整列が安定するはずです。
+
+※繰り返し：leftPanel/rightPanel は完成しているので、PC/スマホ両方で影響ゼロを厳守してください。
