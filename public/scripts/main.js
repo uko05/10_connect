@@ -25,6 +25,12 @@ document.getElementById('version').textContent = APP_VERSION;
 // スマホ対応：ロビー画面のスケーリング
 const setupLobbyLayout = setupScaledLayout('lobbyWrap', 1200, 730);
 
+// ④ 縦持ち時の「横画面にしてください」ラベル設定
+const orientationLabel = document.getElementById('orientationLabel');
+if (orientationLabel) {
+    orientationLabel.textContent = '横画面にしてください';
+}
+
 let playerDocRef = null;
 let NowMatching = false;  //既にマッチング処理が進行中かどうかを示すフラグ
 let roomDocRef = null; //ここで roomDocRef を宣言

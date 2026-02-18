@@ -199,6 +199,7 @@ let timeRemaining = timeLimit; // 残り時間
 let timeLimitGauge = document.getElementById('timeLimitGauge');
 
 let onlyCutIn = 0;
+let lastSlideCol = -1; // ②スライド中の前回列（列変化検知用）
 //------------------------------------------------------------------------------------------------
 // 要素取得
 const modal = document.getElementById("helpModal");
@@ -645,6 +646,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- topCanvas: PC マウス操作 ---
     topCanvas.addEventListener("mousedown", (event) => {
         isMoving = true;
+        lastSlideCol = -1; // ②スライド列リセット
         handleMoveColumn(event);
     });
     topCanvas.addEventListener("mousemove", (event) => {
@@ -656,6 +658,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     topCanvas.addEventListener("touchstart", (event) => {
         event.preventDefault();
         isMoving = true;
+        lastSlideCol = -1; // ②スライド列リセット
         handleMoveColumn(event);
     }, { passive: false });
     topCanvas.addEventListener("touchmove", (event) => {
@@ -684,6 +687,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     canvas.addEventListener("mousedown", (event) => {
         if (!selectedCharacter) {
             isMoving = true;
+            lastSlideCol = -1; // ②スライド列リセット
             handleMoveColumn(event);
         }
     });
@@ -697,6 +701,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!selectedCharacter) {
             event.preventDefault();
             isMoving = true;
+            lastSlideCol = -1; // ②スライド列リセット
             handleMoveColumn(event);
         }
     }, { passive: false });
@@ -754,23 +759,22 @@ function initializeAudioPlayback() {
 
 //------------------------------------------------------------------------------------------------
 
-// スマホ時はDOM実測でbaseHeightを取得して盤面を最大化
+// スマホ時はCSS実寸レイアウト（transform:scale不使用）で盤面を最大化
 const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
 let refreshBoardLayout; // 手動再計算用
 if (isMobileLayout) {
-    // スマホ: boardWrap.scrollHeight を実測してスケール計算
-    refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, (scale) => {
+    // スマホ: CSS実寸でレイアウト（transform:scaleを使わない）
+    // bufferWidth=770, bufferHeight=660, topCanvasBufferH=110, timerCssH=15
+    refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 15, (scale) => {
         boardScale = scale;
     });
 } else {
-    // PC: 固定baseHeight
+    // PC: transform:scale + 固定baseHeight
     const baseH = 110 + 660 + 30;
     refreshBoardLayout = setupScaledLayout('boardWrap', cellSize * cols, baseH, (scale) => {
         boardScale = scale;
     });
 }
-// ③ 緑バー（timeLimitContainer）は boardWrap 内にあるため
-//    transform:scale() で盤面と一緒にスケールされる → CSS width:100% で盤面幅と自動一致
 
 //------------------------------------------------------------------------------------------------
 
@@ -839,11 +843,17 @@ function handleMoveColumn(event) {
     }
 }
 
-// ④ スライド中にハイライトのみ更新する（音なし・石は移動する）
+// ② スライド中にハイライト更新 + 列が変わった瞬間だけSEを鳴らす
 function handleMoveColumnSilent(event) {
     if (isTurnPlayer()) {
         const col = getColumnFromEvent(event);
         if (col < 0 || col >= cols) return;
+        // ② 列が変わった時だけSEを鳴らす（同じ列なら連打しない）
+        if (col !== lastSlideCol) {
+            lastSlideCol = col;
+            moveSound.currentTime = 0;
+            moveSound.play().catch(() => {});
+        }
         highlightColumn(col);
         moveStoneToColumn(col);
     }

@@ -66,45 +66,89 @@ export function setupScaledLayout(wrapId, baseWidth, baseHeight, onScale) {
 }
 
 /**
- * スマホ用：boardWrapのscrollHeightをDOM実測してbaseHeightとして使用する
- * transform:scale(1)に一時リセットして正確な高さを取得
- * @param {string} wrapId - スケール対象要素のID
- * @param {number} baseWidth - コンテンツの論理幅
- * @param {function} [onScale] - スケール適用後のコールバック (scale) => void
+ * スマホ用：transform:scale() を使わず CSS 実寸でレイアウトする
+ * centerPanel の実サイズを測定し、canvas / topCanvas / timer の CSS 幅・高さを直接設定
+ * → 石投下エリアの上端クリップ問題を根本解消
+ * → 盤面を最大化（transform のオーバーヘッドなし）
+ *
+ * @param {string} wrapId - boardWrap の ID
+ * @param {number} bufferWidth - canvas バッファ幅（770）
+ * @param {number} bufferHeight - canvas バッファ高さ（660）
+ * @param {number} topCanvasBufferH - topCanvas バッファ高さ（110）
+ * @param {number} timerCssH - タイマー CSS 高さ（15）
+ * @param {function} [onScale] - scale 確定後のコールバック (scale) => void
  * @returns {function} setupLayout - 手動で再計算を呼ぶための関数
  */
-export function setupMobileBoardLayout(wrapId, baseWidth, onScale) {
+export function setupMobileBoardLayout(wrapId, bufferWidth, bufferHeight, topCanvasBufferH, timerCssH, onScale) {
     function setupLayout() {
         const wrap = document.getElementById(wrapId);
         if (!wrap) return;
 
-        // transform を一時リセットして正確な scrollHeight を取得
-        wrap.style.transform = 'scale(1)';
-        const baseHeight = wrap.scrollHeight;
+        const topCanvasEl = document.getElementById('connect4Canvas_top');
+        const mainCanvas = document.getElementById('connect4Canvas');
+        const timer = document.getElementById('timeLimitContainer');
+        if (!topCanvasEl || !mainCanvas || !timer) return;
 
-        const container = wrap.parentElement;
-        const scale = calcFitScale(baseWidth, baseHeight, container);
-        wrap.style.transform = `scale(${scale})`;
+        // transform:scale を明示的に無効化（CSS実寸レイアウト）
+        wrap.style.transform = 'none';
+
+        // centerPanel の実サイズを取得
+        const centerPanel = document.getElementById('centerPanel');
+        if (!centerPanel) return;
+        const panelRect = centerPanel.getBoundingClientRect();
+        const availW = panelRect.width;
+        const availH = panelRect.height;
+
+        // topCanvas は固定高さ（石が欠けない最小限確保: バッファ高さの比率で計算）
+        // 石の半径 = cellSize/2 - 5 = 50 → 石の直径100、中心=55 → 上端=5 → 比率 5/110 ≈ 5%
+        // 表示高さを十分確保（バッファ高さの25%程度）
+        const topCanvasRatio = 0.30; // バッファ高さの30%を表示（上端にマージン確保）
+        const topH = Math.max(20, Math.round(topCanvasBufferH * topCanvasRatio));
+
+        // メインcanvasが使える高さ
+        const canvasAvailH = availH - topH - timerCssH;
+        if (canvasAvailH <= 0) return;
+
+        // メインcanvasのアスペクト比を維持しつつ最大化
+        const canvasRatio = bufferWidth / bufferHeight; // 770/660 ≈ 1.167
+        let canvasW, canvasH;
+        if (canvasAvailH * canvasRatio <= availW) {
+            // 高さがボトルネック
+            canvasH = canvasAvailH;
+            canvasW = Math.round(canvasH * canvasRatio);
+        } else {
+            // 幅がボトルネック
+            canvasW = availW;
+            canvasH = Math.round(canvasW / canvasRatio);
+        }
+
+        const scale = canvasW / bufferWidth;
+
+        // CSS 実寸を直接設定
+        wrap.style.width = canvasW + 'px';
+
+        topCanvasEl.style.width = canvasW + 'px';
+        topCanvasEl.style.height = topH + 'px';
+
+        mainCanvas.style.width = canvasW + 'px';
+        mainCanvas.style.height = canvasH + 'px';
+        mainCanvas.style.maxWidth = 'none';
+        mainCanvas.style.maxHeight = 'none';
+
+        timer.style.width = canvasW + 'px';
+        timer.style.height = timerCssH + 'px';
+
         if (onScale) onScale(scale);
 
         // デバッグログ
-        const containerRect = container.getBoundingClientRect();
-        const wrapRect = wrap.getBoundingClientRect();
-        const leftPane = document.getElementById('leftPane');
-        const rightPane = document.getElementById('rightPane');
-        const timeBar = document.getElementById('timeLimitContainer');
-        console.log('[Mobile Layout Debug]', {
+        console.log('[Mobile Layout (CSS実寸)]', {
             scale,
-            baseWidth,
-            baseHeight,
-            containerRect: { w: containerRect.width, h: containerRect.height, top: containerRect.top, left: containerRect.left },
-            boardWrapRect: { w: wrapRect.width, h: wrapRect.height, top: wrapRect.top, left: wrapRect.left },
-            leftPaneRect: leftPane ? { w: leftPane.getBoundingClientRect().width } : null,
-            rightPaneRect: rightPane ? { w: rightPane.getBoundingClientRect().width } : null,
-            timeBarRect: timeBar ? { w: timeBar.getBoundingClientRect().width, h: timeBar.getBoundingClientRect().height } : null,
-            innerWidth: window.innerWidth,
-            innerHeight: window.innerHeight,
-            visualViewport: window.visualViewport ? { w: window.visualViewport.width, h: window.visualViewport.height } : null,
+            availW, availH,
+            topH, canvasW, canvasH, timerCssH,
+            topCanvasRect: topCanvasEl.getBoundingClientRect(),
+            canvasRect: mainCanvas.getBoundingClientRect(),
+            timerRect: timer.getBoundingClientRect(),
+            boardWrapRect: wrap.getBoundingClientRect(),
         });
     }
 

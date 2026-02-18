@@ -1219,7 +1219,7 @@ nav ul li:hover > a {
   #centerPanel {
     flex: 1;
     height: 100%;
-    padding: 4px 0 0 0; /* ①石が上端で欠けないよう上部に少し余白 */
+    padding: 0;
     margin: 0;
     overflow: hidden;
     align-items: center;
@@ -1235,23 +1235,22 @@ nav ul li:hover > a {
     margin: 0;
   }
 
-  /* boardWrap: 子要素（canvas_top / canvas / timer）を縦積みに固定 */
+  /* boardWrap: CSS実寸レイアウト（transform:scale不使用） */
   #boardWrap {
     display: flex;
     flex-direction: column;
     align-items: center;
+    transform: none !important; /* JS側でも none にするが念押し */
   }
 
-  /* 石投下エリアを最小化して盤面を最大化 */
+  /* canvas / topCanvas / timer の幅・高さは JS で直接設定される */
+  /* ここでは object-fit 等のフォールバックのみ */
   #connect4Canvas_top {
-    height: 40px;
-    object-fit: cover;
-    object-position: bottom;
+    /* 高さ・幅は JS で動的設定 */
   }
 
-  /* タイムゲージ縮小 */
   #timeLimitContainer {
-    height: 15px;
+    /* 高さ・幅は JS で動的設定 */
   }
 
   /* 必殺技名を縮小 */
