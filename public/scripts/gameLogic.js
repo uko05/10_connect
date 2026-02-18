@@ -635,71 +635,91 @@ document.addEventListener('DOMContentLoaded', async () => {
     backcolor_player(turn);
     watchRoomUpdates(); // リアルタイムのルーム更新を監視
     
-    // クリックイベントの管理
-    let isMoving = false; // スライド中かどうかを管理
+    // ================================================================
+    // クリック・スライド・タッチ イベント管理
+    // ④ PC: マウスドラッグ中にハイライト追従
+    //    スマホ: タッチスライド中にハイライト追従
+    // ================================================================
+    let isMoving = false;
 
-    // スライド用イベント
+    // --- topCanvas: PC マウス操作 ---
     topCanvas.addEventListener("mousedown", (event) => {
-        isMoving = true; // マウスダウン時にスライド開始
-        topCanvas.addEventListener("mousemove", handleMoveColumn);
+        isMoving = true;
+        handleMoveColumn(event);
     });
-
-    topCanvas.addEventListener("mouseup", (event) => {
-        if (isMoving) {
-            topCanvas.removeEventListener("mousemove", handleMoveColumn); // スライド終了
-            isMoving = false; // スライド終了
-        }
+    topCanvas.addEventListener("mousemove", (event) => {
+        if (isMoving) handleMoveColumnSilent(event);
     });
+    topCanvas.addEventListener("mouseup", () => { isMoving = false; });
 
-    // 上部のクリックで列を移動（single click）
-    // topCanvas.addEventListener("click", handleMoveColumn);
+    // --- topCanvas: タッチ操作（スマホ）④ スライドでハイライト追従 ---
+    topCanvas.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        isMoving = true;
+        handleMoveColumn(event);
+    }, { passive: false });
+    topCanvas.addEventListener("touchmove", (event) => {
+        event.preventDefault();
+        if (isMoving) handleMoveColumnSilent(event);
+    }, { passive: false });
+    topCanvas.addEventListener("touchend", () => { isMoving = false; });
+
+    // --- topCanvas: クリック（single click → 列移動） ---
     topCanvas.addEventListener("click", (event) => {
         if (!selectedCharacter) {
-            handleMoveColumn(event); // 条件を満たした場合のみ実行
+            handleMoveColumn(event);
         }
     });
 
-    // 石を落とす処理（ダブルクリック）
-    // topCanvas.addEventListener("dblclick", handleStoneDrop);    // 石を落とす
+    // --- topCanvas: ダブルクリック（石を落とす） ---
     topCanvas.addEventListener("dblclick", (event) => {
         if (!selectedCharacter) {
             if (winningflg == 0){
-                handleStoneDrop(event); // 条件を満たした場合のみ実行            
+                handleStoneDrop(event);
             }
         }
     });
-    
-    // スライド用イベント
+
+    // --- canvas（盤面）: PC マウス操作 ---
     canvas.addEventListener("mousedown", (event) => {
         if (!selectedCharacter) {
-            isMoving = true; // マウスダウン時にスライド開始
-            canvas.addEventListener("mousemove", handleMoveColumn);
+            isMoving = true;
+            handleMoveColumn(event);
         }
     });
+    canvas.addEventListener("mousemove", (event) => {
+        if (!selectedCharacter && isMoving) handleMoveColumnSilent(event);
+    });
+    canvas.addEventListener("mouseup", () => { isMoving = false; });
 
-    canvas.addEventListener("mouseup", (event) => {
+    // --- canvas: タッチ操作（スマホ）④ スライドでハイライト追従 ---
+    canvas.addEventListener("touchstart", (event) => {
         if (!selectedCharacter) {
-            if (isMoving) {
-                canvas.removeEventListener("mousemove", handleMoveColumn); // スライド終了
-                isMoving = false; // スライド終了
-            }
+            event.preventDefault();
+            isMoving = true;
+            handleMoveColumn(event);
         }
-    });
+    }, { passive: false });
+    canvas.addEventListener("touchmove", (event) => {
+        if (!selectedCharacter) {
+            event.preventDefault();
+            if (isMoving) handleMoveColumnSilent(event);
+        }
+    }, { passive: false });
+    canvas.addEventListener("touchend", () => { isMoving = false; });
 
-    // 上部のクリックで列を移動（single click）
-    //canvas.addEventListener("click", handleMoveColumn);
+    // --- canvas: クリック（single click → 列移動） ---
     canvas.addEventListener("click", (event) => {
         if (!selectedCharacter) {
-            handleMoveColumn(event); // 条件を満たした場合のみ実行
+            handleMoveColumn(event);
         }
     });
-    
-    // 石を落とす処理（ダブルクリック）
-    //canvas.addEventListener("dblclick", handleStoneDrop);    // 石を落とす
+
+    // --- canvas: ダブルクリック（石を落とす） ---
     canvas.addEventListener("dblclick", (event) => {
         if (!selectedCharacter) {
             if (winningflg == 0){
-                handleStoneDrop(event); // 条件を満たした場合のみ実行
+                handleStoneDrop(event);
             }
         }
     });
@@ -755,6 +775,9 @@ if (isMobileLayout) {
 //------------------------------------------------------------------------------------------------
 
 function highlightColumn(col) {
+    // boardWrap の rect を基準に（canvas と同じ幅でスケール後の見た目座標）
+    const boardWrap = document.getElementById('boardWrap');
+    const wrapRect = boardWrap.getBoundingClientRect();
     const canvasRect = canvas.getBoundingClientRect();
 
     // すでにハイライトが存在する場合は削除
@@ -766,12 +789,12 @@ function highlightColumn(col) {
     highlightedColumn = document.createElement('div');
     highlightedColumn.classList.add('column', 'selected');
 
-    // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
-    const colWidth = canvasRect.width / cols;
+    // ハイライトのスタイルを設定（boardWrap基準でscale後の見た目座標を使用）
+    const colWidth = wrapRect.width / cols;
     highlightedColumn.style.position = 'fixed';
     highlightedColumn.style.width = `${colWidth}px`;
     highlightedColumn.style.height = `${canvasRect.height}px`;
-    highlightedColumn.style.left = `${canvasRect.left + col * colWidth}px`;
+    highlightedColumn.style.left = `${wrapRect.left + col * colWidth}px`;
     highlightedColumn.style.top = `${canvasRect.top}px`;
     highlightedColumn.style.pointerEvents = 'none';
 
@@ -800,21 +823,53 @@ function highlightColumn(col) {
 }
 
 // handleMoveColumnを更新して列の強調表示を追加
+// ③ boardWrap.getBoundingClientRect() 基準で列判定（transform:scale()補正対応）
 function handleMoveColumn(event) {
     // ターンプレイヤーか確認
     if (isTurnPlayer()) {
         moveSound.play();
-        // イベントの位置から列を計算（scale補正あり）
-        const rect = topCanvas.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / boardScale;
-        const col = Math.floor(x / cellSize); // 列の計算
-        
+        const col = getColumnFromEvent(event);
+        if (col < 0 || col >= cols) return; // 範囲外は無視
+
         // 列の強調表示
         highlightColumn(col);
 
         // 石を移動
         moveStoneToColumn(col);
     }
+}
+
+// ④ スライド中にハイライトのみ更新する（音なし・石は移動する）
+function handleMoveColumnSilent(event) {
+    if (isTurnPlayer()) {
+        const col = getColumnFromEvent(event);
+        if (col < 0 || col >= cols) return;
+        highlightColumn(col);
+        moveStoneToColumn(col);
+    }
+}
+
+// ③ イベント座標から列番号を取得（boardWrap基準・scale補正あり）
+function getColumnFromEvent(event) {
+    // タッチイベントの場合は touches[0] から座標を取得
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const boardWrap = document.getElementById('boardWrap');
+    const rect = boardWrap.getBoundingClientRect();
+    // rect は scale 適用後の見た目座標なので、そのまま使える
+    // scale 後の1列幅 = rect.width / cols
+    const col = Math.floor((clientX - rect.left) / (rect.width / cols));
+
+    // デバッグログ（スマホ時のみ）
+    if (isMobileLayout) {
+        console.log('[Column Debug]', {
+            clientX,
+            rectLeft: rect.left,
+            rectWidth: rect.width,
+            boardScale,
+            col,
+        });
+    }
+    return col;
 }
 
 // 石を移動させる関数

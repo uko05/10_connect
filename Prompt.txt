@@ -1,53 +1,39 @@
-CC修正確認しました。次は「緑バー（残り時間バー）」まわりのバグ対応を最優先でお願いします。
+CCへ：最新のスマホ版バトル画面の修正依頼です（PC版は④のみ対象）
 
-【前提（超重要）】
-- バトル画面の左右キャラクター情報エリア（leftPanel/rightPanel）は、PC/スマホ両方で現状“完成”です。
-- 今後の修正で leftPanel/rightPanel の幅・レイアウト・表示内容に影響が出ないようにしてください。
-  （触る必要がある場合は、center側だけで完結させる or 影響ゼロを担保したうえで実施）
-
-==================================================
-【優先：緑バー（残り時間バー）のバグ】
-
-■PC版の現象
-1) 緑バーの「幅」は盤面（boardWrap/board）に近いが、位置が左にズレており、
-   “盤面の真下”にセンター揃えで来ていない。
-   → 盤面の中央真下にぴったり揃うように、left/top を合わせてください。
-
-■スマホ版の現象
-2) 緑バーの「幅」が盤面幅と一致していない（盤面より長い/短い）。
-3) 重大：盤面の上にあるべき「石投下場所選択エリア（connect4Canvas_top等）」が
-   盤面の“左側”に回り込んで横並びになっている。
-   → その結果、
-      (a) 中央が横圧迫されて盤面が大きくなりきれない
-      (b) 緑バーが「横並び全体の幅」を拾って不自然に長くなる
-   という状態になっている可能性が高いです。
+【前提（重要）】
+- 左右のキャラクター情報エリア（leftPanel/rightPanel）は PC/スマホ両方で完成しています。ここはレイアウト/幅/表示内容を絶対に崩さないでください。
+- 今回の①②③は「スマホのみ」修正、④のみ「PC/スマホ両方」修正です。
 
 ==================================================
-【修正方針（要望）】
+①（スマホのみ）石投下エリアの石が上で欠ける
+- 中央上部の「石投下エリア（上から落ちてくる石）」で、石の上端が少し切れています。
+- 対応：中央エリア（center側）を少し下げて、石が切れないようにしてください。
+  ※左右パネルは触らない。
 
-A) スマホ時のcenter側レイアウトを “縦積み” に固定してください
-   - 上：投下エリア（connect4Canvas_top）
-   - 中：盤面（boardWrap）
-   - 下：緑バー（timeLimitContainer）
-   この3つが絶対に横並びに回り込まないように、center側だけで制御してください。
-   （※左右パネルには触れない）
+②（スマホのみ）中央フィールドをさらに拡大
+- ①を満たしたうえで、盤面（boardWrap/board）がまだ小さく、盤面の下に余白が残っています。
+- 対応：余白を使って中央フィールドを拡大してください（縦も横も可能な範囲で最大化）。
+  ※左右パネルは触らない。
 
-B) 緑バーの位置と幅は「見た目の盤面」に完全一致が要件です（PC/スマホ共通）
-   transform: scale() を使っている場合、親幅や固定canvas幅ではなく
-   boardWrap.getBoundingClientRect() の width/left を基準に合わせてください。
-   （clientX/Yベースや未補正のDOM座標基準だとズレます）
+③（スマホのみ）タップ位置と列ハイライトのズレ修正
+- スマホで中央付近の列をタップしているのに、実際は「2列左」がハイライトされます。
+- 対応：①②でレイアウト確定後に、タップ位置と列判定が一致するように直してください。
+
+  補足ヒント：
+  - transform: scale() が絡むと clientX/clientY とDOM座標がズレやすいです。
+  - boardWrap.getBoundingClientRect() を基準に列判定するか、
+    scale補正（(clientX - rect.left) / scale など）を入れてください。
+  - どの要素にtransformが掛かっているかも合わせて確認してください（boardWrap/board/canvasなど）。
+
+④（PC/スマホ両方）ハイライトが「スライド操作」でも追従するように
+- 現状：フィールドを“タップ”した時だけ、投下位置のハイライトが変わります。
+- 要件：指で左右にスライド（ドラッグ）している間も、現在の指位置に合わせてハイライト列が変わるようにしてください。
+  例：pointermove / touchmove 中に列判定してハイライト更新、pointerup/touchendで確定 など。
 
 ==================================================
-【原因切り分けのため、確認してほしい計測（PC/スマホそれぞれ）】
-- boardWrap.getBoundingClientRect(): left/top/width/height
-- timeLimitContainer.getBoundingClientRect(): left/top/width/height
-- connect4Canvas_top.getBoundingClientRect(): left/top/width/height
-- centerPanel の computed style: display / flex-direction / gap / overflow / align-items / justify-content
-- transform: scale() を使用している場合：scale値 と transform-origin
+確認したいログ（スマホのみでOK）
+- boardWrap.getBoundingClientRect() (left/top/width/height)
+- 実際に列判定に使っている座標（clientX等）と、補正後x座標
+- 最終scale値（transform使用時）
 
-【質問】
-スマホで「投下エリアが盤面左に回り込む」トリガーになっているCSS/DOM要因は何ですか？
-（親flexがrowになっている、top要素だけwidth/position指定が違う、wrapされている等）
-ここを直せば、盤面最大化と緑バー整列が安定するはずです。
-
-※繰り返し：leftPanel/rightPanel は完成しているので、PC/スマホ両方で影響ゼロを厳守してください。
+※繰り返し：leftPanel/rightPanel は完成済みなので、今回の修正で影響が出ないよう厳守してください。

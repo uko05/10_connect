@@ -1219,11 +1219,12 @@ nav ul li:hover > a {
   #centerPanel {
     flex: 1;
     height: 100%;
-    padding: 0;
+    padding: 4px 0 0 0; /* ①石が上端で欠けないよう上部に少し余白 */
     margin: 0;
     overflow: hidden;
     align-items: center;
     justify-content: flex-start;
+    box-sizing: border-box;
     gap: 0;
   }
 
