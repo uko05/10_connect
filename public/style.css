@@ -532,6 +532,11 @@ main.sidebar-collapsed{
   padding-left: 0 !important;
 }
 
+/* ② 縦画面ラベル: デフォルト非表示（portrait メディアクエリでのみ表示） */
+#orientationLabel {
+  display: none;
+}
+
 /* ===== Lobby Viewport ===== */
 #lobbyViewport{
   display: flex;
@@ -573,6 +578,15 @@ main.sidebar-collapsed{
 /* ===== スマホだけ適用 ===== */
 @media (max-width: 1024px){
 
+  /* iOS自動ズーム対策 */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  
   /* header / footer 非表示 */
   header { display: none !important; }
   footer.legal-footer { display: none !important; }
@@ -657,13 +671,23 @@ main.sidebar-collapsed{
   }
 }
 
-/* スマホ縦持ち（portrait）時に orientationLabel を全画面巨大表示 + 点滅 */
+/* スマホ縦持ち（portrait）時 */
 @media (max-width: 1024px) and (orientation: portrait) {
+
+  /* ① lobbyViewport を縦中央配置 */
+  #lobbyViewport {
+    align-items: center;
+  }
+
+  /* ② orientationLabel を全画面中央に巨大表示 + 点滅 */
   #orientationLabel {
     display: flex !important;
     opacity: 1 !important;
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     z-index: 200000;
     background: rgba(0, 0, 0, 0.85);
     color: #fff;
@@ -673,11 +697,10 @@ main.sidebar-collapsed{
     justify-content: center;
     align-items: center;
     padding: 20px;
+    margin: 0;
     border: none;
     border-radius: 0;
     box-shadow: none;
-    width: auto;
-    height: auto;
     max-width: none;
     line-height: 1.5;
     animation: orientBlink 1.5s ease-in-out infinite;
