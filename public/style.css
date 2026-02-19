@@ -640,27 +640,40 @@ main.sidebar-collapsed{
     height: 26px;
   }
 
-  /* ④ 縦持ち時の「横画面にしてください」ラベル */
+  /* 縦持ち時の「横画面にしてください」ラベル — 横画面ではCSS非表示 */
   #orientationLabel {
-    display: none; /* デフォルト非表示（JSで制御） */
+    display: none !important;
   }
 }
 
-/* ④ スマホ縦持ち（portrait）時に orientationLabel を表示 */
+/* スマホ縦持ち（portrait）時に orientationLabel を全画面巨大表示 + 点滅 */
 @media (max-width: 1024px) and (orientation: portrait) {
   #orientationLabel {
-    display: block !important;
+    display: flex !important;
     opacity: 1 !important;
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
     z-index: 200000;
-    font-size: 28px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    font-size: 7vw;
+    font-weight: bold;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     width: auto;
-    max-width: 90vw;
     height: auto;
-    line-height: 1.6;
-    padding: 30px 40px;
+    max-width: none;
+    line-height: 1.5;
+    animation: orientBlink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes orientBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
 }

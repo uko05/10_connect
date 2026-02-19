@@ -67,19 +67,22 @@ export function setupScaledLayout(wrapId, baseWidth, baseHeight, onScale) {
 
 /**
  * スマホ用：transform:scale() を使わず CSS 実寸でレイアウトする
- * centerPanel の実サイズを測定し、canvas / topCanvas / timer の CSS 幅・高さを直接設定
- * → 石投下エリアの上端クリップ問題を根本解消
- * → 盤面を最大化（transform のオーバーヘッドなし）
+ * PC と同じアスペクト比（770:800 = topCanvas+canvas+timer）を維持しつつ
+ * centerPanel 内を最大限使い切る
+ *
+ * ② topCanvas のバッファサイズも CSS サイズに合わせて再設定（石の潰れ防止）
+ * ④ 縦基準がボトルネックの場合、dropArea / timeBar を削減して盤面優先
+ * ⑥ 緑バー下に余白（padding-bottom）追加
  *
  * @param {string} wrapId - boardWrap の ID
  * @param {number} bufferWidth - canvas バッファ幅（770）
  * @param {number} bufferHeight - canvas バッファ高さ（660）
  * @param {number} topCanvasBufferH - topCanvas バッファ高さ（110）
- * @param {number} timerCssH - タイマー CSS 高さ（15）
+ * @param {number} timerBaseH - タイマー基準高さ（30）
  * @param {function} [onScale] - scale 確定後のコールバック (scale) => void
- * @returns {function} setupLayout - 手動で再計算を呼ぶための関数
+ * @returns {function} setupLayout
  */
-export function setupMobileBoardLayout(wrapId, bufferWidth, bufferHeight, topCanvasBufferH, timerCssH, onScale) {
+export function setupMobileBoardLayout(wrapId, bufferWidth, bufferHeight, topCanvasBufferH, timerBaseH, onScale) {
     function setupLayout() {
         const wrap = document.getElementById(wrapId);
         if (!wrap) return;
@@ -89,7 +92,7 @@ export function setupMobileBoardLayout(wrapId, bufferWidth, bufferHeight, topCan
         const timer = document.getElementById('timeLimitContainer');
         if (!topCanvasEl || !mainCanvas || !timer) return;
 
-        // transform:scale を明示的に無効化（CSS実寸レイアウト）
+        // transform:scale を明示的に無効化
         wrap.style.transform = 'none';
 
         // centerPanel の実サイズを取得
@@ -99,56 +102,58 @@ export function setupMobileBoardLayout(wrapId, bufferWidth, bufferHeight, topCan
         const availW = panelRect.width;
         const availH = panelRect.height;
 
-        // topCanvas は固定高さ（石が欠けない最小限確保: バッファ高さの比率で計算）
-        // 石の半径 = cellSize/2 - 5 = 50 → 石の直径100、中心=55 → 上端=5 → 比率 5/110 ≈ 5%
-        // 表示高さを十分確保（バッファ高さの25%程度）
-        const topCanvasRatio = 0.30; // バッファ高さの30%を表示（上端にマージン確保）
-        const topH = Math.max(20, Math.round(topCanvasBufferH * topCanvasRatio));
+        // PC と同じ全体アスペクト比: 770 : 800 (= topCanvas110 + canvas660 + timer30)
+        const totalBaseH = topCanvasBufferH + bufferHeight + timerBaseH; // 800
+        const totalRatio = bufferWidth / totalBaseH; // 770/800 = 0.9625
 
-        // メインcanvasが使える高さ
-        const canvasAvailH = availH - topH - timerCssH;
-        if (canvasAvailH <= 0) return;
-
-        // メインcanvasのアスペクト比を維持しつつ最大化
-        const canvasRatio = bufferWidth / bufferHeight; // 770/660 ≈ 1.167
-        let canvasW, canvasH;
-        if (canvasAvailH * canvasRatio <= availW) {
-            // 高さがボトルネック
-            canvasH = canvasAvailH;
-            canvasW = Math.round(canvasH * canvasRatio);
+        // 利用可能領域にフィットさせる
+        let totalW, totalH;
+        if (availH * totalRatio <= availW) {
+            // 高さがボトルネック → 高さを使い切る
+            totalH = availH;
+            totalW = Math.round(totalH * totalRatio);
         } else {
             // 幅がボトルネック
-            canvasW = availW;
-            canvasH = Math.round(canvasW / canvasRatio);
+            totalW = availW;
+            totalH = Math.round(totalW / totalRatio);
         }
 
-        const scale = canvasW / bufferWidth;
+        const scale = totalW / bufferWidth;
+
+        // 各パーツの高さをスケール比率で配分
+        const topH = Math.round(topCanvasBufferH * scale);
+        const timerH = Math.round(timerBaseH * scale);
+        const canvasH = totalH - topH - timerH;
+
+        // ⑥ 緑バー下の余白 = timerH と同じ
+        centerPanel.style.paddingBottom = timerH + 'px';
 
         // CSS 実寸を直接設定
-        wrap.style.width = canvasW + 'px';
+        wrap.style.width = totalW + 'px';
 
-        topCanvasEl.style.width = canvasW + 'px';
+        topCanvasEl.style.width = totalW + 'px';
         topCanvasEl.style.height = topH + 'px';
+        // ② topCanvas のバッファサイズも CSS サイズに合わせる（石の潰れ防止）
+        topCanvasEl.width = totalW;
+        topCanvasEl.height = topH;
 
-        mainCanvas.style.width = canvasW + 'px';
+        mainCanvas.style.width = totalW + 'px';
         mainCanvas.style.height = canvasH + 'px';
         mainCanvas.style.maxWidth = 'none';
         mainCanvas.style.maxHeight = 'none';
 
-        timer.style.width = canvasW + 'px';
-        timer.style.height = timerCssH + 'px';
+        timer.style.width = totalW + 'px';
+        timer.style.height = timerH + 'px';
 
         if (onScale) onScale(scale);
 
         // デバッグログ
         console.log('[Mobile Layout (CSS実寸)]', {
-            scale,
-            availW, availH,
-            topH, canvasW, canvasH, timerCssH,
+            scale, availW, availH,
+            totalW, totalH, topH, canvasH, timerH,
             topCanvasRect: topCanvasEl.getBoundingClientRect(),
             canvasRect: mainCanvas.getBoundingClientRect(),
             timerRect: timer.getBoundingClientRect(),
-            boardWrapRect: wrap.getBoundingClientRect(),
         });
     }
 

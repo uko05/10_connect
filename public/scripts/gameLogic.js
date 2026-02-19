@@ -642,6 +642,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     //    スマホ: タッチスライド中にハイライト追従
     // ================================================================
     let isMoving = false;
+    let touchStartX = 0;  // ③ タップ判定用（スライドと区別）
+    let touchStartY = 0;
+    const TAP_THRESHOLD = 15; // px以内ならタップと判定
 
     // --- topCanvas: PC マウス操作 ---
     topCanvas.addEventListener("mousedown", (event) => {
@@ -654,18 +657,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     topCanvas.addEventListener("mouseup", () => { isMoving = false; });
 
-    // --- topCanvas: タッチ操作（スマホ）④ スライドでハイライト追従 ---
+    // --- topCanvas: タッチ操作（スマホ）③ タップで石投下 + ④ スライドでハイライト追従 ---
     topCanvas.addEventListener("touchstart", (event) => {
         event.preventDefault();
         isMoving = true;
-        lastSlideCol = -1; // ②スライド列リセット
+        lastSlideCol = -1;
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
         handleMoveColumn(event);
     }, { passive: false });
     topCanvas.addEventListener("touchmove", (event) => {
         event.preventDefault();
         if (isMoving) handleMoveColumnSilent(event);
     }, { passive: false });
-    topCanvas.addEventListener("touchend", () => { isMoving = false; });
+    topCanvas.addEventListener("touchend", (event) => {
+        // ③ スライドでなければタップ → 石を落とす
+        if (isMoving) {
+            const touch = event.changedTouches[0];
+            const dx = Math.abs(touch.clientX - touchStartX);
+            const dy = Math.abs(touch.clientY - touchStartY);
+            if (dx < TAP_THRESHOLD && dy < TAP_THRESHOLD) {
+                if (!selectedCharacter && winningflg == 0) {
+                    handleStoneDrop(event);
+                }
+            }
+        }
+        isMoving = false;
+    });
 
     // --- topCanvas: クリック（single click → 列移動） ---
     topCanvas.addEventListener("click", (event) => {
@@ -696,12 +714,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     canvas.addEventListener("mouseup", () => { isMoving = false; });
 
-    // --- canvas: タッチ操作（スマホ）④ スライドでハイライト追従 ---
+    // --- canvas: タッチ操作（スマホ）③ タップで石投下 + ④ スライドでハイライト追従 ---
     canvas.addEventListener("touchstart", (event) => {
         if (!selectedCharacter) {
             event.preventDefault();
             isMoving = true;
-            lastSlideCol = -1; // ②スライド列リセット
+            lastSlideCol = -1;
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
             handleMoveColumn(event);
         }
     }, { passive: false });
@@ -711,7 +731,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isMoving) handleMoveColumnSilent(event);
         }
     }, { passive: false });
-    canvas.addEventListener("touchend", () => { isMoving = false; });
+    canvas.addEventListener("touchend", (event) => {
+        // ③ スライドでなければタップ → 石を落とす
+        if (!selectedCharacter && isMoving) {
+            const touch = event.changedTouches[0];
+            const dx = Math.abs(touch.clientX - touchStartX);
+            const dy = Math.abs(touch.clientY - touchStartY);
+            if (dx < TAP_THRESHOLD && dy < TAP_THRESHOLD) {
+                if (winningflg == 0) {
+                    handleStoneDrop(event);
+                }
+            }
+        }
+        isMoving = false;
+    });
 
     // --- canvas: クリック（single click → 列移動） ---
     canvas.addEventListener("click", (event) => {
@@ -764,8 +797,9 @@ const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
 let refreshBoardLayout; // 手動再計算用
 if (isMobileLayout) {
     // スマホ: CSS実寸でレイアウト（transform:scaleを使わない）
-    // bufferWidth=770, bufferHeight=660, topCanvasBufferH=110, timerCssH=15
-    refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 15, (scale) => {
+    // bufferWidth=770, bufferHeight=660, topCanvasBufferH=110, timerBaseH=30
+    // 全体アスペクト比 770:(110+660+30)=770:800
+    refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 30, (scale) => {
         boardScale = scale;
     });
 } else {
@@ -1727,20 +1761,22 @@ function disp_DeleteStone() {
 
 // TOPに石を表示する
 function disp_TopStone(turn, col) {
-    
+
     // 石を描画する処理
     const topCanvas = document.getElementById('connect4Canvas_top');
     const topCtx = topCanvas.getContext('2d');
-    topCtx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
-    
-    // 先行の石を描画
+    topCtx.clearRect(0, 0, topCanvas.width, topCanvas.height); // キャンバスをクリア
+
+    // ② スマホではバッファサイズが変わるので、バッファ幅基準でセルサイズを計算
+    const topCellW = topCanvas.width / cols;
     const centerY = topCanvas.height / 2; // 中央のY座標
+    const stoneRadius = Math.min(topCellW, topCanvas.height) / 2 - 5;
     let color;
-    
+
     if (player_info === turn) {
         color = playerLeft_Color === 'red' ? 'red' : 'yellow'; // プレイヤーの色 先行は赤
     } else {
-        color = playerLeft_Color === 'yellow' ? 'red' : 'yellow'; // プレイヤーの色 先行は赤    
+        color = playerLeft_Color === 'yellow' ? 'red' : 'yellow'; // プレイヤーの色 先行は赤
     }
     if (changeStone > 0 && color === playerLeft_Color) {
         color = color === 'red' ? 'yellow' : 'red'; // 色交換
@@ -1748,17 +1784,18 @@ function disp_TopStone(turn, col) {
     // メインの石を描画
     topCtx.fillStyle = color;
     topCtx.beginPath();
-    topCtx.arc(col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, 0, Math.PI * 2);
+    topCtx.arc(col * topCellW + topCellW / 2, centerY, stoneRadius, 0, Math.PI * 2);
     topCtx.fill();
     topCtx.closePath();
-    
+
     // ハイライトの円（光沢）を描画
+    const hlRadius = stoneRadius - 15;
     topCtx.fillStyle = "rgba(255, 255, 255, 0.5)";
     topCtx.beginPath();
     topCtx.arc(
-        col * cellSize + cellSize / 2 - 10, // X座標（少しずらす）
+        col * topCellW + topCellW / 2 - 10, // X座標（少しずらす）
         centerY - 10, // Y座標（少しずらす）
-        (cellSize / 2) - 20, // 半径（小さめ）
+        Math.max(hlRadius, 3), // 半径（小さめ、最低3px）
         0,
         Math.PI * 2
     );
