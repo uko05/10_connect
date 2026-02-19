@@ -1077,12 +1077,18 @@ async function watchRoomUpdates() {
                 const isEnemyMove = (color !== myColor);
 
                 if (isEnemyMove) {
-                  // 相手の攻撃ボイス
+                  // ① 相手の攻撃ボイス（デバッグログ付き）
                   if (pRight_Attack) {
                     pRight_Attack.currentTime = 0;
-                    pRight_Attack.play().catch(()=>{});
+                    pRight_Attack.play().then(() => {
+                      console.log('[Voice] 相手攻撃ボイス再生成功', { src: pRight_Attack.src, turn, color });
+                    }).catch((err) => {
+                      console.warn('[Voice] 相手攻撃ボイス再生失敗', { err: err.message, src: pRight_Attack.src, turn, color });
+                    });
+                  } else {
+                    console.warn('[Voice] pRight_Attack が未設定');
                   }
-                  // 石が落ちた音（任意）
+                  // 石が落ちた音
                   moveSound.currentTime = 0;
                   moveSound.play().catch(()=>{});
                 }
@@ -2432,6 +2438,17 @@ function toggleSpecialMoveButton(show) {
     const buttonContainer = document.getElementById('specialMoveButtonContainer');
     buttonContainer.style.display = show ? 'block' : 'none'; // 表示・非表示を切り替え
     topCanvas.style.display = show ? 'none' : 'block'; // 表示・非表示を切り替え
+
+    // ④ 必殺技ボタンの幅を boardWrap（盤面見た目幅）に合わせる
+    if (show) {
+        const boardWrap = document.getElementById('boardWrap');
+        if (boardWrap) {
+            const btn = document.getElementById('specialMoveButton');
+            if (btn) {
+                btn.style.width = boardWrap.getBoundingClientRect().width + 'px';
+            }
+        }
+    }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -2794,33 +2811,30 @@ async function ult_downThinkingTime() {
     for (const roomDoc of querySnapshot.docs) {
       const roomData = roomDoc.data();
 
-      // 現在値
-      let p1_Time = roomData.player1_TimeLimit ?? 100;
-      let p2_Time = roomData.player2_TimeLimit ?? 100;
-
-      // 相手側を減らす（自分がP1なら相手はP2、逆も同様）
-      if (player_info === "P1") {
-        p2_Time = Math.max(0, p2_Time - 16);
-      } else {
-        p1_Time = Math.max(0, p1_Time - 16);
-      }
-      
       const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
       const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
 
-      // ローカル表示の更新（自分視点の right = 相手）
-      playerRight_TimeLimit = (player_info === "P1") ? p2_Time : p1_Time;
-
-      // Firestore更新
+      // ② 相手側の TimeLimit だけを減らす（自分側は触らない）
       const roomDocRef = doc(db, "rooms", roomDoc.id);
-      await updateDoc(roomDocRef, {
-        player1_ChargeNow: p1_chargeNow,
-        player1_TimeLimit: p1_Time,
-        player2_ChargeNow: p2_chargeNow,
-        player2_TimeLimit: p2_Time,
-      });
-
-      console.log("相手の思考時間が減少しました。", { p1_Time, p2_Time });
+      if (player_info === "P1") {
+        const p2_Time = Math.max(0, (roomData.player2_TimeLimit ?? 100) - 16);
+        playerRight_TimeLimit = p2_Time; // ローカル更新（右=相手）
+        await updateDoc(roomDocRef, {
+          player1_ChargeNow: p1_chargeNow,
+          player2_ChargeNow: p2_chargeNow,
+          player2_TimeLimit: p2_Time,
+        });
+        console.log("相手(P2)の思考時間が減少しました。", { p2_Time });
+      } else {
+        const p1_Time = Math.max(0, (roomData.player1_TimeLimit ?? 100) - 16);
+        playerRight_TimeLimit = p1_Time; // ローカル更新（右=相手）
+        await updateDoc(roomDocRef, {
+          player1_ChargeNow: p1_chargeNow,
+          player2_ChargeNow: p2_chargeNow,
+          player1_TimeLimit: p1_Time,
+        });
+        console.log("相手(P1)の思考時間が減少しました。", { p1_Time });
+      }
     }
   } catch (error) {
     console.error("思考時間更新でエラー:", error);
