@@ -133,9 +133,8 @@ export function setupMobileBoardLayout(wrapId, bufferWidth, bufferHeight, topCan
 
         topCanvasEl.style.width = totalW + 'px';
         topCanvasEl.style.height = topH + 'px';
-        // ② topCanvas のバッファサイズも CSS サイズに合わせる（石の潰れ防止）
-        topCanvasEl.width = totalW;
-        topCanvasEl.height = topH;
+        // ② バッファサイズはPC同様(770x110)のまま維持 → 描画ロジックをPCと統一
+        //    CSS style.width/height で縮小表示するだけ
 
         mainCanvas.style.width = totalW + 'px';
         mainCanvas.style.height = canvasH + 'px';

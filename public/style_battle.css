@@ -10,9 +10,13 @@
 }
 
 /* ただし、input や textarea だけは選択可能にする */
-input, textarea {
+input, textarea, select {
   user-select: auto;
   font-size: 16px; /* iOS Safariの自動ズーム防止 */
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 html, body {

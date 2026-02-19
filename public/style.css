@@ -13,6 +13,17 @@
 input, textarea {
   user-select: auto;
 }
+
+/* ③ iOS Safari 自動ズーム防止（font-size 16px未満でフォーカス時にズームされる） */
+@media (max-width: 1024px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
 html, body { height: 100%; }
 body {
     font-family: 'SDK_JP_WEB', sans-serif;

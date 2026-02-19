@@ -200,6 +200,7 @@ let timeLimitGauge = document.getElementById('timeLimitGauge');
 
 let onlyCutIn = 0;
 let lastSlideCol = -1; // ②スライド中の前回列（列変化検知用）
+let pendingDropCol = -1; // ① スマホ2タップ制：1回目でセット、2回目同列でdrop
 //------------------------------------------------------------------------------------------------
 // 要素取得
 const modal = document.getElementById("helpModal");
@@ -657,7 +658,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     topCanvas.addEventListener("mouseup", () => { isMoving = false; });
 
-    // --- topCanvas: タッチ操作（スマホ）③ タップで石投下 + ④ スライドでハイライト追従 ---
+    // --- topCanvas: タッチ操作（スマホ）① 2タップ制 + ④ スライドでハイライト追従 ---
     topCanvas.addEventListener("touchstart", (event) => {
         event.preventDefault();
         isMoving = true;
@@ -671,15 +672,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMoving) handleMoveColumnSilent(event);
     }, { passive: false });
     topCanvas.addEventListener("touchend", (event) => {
-        // ③ スライドでなければタップ → 石を落とす
         if (isMoving) {
             const touch = event.changedTouches[0];
             const dx = Math.abs(touch.clientX - touchStartX);
             const dy = Math.abs(touch.clientY - touchStartY);
             if (dx < TAP_THRESHOLD && dy < TAP_THRESHOLD) {
-                if (!selectedCharacter && winningflg == 0) {
-                    handleStoneDrop(event);
-                }
+                // ① タップ判定 → 2タップ制で石投下
+                handleTouchTap(event);
             }
         }
         isMoving = false;
@@ -714,7 +713,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     canvas.addEventListener("mouseup", () => { isMoving = false; });
 
-    // --- canvas: タッチ操作（スマホ）③ タップで石投下 + ④ スライドでハイライト追従 ---
+    // --- canvas: タッチ操作（スマホ）① 2タップ制 + ④ スライドでハイライト追従 ---
     canvas.addEventListener("touchstart", (event) => {
         if (!selectedCharacter) {
             event.preventDefault();
@@ -732,15 +731,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }, { passive: false });
     canvas.addEventListener("touchend", (event) => {
-        // ③ スライドでなければタップ → 石を落とす
         if (!selectedCharacter && isMoving) {
             const touch = event.changedTouches[0];
             const dx = Math.abs(touch.clientX - touchStartX);
             const dy = Math.abs(touch.clientY - touchStartY);
             if (dx < TAP_THRESHOLD && dy < TAP_THRESHOLD) {
-                if (winningflg == 0) {
-                    handleStoneDrop(event);
-                }
+                // ① タップ判定 → 2タップ制で石投下
+                handleTouchTap(event);
             }
         }
         isMoving = false;
@@ -895,8 +892,13 @@ function handleMoveColumnSilent(event) {
 
 // ③ イベント座標から列番号を取得（boardWrap基準・scale補正あり）
 function getColumnFromEvent(event) {
-    // タッチイベントの場合は touches[0] から座標を取得
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    // タッチイベントの場合は touches[0] / changedTouches[0] から座標を取得
+    // touchend では touches が空なので changedTouches を使う
+    const clientX = event.touches && event.touches.length > 0
+        ? event.touches[0].clientX
+        : event.changedTouches && event.changedTouches.length > 0
+            ? event.changedTouches[0].clientX
+            : event.clientX;
     const boardWrap = document.getElementById('boardWrap');
     const rect = boardWrap.getBoundingClientRect();
     // rect は scale 適用後の見た目座標なので、そのまま使える
@@ -914,6 +916,26 @@ function getColumnFromEvent(event) {
         });
     }
     return col;
+}
+
+// ① スマホ2タップ制：1回目=ハイライト更新、2回目同列=石投下
+function handleTouchTap(event) {
+    if (!isTurnPlayer()) return;
+    if (winningflg != 0) return;
+
+    const col = getColumnFromEvent(event);
+    if (col < 0 || col >= cols) return;
+
+    if (pendingDropCol === col) {
+        // 2回目タップ：同じ列 → 石を落とす
+        pendingDropCol = -1;
+        dropStone(col);
+    } else {
+        // 1回目タップ（or 別列タップ）：ハイライト更新のみ
+        pendingDropCol = col;
+        highlightColumn(col);
+        moveStoneToColumn(col);
+    }
 }
 
 // 石を移動させる関数
@@ -1713,7 +1735,8 @@ function clearPiece(column, row) {
 
 async function switchTurn() {
     turn = turn === 'P1' ? 'P2' : 'P1';
-    
+    pendingDropCol = -1; // ① ターン切替時に2タップ制リセット
+
     if (!querySnapshot || querySnapshot.empty) {
         return; // 処理を中断
     }
@@ -1762,15 +1785,13 @@ function disp_DeleteStone() {
 // TOPに石を表示する
 function disp_TopStone(turn, col) {
 
-    // 石を描画する処理
+    // 石を描画する処理（PC/スマホ共通 — バッファは常に770x110）
     const topCanvas = document.getElementById('connect4Canvas_top');
     const topCtx = topCanvas.getContext('2d');
     topCtx.clearRect(0, 0, topCanvas.width, topCanvas.height); // キャンバスをクリア
 
-    // ② スマホではバッファサイズが変わるので、バッファ幅基準でセルサイズを計算
-    const topCellW = topCanvas.width / cols;
+    // 先行の石を描画
     const centerY = topCanvas.height / 2; // 中央のY座標
-    const stoneRadius = Math.min(topCellW, topCanvas.height) / 2 - 5;
     let color;
 
     if (player_info === turn) {
@@ -1784,18 +1805,17 @@ function disp_TopStone(turn, col) {
     // メインの石を描画
     topCtx.fillStyle = color;
     topCtx.beginPath();
-    topCtx.arc(col * topCellW + topCellW / 2, centerY, stoneRadius, 0, Math.PI * 2);
+    topCtx.arc(col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, 0, Math.PI * 2);
     topCtx.fill();
     topCtx.closePath();
 
     // ハイライトの円（光沢）を描画
-    const hlRadius = stoneRadius - 15;
     topCtx.fillStyle = "rgba(255, 255, 255, 0.5)";
     topCtx.beginPath();
     topCtx.arc(
-        col * topCellW + topCellW / 2 - 10, // X座標（少しずらす）
+        col * cellSize + cellSize / 2 - 10, // X座標（少しずらす）
         centerY - 10, // Y座標（少しずらす）
-        Math.max(hlRadius, 3), // 半径（小さめ、最低3px）
+        (cellSize / 2) - 20, // 半径（小さめ）
         0,
         Math.PI * 2
     );
