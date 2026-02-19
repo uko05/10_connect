@@ -25,11 +25,12 @@ document.getElementById('version').textContent = APP_VERSION;
 // スマホ対応：ロビー画面のスケーリング
 const setupLobbyLayout = setupScaledLayout('lobbyWrap', 1200, 730);
 
-// ④ 縦持ち時の「横画面にしてください」ラベル設定（③ 英語文追加）
+// ④ 縦持ち時の「横画面にしてください」ラベル設定（③ 英語文を縦積み追加）
 const orientationLabel = document.getElementById('orientationLabel');
 if (orientationLabel) {
     orientationLabel.innerHTML =
-        '横画面にしてください<br><span style="font-size:0.5em;">This game currently supports Japanese only.<br>Thanks for your support!</span>';
+        '<div>横画面にしてください</div>' +
+        '<div style="font-size:0.45em; margin-top:0.5em; line-height:1.4;">This game currently supports Japanese only.<br>Thanks for your support!</div>';
 }
 
 let playerDocRef = null;

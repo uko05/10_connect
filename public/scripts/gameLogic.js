@@ -959,31 +959,19 @@ async function watchRoomUpdates() {
 
         snapshot.forEach(async (doc) => {
             const data = doc.data();
-            
-            // 初回ロード時の処理をスキップ
-            if (isInitialLoad) {
-                // 初期化処理を行わない
-                isInitialLoad = false; // 初回処理が完了したらフラグを変更
-            } else {
-                resetTimeLimit();
-                // すでにハイライトが存在する場合は削除
-                if (highlightedColumn) {
-                    highlightedColumn.remove();
-                }
-            }
-            
+
             // 部屋のステータスが "leave" になった場合の処理
             if (data.status === "leave") {
                 console.log("対戦相手が部屋を離れました。試合を中断します。");
 
                 // 試合を終了してキャラクター画面に戻す処理
                 displayLeaveMessage();
-               
+
                 // ■■■■■2026/01/10　追加
                 if (player_info === "P1") await deleteRoomByRoomID();
                 return;
             }
-            
+
             // ■■■■■2026/01/10　追加
             const isCleaner = (player_info === "P1");
 
@@ -1014,8 +1002,21 @@ async function watchRoomUpdates() {
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
 
+            // ② TimeLimit を Firestore の最新値で更新（resetTimeLimit より先に実行）
             playerLeft_TimeLimit = player_info === 'P1' ? data.player1_TimeLimit : data.player2_TimeLimit;
             playerRight_TimeLimit = player_info === 'P1' ? data.player2_TimeLimit : data.player1_TimeLimit;
+
+            // 初回ロード時はタイマーリセットしない
+            if (isInitialLoad) {
+                isInitialLoad = false;
+            } else {
+                // ② TimeLimit 更新後にリセット（正しい値でタイマーが再開される）
+                resetTimeLimit();
+                // すでにハイライトが存在する場合は削除
+                if (highlightedColumn) {
+                    highlightedColumn.remove();
+                }
+            }
             
             // 相手がULTを使ったときにカットインだけでも出したいなぁ
             let check_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
@@ -2174,10 +2175,17 @@ function resetTimeLimit() {
         timeLimitTimer = null;
     }
     
-    // ■■■■■2026/01/10　修正前 timeLimit = isTurnPlayer() ? playerRight_TimeLimit : playerLeft_TimeLimit;  
+    // ■■■■■2026/01/10　修正前 timeLimit = isTurnPlayer() ? playerRight_TimeLimit : playerLeft_TimeLimit;
     timeLimit = isTurnPlayer() ? playerLeft_TimeLimit : playerRight_TimeLimit;
 
-    console.log("タイムリミットのリセット:", timeLimit);
+    console.log("[resetTimeLimit]", {
+        isTurnPlayer: isTurnPlayer(),
+        playerLeft_TimeLimit,
+        playerRight_TimeLimit,
+        timeLimit,
+        turn,
+        player_info,
+    });
     
     // 残り時間を初期値に戻す
     timeRemaining = timeLimit;
@@ -2800,7 +2808,7 @@ function getTopStoneInColumn(stonesData, column) {
 //------------------------------------------------------------------------------------------------
 
 async function ult_downThinkingTime() {
-  console.log("アベンチュリンの必殺技発動！");
+  console.log("[ULT] アベンチュリンの必殺技発動！ player_info=", player_info);
 
   try {
     const roomsRef = collection(db, "rooms");
@@ -2811,33 +2819,42 @@ async function ult_downThinkingTime() {
     for (const roomDoc of querySnapshot.docs) {
       const roomData = roomDoc.data();
 
-      const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
+      console.log("[ULT] Firestore読取値:", {
+        p1_TimeLimit: roomData.player1_TimeLimit,
+        p2_TimeLimit: roomData.player2_TimeLimit,
+        player_info,
+      });
+
+      const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
       const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
 
-      // ② 相手側の TimeLimit だけを減らす（自分側は触らない）
+      // ② 相手側の TimeLimit だけを減らす（自分側は絶対に触らない）
       const roomDocRef = doc(db, "rooms", roomDoc.id);
       if (player_info === "P1") {
+        // 自分がP1 → 相手はP2 → player2_TimeLimit を減らす
         const p2_Time = Math.max(0, (roomData.player2_TimeLimit ?? 100) - 16);
-        playerRight_TimeLimit = p2_Time; // ローカル更新（右=相手）
+        playerRight_TimeLimit = p2_Time;
         await updateDoc(roomDocRef, {
           player1_ChargeNow: p1_chargeNow,
           player2_ChargeNow: p2_chargeNow,
           player2_TimeLimit: p2_Time,
         });
-        console.log("相手(P2)の思考時間が減少しました。", { p2_Time });
+        console.log("[ULT] 相手(P2)の思考時間を減少:", { before: roomData.player2_TimeLimit, after: p2_Time });
       } else {
+        // 自分がP2 → 相手はP1 → player1_TimeLimit を減らす
         const p1_Time = Math.max(0, (roomData.player1_TimeLimit ?? 100) - 16);
-        playerRight_TimeLimit = p1_Time; // ローカル更新（右=相手）
+        playerRight_TimeLimit = p1_Time;
         await updateDoc(roomDocRef, {
           player1_ChargeNow: p1_chargeNow,
           player2_ChargeNow: p2_chargeNow,
           player1_TimeLimit: p1_Time,
         });
-        console.log("相手(P1)の思考時間が減少しました。", { p1_Time });
+        console.log("[ULT] 相手(P1)の思考時間を減少:", { before: roomData.player1_TimeLimit, after: p1_Time });
       }
+      console.log("[ULT] ローカル変数:", { playerLeft_TimeLimit, playerRight_TimeLimit });
     }
   } catch (error) {
-    console.error("思考時間更新でエラー:", error);
+    console.error("[ULT] 思考時間更新でエラー:", error);
   }
 }
 

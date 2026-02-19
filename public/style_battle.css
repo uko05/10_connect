@@ -329,27 +329,28 @@ nav ul li:hover > a {
     }
 }
 
+/* ① 勝敗ラベル: ターンラベル(#turnLabel)と同じサイズ感に統一 */
 .win-label {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 100; /* boardWrapのtransformスタッキングより前面に */
-    font-size: 80px;
+    z-index: 100;
+    font-size: 50px;
     font-weight: bold;
     color: black;
-    background-color: rgba(255, 165 ,0 , 0.8);
-    padding: 10px;
-    border-radius: 5px;
-    display: none; /* 初期状態では非表示 */
-    opacity: 0; /* 初期状態で透明に設定 */
-    transition: opacity 0.5s ease-in-out; /* 透明度の遷移をスムーズに */
-    width: 800px; /* 横幅800px */
-    height: 400px; /* 高さ200px */
-    text-align: center; /* 横方向の中央揃え */
-    line-height: 200px; /* 高さに合わせて縦方向の中央揃え */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* シャドウで立体感を追加 */
-    border: 3px solid black; /* 白い境界線 */    
+    background-color: rgba(255, 165, 0, 0.8);
+    padding: 20px;
+    border-radius: 15px;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    width: 600px;
+    height: 200px;
+    text-align: center;
+    line-height: 100px;
+    box-shadow: 0 4px 20px rgba(255, 200, 0, 0.6);
+    border: 5px solid rgba(255, 255, 255, 0.8);
 }
 
 .turn-label.show {
@@ -797,7 +798,7 @@ nav ul li:hover > a {
         height: auto;
     }
     
-    .turn-label {
+    .turn-label, .win-label {
         width: 600px; /* 幅を80%に調整 */
         font-size: 30px; /* フォントサイズを調整 */
     }
@@ -890,7 +891,7 @@ nav ul li:hover > a {
         height: 30px; /* ゲージの高さ */
     }
 
-    .turn-label {
+    .turn-label, .win-label {
         width: 600px; /* 幅を80%に調整 */
         font-size: 30px; /* フォントサイズを調整 */
     }
@@ -996,7 +997,7 @@ nav ul li:hover > a {
         height: auto;
     }
     
-    .turn-label {
+    .turn-label, .win-label {
         width: 400px; /* 幅を80%に調整 */
         font-size: 50px; /* フォントサイズを調整 */
     }
@@ -1090,7 +1091,7 @@ nav ul li:hover > a {
         height: auto;
     }
 
-    .turn-label {
+    .turn-label, .win-label {
         width: 400px; /* 幅を80%に調整 */
         font-size: 50px; /* フォントサイズを調整 */
     }

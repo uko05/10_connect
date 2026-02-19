@@ -679,9 +679,10 @@ main.sidebar-collapsed{
     align-items: center;
   }
 
-  /* ② orientationLabel を全画面中央に巨大表示 + 点滅 */
+  /* ② orientationLabel を全画面中央に巨大表示 + 点滅 + ③ 縦積み */
   #orientationLabel {
     display: flex !important;
+    flex-direction: column;
     opacity: 1 !important;
     position: fixed;
     top: 0;
@@ -701,6 +702,7 @@ main.sidebar-collapsed{
     border: none;
     border-radius: 0;
     box-shadow: none;
+    box-sizing: border-box;
     max-width: none;
     line-height: 1.5;
     animation: orientBlink 1.5s ease-in-out infinite;
