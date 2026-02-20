@@ -1002,15 +1002,16 @@ async function watchRoomUpdates() {
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
 
-            // ② TimeLimit を Firestore の最新値で更新（resetTimeLimit より先に実行）
+            // ② TimeLimit・turn を Firestore の最新値で更新（resetTimeLimit より先に実行）
             playerLeft_TimeLimit = player_info === 'P1' ? data.player1_TimeLimit : data.player2_TimeLimit;
             playerRight_TimeLimit = player_info === 'P1' ? data.player2_TimeLimit : data.player1_TimeLimit;
+            turn = data.turn; // ② resetTimeLimit 内の isTurnPlayer() が正しいターンで判定できるよう先に更新
 
             // 初回ロード時はタイマーリセットしない
             if (isInitialLoad) {
                 isInitialLoad = false;
             } else {
-                // ② TimeLimit 更新後にリセット（正しい値でタイマーが再開される）
+                // ② TimeLimit・turn 更新後にリセット（正しい値でタイマーが再開される）
                 resetTimeLimit();
                 // すでにハイライトが存在する場合は削除
                 if (highlightedColumn) {
