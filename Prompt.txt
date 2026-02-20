@@ -1,39 +1,41 @@
-【バグ修正依頼】アベンチュリン CharaID:008 必殺技 ult_downThinkingTime が“相手”ではなく“自分”の思考時間を減らす
-
-■前提（最重要）
-- バトル画面の左右キャラ情報エリア（左/右パネル）は完成形。PC/スマホとも一切触らない（幅/高さ/位置/flex/scale禁止）。
-- 今回はロジック（時間減算の対象）だけ修正。
+【バグ修正依頼】player●_UltCount が1回発動で2回増える（二重カウント）
 
 ■現象
-- アベンチュリンの必殺技「ult_downThinkingTime」（相手の思考時間を削る）が、発動者（自分）の思考時間を減らしてしまう。
-- PC/スマホ共通で発生。
+- player●_UltCount（必殺技発動回数）が、1回発動したはずなのに2回扱いで増えている。
+- 自分端末と相手端末の両方が更新している（二重でアップデート）疑い。
+
+■前提（最重要）
+- レイアウト/サイズ（キャラ情報エリア、中央エリア、スケール周り）は一切触らない。ロジックのみ。
+
+■原因候補（高確度）
+- 発動者側が Firestore に「ult発動」を書き込み
+- 相手側も onSnapshot で同じイベントを受け取り、ローカルで ult適用（＝UltCount加算）を実行
+- さらに発動者側でも onSnapshot で同じイベントを拾って再適用している
+→ 結果、両端末（あるいは同一端末内でも2経路）で UltCount が二重加算される
 
 ■やってほしいこと（必須）
-1) “誰のタイマーを減らすか” の判定を特定して修正
-   - 例：currentPlayer / myTurn / isHost / myPlayerIndex / playerRole などの判定で
-     target が「opponent」になるべきところが「self」になっている可能性が高い
-   - ult発動関数（例: applyUltimateEffect / executeUltimate / useUltimate など）から追って、
-     ult_downThinkingTime の分岐に入った時点で target がどう決まるかログで確認する
+1) UltCount の更新は「単一の責務」にする（どちらか一方のみが更新）
+   例：
+   - 方式A: host（player1）だけが UltCount を Firestore 更新する（guestは書かない）
+   - 方式B: 発動者だけが更新する（発動者判定が100%正しいことが前提）
+   - 方式C: 「コマンドだけ書く」→「適用はhostのみ」→ 結果状態だけ同期（最も事故が少ない）
 
-2) 減算する変数/フィールドを “相手側” に向ける
-   - ローカル変数で減らしている場合：
-     myThinkingTime を減らしているなら opponentThinkingTime を減らす
-   - Firestore（rooms等）に書いている場合：
-     自分のキー（player1Time等）ではなく相手キー（player2Time等）を更新するようにする
-   - 「host/player1」「guest/player2」どちらでも同じ結果になるように分岐を整理する
+2) 二重適用防止の“冪等性ガード”を入れる
+   - rooms に ultActionId（例: uuid + turn + usedBy）を保存
+   - 各端末は「最後に処理した ultActionId」を保持し、同じIDは二度処理しない
+   - Firestoreに processedUltActionId のようなフィールドを置いてもOK
 
-3) 反映が片側だけの“表示”になってないか確認（重要）
-   - 自分の画面だけ減る/相手だけ減る、のズレが起きないように
-     “正しい相手側フィールドを更新 → 両者がonSnapshotで同じ状態を見る”
-     という形に統一する（既存の同期方式に合わせる）
+3) UltCount は Firestore 側の単一地点で increment する
+   - possible: transaction / runTransaction で「actionId未処理なら increment」まで原子的に行う
+   - FieldValue.increment(1) を複数クライアントから叩かない構造にする
 
 ■デバッグ（必須）
-- ult_downThinkingTime 発動時に以下を console.log で一時出力して原因を確定させてから修正
-  - whoUsedUlt（発動者の識別）
-  - isMyTurn / currentPlayer / myRole(host/guest) / myPlayerIndex
-  - どの time フィールドを更新しようとしているか（field名 or ref path）
-  - 更新前/更新後の値
+- UltCount を増やす直前に必ずログ出しして「どの経路が2回走ってるか」確定する
+  - device: myRole(host/guest), myUid
+  - caller: useUltimate() / onSnapshot handler / applyUltEffect() など呼び出し元
+  - actionId / turn / usedBy
+  - increment対象フィールド名（player1_UltCount or player2_UltCount）
+- 1回の発動でログが2回出てる箇所を特定し、その片方を“処理しない”ようにする
 
 ■完了条件
-- PC/スマホ双方で、アベンチュリンが必殺技を使ったとき
-  “相手の思考時間” が減り、発動者の思考時間は減らない。
+- 1回の必殺技発動につき、player●_UltCount が必ず +1 のみ増える（PC/スマホ両方、host/guest両方で再現なくなる）

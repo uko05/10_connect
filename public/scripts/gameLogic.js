@@ -1542,7 +1542,8 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
       console.log("●必殺技攻撃", player_info);
 
       [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
-      [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
+      // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
+      [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
       nextChangeStone = roomData.changeStone ?? 0;
 
       // ホタル専用（ターン継続？）
@@ -2425,22 +2426,30 @@ async function getUltCount(data, normalAttack = true) {
     let p1_UltCount = 0;
     let p2_UltCount = 0;
     const ultCnt = normalAttack ? 0 : 1;
-    
+
+    if (ultCnt > 0) {
+        console.log("[getUltCount] UltCount +1 加算実行", {
+            caller: new Error().stack?.split('\n')[2]?.trim(),
+            player_info,
+            before: playerLeft_UltCount,
+        });
+    }
+
     if (player_info === 'P1') {
         playerLeft_UltCount = playerLeft_UltCount + ultCnt;
         playerRight_UltCount = data.player2_UltCount;
-    
+
         p1_UltCount = playerLeft_UltCount;
         p2_UltCount = playerRight_UltCount;
-        
-    } else {    
+
+    } else {
         playerLeft_UltCount = playerLeft_UltCount + ultCnt;
         playerRight_UltCount = data.player1_UltCount;
-    
+
         p1_UltCount = playerRight_UltCount;
         p2_UltCount = playerLeft_UltCount;
     }
-    return [p1_UltCount, p2_UltCount];  
+    return [p1_UltCount, p2_UltCount];
 }
 
 function toggleSpecialMoveButton(show) {
@@ -2681,8 +2690,9 @@ async function deleteStones(stonesToDelete) {
             const roomData = roomDoc.data();
             const stonesData = roomData.stones || {};
             const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
-            const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
-            
+            // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
+            const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
+
             // 石を削除
             stonesToDelete.forEach(key => {
                 if (stonesData[key]) {
@@ -2827,7 +2837,8 @@ async function ult_downThinkingTime() {
       });
 
       const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
-      const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
+      // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ（normalAttack=true で加算しない）
+      const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
 
       // ② 相手側の TimeLimit だけを減らす（自分側は絶対に触らない）
       const roomDocRef = doc(db, "rooms", roomDoc.id);
@@ -2892,9 +2903,10 @@ async function ult_randomAbility(){
         for (const roomDoc of querySnapshot.docs) {
             const roomData = roomDoc.data(); // roomData を定義
             const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
-            const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
+            // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
+            const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
             const roomDocRef = doc(db, "rooms", roomDoc.id);
-            
+
             // 更新
             changeStone = roomData.changeStone === 0 ? 2 : 3;
             
@@ -3012,22 +3024,30 @@ function getRandomElements(array, count) {
 
 
 async function ult_CntUP() {
-    console.log("必殺技に使用回数をカウントアップします！");
-    
+    console.log("[ult_CntUP] 必殺技使用回数をカウントアップ", { player_info, turn });
+
     try {
         const roomsRef = collection(db, "rooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
-        
-        // getDocs に await を追加
         const querySnapshot = await getDocs(q);
 
-        // Firestore のデータを更新
         for (const roomDoc of querySnapshot.docs) {
-            const roomData = roomDoc.data(); // roomData を定義
-            
+            const roomData = roomDoc.data();
+
+            const beforeLeft = playerLeft_UltCount;
             const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
+            console.log("[ult_CntUP] UltCount加算", {
+                player_info,
+                beforeLeft,
+                afterLeft: playerLeft_UltCount,
+                p1_UltCount,
+                p2_UltCount,
+                firestoreP1: roomData.player1_UltCount,
+                firestoreP2: roomData.player2_UltCount,
+            });
+
             const roomDocRef = doc(db, "rooms", roomDoc.id);
-            await updateDoc(roomDocRef, { 
+            await updateDoc(roomDocRef, {
                 player1_UltCount: p1_UltCount,
                 player2_UltCount: p2_UltCount
             });
