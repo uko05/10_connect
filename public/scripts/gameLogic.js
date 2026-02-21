@@ -2369,28 +2369,30 @@ async function getRandomEmptyColumn() {
 // winningColor: 勝者の色 ("red" | "yellow")
 // resultType: "normal" | "leave" | "timeout"
 async function handleBO3Final(winningColor, resultType) {
+    // P2はレート処理に関与しない（P1のみが全責務を持つ）
+    if (player_info !== "P1") {
+        console.log("[Rating] P2: レート処理はP1に委任");
+        return;
+    }
+
     if (!firestoreRoomDocRef) {
         console.warn("[Rating] firestoreRoomDocRef is null, skipping rating");
         return;
     }
 
-    // 勝者UIDの特定
-    // playerLeft_Color が winningColor なら自分が勝者
+    // 勝者UIDの特定（P1視点: playerLeft = P1, playerRight = P2）
     const isMeWinner = (playerLeft_Color === winningColor);
     const winnerUid = isMeWinner ? playerLeft_ID : playerRight_ID;
 
-    // p1Uid / p2Uid（Firestoreの視点）
-    const p1Uid = (player_info === "P1") ? playerLeft_ID : playerRight_ID;
-    const p2Uid = (player_info === "P1") ? playerRight_ID : playerLeft_ID;
+    const p1Uid = playerLeft_ID;
+    const p2Uid = playerRight_ID;
+    const p1CharaId = playerLeft_CharaID;
+    const p2CharaId = playerRight_CharaID;
 
-    // p1CharaId / p2CharaId（Firestoreの視点）
-    const p1CharaId = (player_info === "P1") ? playerLeft_CharaID : playerRight_CharaID;
-    const p2CharaId = (player_info === "P1") ? playerRight_CharaID : playerLeft_CharaID;
-
-    console.log("[Rating] handleBO3Final:", { winningColor, resultType, matchType, winnerUid, player_info });
+    console.log("[Rating] handleBO3Final:", { winningColor, resultType, matchType, winnerUid, p1Uid, p2Uid });
 
     try {
-        // 1. roomsに結果フィールドを書き込み
+        // 1. roomsに結果フィールドを書き込み（P1のみ）
         await writeBO3Result(firestoreRoomDocRef, {
             winnerUid,
             resultType,
@@ -2398,25 +2400,31 @@ async function handleBO3Final(winningColor, resultType) {
             p1CharaId,
             p2CharaId
         });
+        console.log("[Rating] writeBO3Result 完了");
 
-        // 2. P1のみがTransaction実行（ranked のみ）
-        if (player_info === "P1" && matchType === "ranked") {
+        // 2. ranked の場合のみ Transaction 実行
+        if (matchType === "ranked") {
             const result = await executeRatingTransaction(firestoreRoomDocRef, p1Uid, p2Uid);
             if (result) {
                 console.log("[Rating] レート更新完了:", result);
+            } else {
+                console.warn("[Rating] Transaction returned null（条件不一致 or エラー）");
             }
-            // 3. Transaction成功後にrooms削除
-            await deleteRoomAfterRating(firestoreRoomDocRef);
-        } else if (player_info === "P1" && matchType === "private") {
-            // private: レート更新なし、rooms削除のみ
-            await deleteRoomAfterRating(firestoreRoomDocRef);
+        } else {
+            console.log("[Rating] private マッチ: レート更新スキップ");
         }
-        // P2: rooms.rated===true検知またはdoc消失でリスナー解除（onSnapshot内で処理）
+
+        // 3. Transaction成功後にrooms削除（P1のみ）
+        await deleteRoomAfterRating(firestoreRoomDocRef);
+        console.log("[Rating] rooms削除完了");
+
     } catch (error) {
         console.error("[Rating] handleBO3Final error:", error);
-        // エラー時もP1はrooms削除を試みる
-        if (player_info === "P1") {
+        // エラー時もrooms削除を試みる
+        try {
             await deleteRoomAfterRating(firestoreRoomDocRef);
+        } catch (delErr) {
+            console.error("[Rating] rooms削除も失敗:", delErr);
         }
     }
 }

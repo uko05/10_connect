@@ -157,6 +157,7 @@ export async function writeBO3Result(roomDocRef, {
 // レート更新 + キャラ統計 + rated=true
 // ────────────────────────────
 export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
+    console.log("[Rating] Transaction開始:", { roomDocRef: roomDocRef.path, p1Uid, p2Uid });
     try {
         const result = await runTransaction(db, async (transaction) => {
             // ── 1. rooms読み取り ──
@@ -166,18 +167,19 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
                 return null;
             }
             const room = roomSnap.data();
+            console.log("[Rating] Room data:", { rated: room.rated, bo3Final: room.bo3Final, matchType: room.matchType, winnerUid: room.winnerUid });
 
             // ── 2. 条件チェック（冪等性 + private除外）──
             if (room.rated !== false) {
-                console.log("[Rating] Already rated, skipping");
+                console.log("[Rating] Already rated or rated field missing, skipping. rated=", room.rated);
                 return null;
             }
             if (room.bo3Final !== true) {
-                console.log("[Rating] bo3Final not true, skipping");
+                console.log("[Rating] bo3Final not true, skipping. bo3Final=", room.bo3Final);
                 return null;
             }
             if (room.matchType !== "ranked") {
-                console.log("[Rating] Not ranked, skipping");
+                console.log("[Rating] Not ranked, skipping. matchType=", room.matchType);
                 return null;
             }
 
@@ -186,12 +188,14 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
             const p1CharaId = room.p1CharaId;
             const p2CharaId = room.p2CharaId;
             const loserUid = (winnerUid === p1Uid) ? p2Uid : p1Uid;
+            console.log("[Rating] 勝者:", winnerUid, "敗者:", loserUid, "resultType:", resultType);
 
             // ── 3. users読み取り ──
             const winnerRef = doc(db, "users", winnerUid);
             const loserRef = doc(db, "users", loserUid);
             const winnerSnap = await transaction.get(winnerRef);
             const loserSnap = await transaction.get(loserRef);
+            console.log("[Rating] Users存在チェック:", { winner: winnerSnap.exists(), loser: loserSnap.exists() });
 
             const winner = winnerSnap.exists()
                 ? winnerSnap.data()
@@ -199,6 +203,7 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
             const loser = loserSnap.exists()
                 ? loserSnap.data()
                 : { rating: INITIAL_RATING, matchCount: 0, winCount: 0 };
+            console.log("[Rating] 現在のレート:", { winner: winner.rating, loser: loser.rating });
 
             // ── 4. charaStats読み取り（getはwriteの前に全部行う）──
             const winnerCharaId = (winnerUid === p1Uid) ? p1CharaId : p2CharaId;

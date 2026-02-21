@@ -406,10 +406,19 @@ header {
     letter-spacing: 0.5px;
     -webkit-text-stroke: 1px #000;
     text-shadow:
-        -1px -1px 0 #000,
-         1px -1px 0 #000,
-        -1px  1px 0 #000,
-         1px  1px 0 #000;
+        /* 内側：白の縁取り */
+         0    0   2px #fff,
+         0    0   2px #fff,
+         0    0   3px #fff,
+        /* 外側：黒の縁取り */
+        -2px -2px 0 #000,
+         2px -2px 0 #000,
+        -2px  2px 0 #000,
+         2px  2px 0 #000,
+        -2px  0   0 #000,
+         2px  0   0 #000,
+         0   -2px 0 #000,
+         0    2px 0 #000;
 }
 .player-rating.rank-bronze { color: #b87333; }
 .player-rating.rank-silver { color: #c0c0c0; }
@@ -421,7 +430,8 @@ header {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     text-shadow: none;
-    filter: drop-shadow(1px 1px 0 #000) drop-shadow(-1px -1px 0 #000)
+    filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px #fff)
+            drop-shadow(1px 1px 0 #000) drop-shadow(-1px -1px 0 #000)
             drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000);
 }
 
