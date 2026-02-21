@@ -393,8 +393,10 @@ async function displayThumbnails() {
             getUserRating(playerLeft_ID),
             getUserRating(playerRight_ID)
         ]);
-        applyRatingDisplay(document.getElementById('playerRating_1'), leftRating);
-        applyRatingDisplay(document.getElementById('playerRating_2'), rightRating);
+        await Promise.all([
+            applyRatingDisplay(document.getElementById('playerRating_1'), leftRating),
+            applyRatingDisplay(document.getElementById('playerRating_2'), rightRating)
+        ]);
     } catch (e) {
         console.warn("[Rating] レート表示取得失敗:", e);
     }

@@ -11,7 +11,8 @@ import {
     collection,
     query,
     where,
-    getDocs
+    getDocs,
+    getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ────────────────────────────
@@ -71,9 +72,32 @@ export async function getUserRating(uid) {
 }
 
 // ────────────────────────────
-// レート表示をDOM要素に反映
+// ランキング取得（自分より上の人数 + 1 = 順位）
 // ────────────────────────────
-export function applyRatingDisplay(element, userData) {
+export async function getUserRank(rating) {
+    try {
+        const usersRef = collection(db, "users");
+
+        // 自分より上の人数
+        const aboveQuery = query(usersRef, where("rating", ">", rating));
+        const aboveSnap = await getCountFromServer(aboveQuery);
+        const rank = aboveSnap.data().count + 1;
+
+        // 全ユーザー数
+        const totalSnap = await getCountFromServer(query(usersRef));
+        const total = totalSnap.data().count;
+
+        return { rank, total };
+    } catch (e) {
+        console.warn("[Rating] ランキング取得失敗:", e);
+        return null;
+    }
+}
+
+// ────────────────────────────
+// レート表示をDOM要素に反映（順位付き）
+// ────────────────────────────
+export async function applyRatingDisplay(element, userData) {
     if (!element) return;
     if (!userData) {
         element.textContent = "---";
@@ -83,9 +107,20 @@ export function applyRatingDisplay(element, userData) {
     const { rating, rankTier } = userData;
     const tier = rankTier || getRankTier(rating || 1500);
     const displayRating = rating ?? 1500;
-    element.textContent = `${tier} ${displayRating}`;
 
-    // ランク帯に応じたCSSクラスを設定
+    // まずレート表示（順位取得前に即時表示）
+    element.textContent = `${tier} ${displayRating}`;
+    applyRankClass(element, tier);
+
+    // 順位を取得して追加表示
+    const rankInfo = await getUserRank(displayRating);
+    if (rankInfo) {
+        element.textContent = `${tier} ${displayRating}（#${rankInfo.rank} / ${rankInfo.total}人）`;
+    }
+}
+
+// ランク帯CSSクラスを適用
+function applyRankClass(element, tier) {
     element.className = "player-rating";
     if (tier === "Bronze") element.classList.add("rank-bronze");
     else if (tier === "Silver") element.classList.add("rank-silver");
