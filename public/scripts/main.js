@@ -18,7 +18,7 @@ import {
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
-import { ensureUserDoc } from './eloRating.js';
+import { ensureUserDoc, getUserRating, applyRatingDisplay } from './eloRating.js';
 
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;
@@ -136,6 +136,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const user = await authReady;
         await ensureUserDoc(user.uid);
         console.log("[main] Auth ready, uid:", user.uid);
+
+        // ロビーにレート表示
+        const myRating = await getUserRating(user.uid);
+        const ratingEl = document.getElementById('lobbyRatingDisplay');
+        applyRatingDisplay(ratingEl, myRating);
     } catch (error) {
         console.error("[main] Auth initialization failed:", error);
     }

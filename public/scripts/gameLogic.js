@@ -36,7 +36,7 @@ import {
     getStonesToChange as _getStonesToChange
 } from "./abilities.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
-import { writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating } from "./eloRating.js";
+import { writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 
 
 // バージョン表示
@@ -137,6 +137,7 @@ let yellow_Win = 0;
 let changeStone = 0;
 let matchType = "ranked"; // "ranked" | "private"
 let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
+let isMatchFinalized = false; // BO3確定済みフラグ（二重発火防止）
 
 let winningflg = 0;
 
@@ -385,6 +386,18 @@ async function displayThumbnails() {
             
     await dispP1Info(charaInfo1, playerLeft_Name);
     await dispP2Info(charaInfo2, playerRight_Name);
+
+    // レート表示（バトル画面：両プレイヤー）
+    try {
+        const [leftRating, rightRating] = await Promise.all([
+            getUserRating(playerLeft_ID),
+            getUserRating(playerRight_ID)
+        ]);
+        applyRatingDisplay(document.getElementById('playerRating_1'), leftRating);
+        applyRatingDisplay(document.getElementById('playerRating_2'), rightRating);
+    } catch (e) {
+        console.warn("[Rating] レート表示取得失敗:", e);
+    }
 
     playerColor = playerLeft_Color;
          
@@ -974,6 +987,19 @@ async function watchRoomUpdates() {
             return;
         }
 
+        // BO3確定後は全処理をスキップ（rated検知のみ許可）
+        if (isMatchFinalized) {
+            snapshot.forEach(async (doc) => {
+                const data = doc.data();
+                if (data.rated === true && player_info === "P2") {
+                    console.log("[Rating] P2: rated===true 検知（finalized後）");
+                    const myRating = await getUserRating(playerLeft_ID);
+                    if (myRating) console.log("[Rating] P2 updated rating:", myRating);
+                }
+            });
+            return;
+        }
+
         snapshot.forEach(async (doc) => {
             const data = doc.data();
 
@@ -988,6 +1014,8 @@ async function watchRoomUpdates() {
 
             // 部屋のステータスが "leave" になった場合の処理
             if (data.status === "leave") {
+                if (isMatchFinalized) return;
+                isMatchFinalized = true;
                 console.log("対戦相手が部屋を離れました。試合を中断します。");
 
                 // レーティング更新（leave扱い：自分が勝者）
@@ -1011,6 +1039,8 @@ async function watchRoomUpdates() {
                 : (data.player1_TimeoutCount ?? 0);
 
             if (enemyTimeout >= 2) {
+              if (isMatchFinalized) return;
+              isMatchFinalized = true;
               console.log("相手が2回時間切れ。勝利として終了します。");
               // レーティング更新（timeout扱い：自分が勝者）
               await handleBO3Final(playerLeft_Color, "timeout");
@@ -1019,6 +1049,8 @@ async function watchRoomUpdates() {
             }
 
             if (myTimeout >= 2) {
+              if (isMatchFinalized) return;
+              isMatchFinalized = true;
               console.log("自分が2回時間切れ。敗北として終了します。");
               // レーティング更新（timeout扱い：相手が勝者）
               await handleBO3Final(playerRight_Color, "timeout");
@@ -1195,6 +1227,13 @@ async function watchRoomUpdates() {
             } 
             
             if (red_Win === 3 || yellow_Win === 3) {
+                // 二重発火防止
+                if (isMatchFinalized) {
+                    console.log("[BO3] Already finalized, skipping");
+                    return;
+                }
+                isMatchFinalized = true;
+
                 console.log("◆◆◆◆◆◆◆◆◆◆◆");
                 console.log("勝利判定②（BO3確定）");
                 const winningColor = red_Win === 3 ? "red" : "yellow";

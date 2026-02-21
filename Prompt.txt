@@ -1,99 +1,57 @@
-# 実装依頼：Phase1 レーティング（Elo）+ キャラ統計（Pick/Win）
+【追加実装依頼：BO3二重発火修正 + レート表示追加】
 
-これまで確定した詳細設計に基づき、Phase1の実装をお願いします。
+■ ① BO3勝利時の勝敗判定が二重発火する問題（最優先）
 
-────────────────────────────
-■ 目的
-────────────────────────────
+現象：
+・4並び後にラベル表示中にも盤面クリア処理が走っている
+・BO3で3pt到達時、「勝利しました。5秒後に戻ります」表示中に再度勝敗判定が走る
+・その影響か users/{uid} の rating/matchCount/winCount が更新されないケースがある
 
-- rankedマッチのみ：
-  - BO3最終結果で1回だけElo更新
-  - charaStats（Pick/Win）加算
-- private（合言葉）マッチは
-  - レート更新しない
-  - 統計にも含めない
-- roomsはTransaction成功後にP1のみ削除
+修正方針：
+1) ラウンド勝利とマッチ勝利を完全分離
+2) BO3確定時は盤面クリアや次ラウンド準備を絶対に実行しない
+3) 勝敗確定処理は1回だけ実行されるようガードフラグ追加
+   例：
+   if (isMatchFinalized) return;
+   isMatchFinalized = true;
+4) レーティングTransaction → 成功確認 → rooms削除 の順序保証
+5) BO3確定後は入力・タイマー・再判定を完全停止
 
-Phase1ではCloud Functionsは使用しません。
-クライアント + Firestore Transactionで完結させます。
+期待動作：
+・BO3勝利時に勝敗処理は必ず1回のみ
+・users更新が必ず実行される
+・rooms削除はTransaction完了後のみ
 
-────────────────────────────
-■ 実装要件（確定仕様）
-────────────────────────────
 
-【レート仕様】
-- 初期rating: 1500
-- 下限: 100
-- K値:
-    matchCount < 10   → 48
-    < 50              → 32
-    それ以上         → 16
-- BO3最終結果で1回のみ更新
-- leave/timeoutは通常敗北の減少量 ×1.5（正の減少量で計算）
+■ ② レートと階級を名前の下に表示（ロビー＆バトル両方）
 
-【ランク帯】
-Bronze        ：100–1399
-Silver        ：1400–1599
-Gold          ：1600–1799
-Legend        ：1800–1999
-Bakata Legend ：2000+
+対象画面：
+・キャラ選択画面
+・バトル画面（両プレイヤー分）
 
-【キャラ統計】
-- 保存先: charaStats/{charaId}
-- rankedのみ対象
-- Pick: 両キャラ +1
-- Win: 勝者キャラ +1
-- 同一キャラ対戦は 1doc にまとめて pick+2 / win+1
+表示形式：
+例）
+うーこ
+Silver 1523
 
-【実行条件】
-rooms:
-- bo3Final == true
-- rated == false
-- matchType == "ranked"
+仕様：
+・users/{uid} から rating と rankTier を取得
+・未取得時は「---」表示
+・Anonymousログイン完了後に取得
+・バトル画面では自分と相手両方取得して表示
 
-上記を満たすときのみ Transaction 実行。
+UI仕様：
+・フォント小さめ（12〜14px）
+・rankTierごとに色変更
+  Bronze: #b87333
+  Silver: #c0c0c0
+  Gold: #ffd700
+  Legend: #a855f7
+  BakataLegend: グラデ or 強調色
 
-【処理順序（重要）】
-1. rooms読み込み
-2. 条件チェック（冪等性）
-3. users読み込み（勝者/敗者）
-4. Elo計算
-5. charaStats更新
-6. users更新
-7. rooms.rated = true
-8. Transaction成功後に deleteDoc(rooms)（P1のみ）
+注意点：
+・usersが存在しない場合は初期値（1500 / Silver）
+・取得失敗してもゲーム進行は止めない
+・レート表示はランキング有無に関係なく常時表示
 
-────────────────────────────
-■ Security Rules（Phase1最小防御）
-────────────────────────────
-
-- users：
-  auth必須 + フィールド制限 + 型制限 + rating>=100
-- rooms：
-  ratedはfalse→trueのみ許可
-  deleteはp1Uidのみ許可
-- charaStats：
-  auth必須 + フィールド制限 + 型制限 + 非負
-
-────────────────────────────
-■ 注意点
-────────────────────────────
-
-- 同一キャラ対戦は必ず1doc更新にまとめること
-- leave倍率は負の値に1.5をかけない（減少量を正で扱う）
-- Math.max(100, ...) は倍率適用後に行う
-- Transaction内で必ず get → write の順序を守る
-- private(matchType!="ranked")は即return
-
-────────────────────────────
-■ 実装完了後に確認したい点
-────────────────────────────
-
-- ranked1試合で users / charaStats が正しく更新される
-- privateでは更新されない
-- 同一キャラ対戦で pick+2 / win+1 になる
-- roomsがTransaction成功後に削除される
-- 二重実行しても更新されない（ratedフラグで防止）
-
-以上の仕様で実装してください。
-必要であれば既存コード構造に合わせて関数分割・最適化してOKです。
+以上、Phase1として実装お願いします。

@@ -71,6 +71,30 @@ export async function getUserRating(uid) {
 }
 
 // ────────────────────────────
+// レート表示をDOM要素に反映
+// ────────────────────────────
+export function applyRatingDisplay(element, userData) {
+    if (!element) return;
+    if (!userData) {
+        element.textContent = "---";
+        element.className = "player-rating";
+        return;
+    }
+    const { rating, rankTier } = userData;
+    const tier = rankTier || getRankTier(rating || 1500);
+    const displayRating = rating ?? 1500;
+    element.textContent = `${tier} ${displayRating}`;
+
+    // ランク帯に応じたCSSクラスを設定
+    element.className = "player-rating";
+    if (tier === "Bronze") element.classList.add("rank-bronze");
+    else if (tier === "Silver") element.classList.add("rank-silver");
+    else if (tier === "Gold") element.classList.add("rank-gold");
+    else if (tier === "Legend") element.classList.add("rank-legend");
+    else if (tier === "Bakata Legend") element.classList.add("rank-bakata");
+}
+
+// ────────────────────────────
 // BO3確定時にroomsに結果フィールドを書き込む
 // ────────────────────────────
 export async function writeBO3Result(roomDocRef, {

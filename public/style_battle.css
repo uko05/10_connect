@@ -638,6 +638,23 @@ nav ul li:hover > a {
     margin: 0; /* pタグのデフォルトマージンを削除 */
 }
 
+.player-rating {
+    font-size: 13px;
+    margin: 2px 0;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+.player-rating.rank-bronze { color: #b87333; }
+.player-rating.rank-silver { color: #c0c0c0; }
+.player-rating.rank-gold { color: #ffd700; }
+.player-rating.rank-legend { color: #a855f7; }
+.player-rating.rank-bakata {
+    background: linear-gradient(90deg, #ff6b6b, #ffd700, #48dbfb, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .info-item-tate {
     display: flex; /* フレックスボックスを使用 */
     flex-direction: column; /* 縦に並べる */
