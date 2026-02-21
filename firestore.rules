@@ -2,21 +2,60 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // waitingPlayersコレクションに対するルール
     match /waitingPlayers/{document=**} {
-      allow read, write: if request.auth != null; // 認証されたユーザーのみ
+      allow read, write: if request.auth != null;
     }
 
-    // roomsコレクションに対するルール
-    match /rooms/{document=**} {
-      allow read, write: if request.auth != null; // 認証されたユーザーのみ
+    // roomsコレクションに対するルール（Phase1最小防御）
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && (
+          // rated フィールドの巻き戻し防止（false→trueのみ許可）
+          !("rated" in resource.data)
+          || resource.data.rated == false
+          || resource.data.rated == request.resource.data.rated
+        );
+      // 削除はP1（rooms作成者）のみ許可
+      allow delete: if request.auth != null
+        && resource.data.player1_ID == request.auth.uid;
+    }
+
+    // usersコレクション（レーティング用）
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      // 作成は自分のドキュメントのみ
+      allow create: if request.auth != null
+        && request.auth.uid == uid;
+      // 更新：auth必須 + フィールド制限 + 型制約 + rating下限100
+      // ※ P1が相手usersも更新するため uid == auth.uid 制限はPhase1では緩和
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasOnly(
+          ['rating', 'matchCount', 'winCount', 'rankTier', 'lastMatchAt']
+        )
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 100
+        && request.resource.data.matchCount is int
+        && request.resource.data.winCount is int;
+    }
+
+    // charaStats コレクション（キャラ統計用）
+    match /charaStats/{charaId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasOnly(['pickCount', 'winCount'])
+        && request.resource.data.pickCount is int
+        && request.resource.data.winCount is int
+        && request.resource.data.pickCount >= 0
+        && request.resource.data.winCount >= 0;
     }
 
     // デフォルトのルール（全てのドキュメントに対して全てのアクセスを拒否）
-    // ここに他のルールを追加することもできます。
     match /{document=**} {
-      allow read, write: if false; // デフォルトで全てのアクセスを拒否
+      allow read, write: if false;
     }
   }
 }

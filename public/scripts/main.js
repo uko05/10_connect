@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { db } from "./firebaseConfig.js"; //firebaseの設定ファイル
+import { db, auth, authReady } from "./firebaseConfig.js"; //firebaseの設定ファイル
 import {
     getFirestore,
     collection,
@@ -14,10 +14,11 @@ import {
     getDoc,
     runTransaction,
     updateDoc
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"; 
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
+import { ensureUserDoc } from './eloRating.js';
 
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;
@@ -129,7 +130,16 @@ function displayCharacterInfo(character) {
 //ページが読み込まれたらサムネイルを表示し、スライダーイベントを設定
 //DOMContentLoaded・・・HTMLが全部読み込まれたとき動く
 //Load・・・CSSとかJS含む全て（ページ全体）が読み込まれたときに動く
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Anonymous Auth 完了を待機し、usersドキュメントを初期化
+    try {
+        const user = await authReady;
+        await ensureUserDoc(user.uid);
+        console.log("[main] Auth ready, uid:", user.uid);
+    } catch (error) {
+        console.error("[main] Auth initialization failed:", error);
+    }
+
     //スライダー要素を取得
     systemvolumeSlider = document.getElementById('systemvolumeSlider');
     voicevolumeSlider = document.getElementById('voicevolumeSlider');
@@ -467,16 +477,14 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         roomMatching = null;
     }
 
-    //UUIDの生成
-    let playerUUID = null
+    //UUIDの取得（Anonymous Auth uid を使用）
+    let playerUUID = null;
     if (NowMatching == false) {
-        //マッチング開始
-        playerUUID = crypto.randomUUID(); 
-    
+        //マッチング開始：Auth uidを使用
+        playerUUID = auth.currentUser?.uid || crypto.randomUUID();
     } else {
         //マッチング解除
-        playerUUID = getUUIDFromCookie(); 
-        
+        playerUUID = getUUIDFromCookie();
     }
     document.cookie = `playerUUID=${playerUUID}; path=/; max-age=259200`; //クッキーに保存（1日間有効）
     
@@ -572,6 +580,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
                 red_Win: 0,
                 yellow_Win: 0,
                 roomMatching: roomMatching,
+                matchType: roomMatching ? "private" : "ranked",
                 roomID: crypto.randomUUID(),
                 status: "waiting",
                 createdAt: new Date(),

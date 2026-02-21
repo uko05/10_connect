@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { db } from "./firebaseConfig.js"; // firebaseの設定ファイル
+import { db, auth, authReady } from "./firebaseConfig.js"; // firebaseの設定ファイル
 
 import {
   getFirestore,
@@ -36,6 +36,7 @@ import {
     getStonesToChange as _getStonesToChange
 } from "./abilities.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
+import { writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating } from "./eloRating.js";
 
 
 // バージョン表示
@@ -134,6 +135,8 @@ let startP = null;
 let red_Win = 0;
 let yellow_Win = 0;
 let changeStone = 0;
+let matchType = "ranked"; // "ranked" | "private"
+let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
 
 let winningflg = 0;
 
@@ -277,10 +280,10 @@ async function displayThumbnails() {
     
     // どちらがPlayer1かを確認
     if (!querySnapshotP1.empty) {
-        
-        querySnapshotP1.forEach((doc) => {
-            const data = doc.data(); // ドキュメントのデータを取得
-            
+
+        querySnapshotP1.forEach((docSnap) => {
+            const data = docSnap.data(); // ドキュメントのデータを取得
+
             playerLeft_ID = data.player1_ID;
             playerLeft_CharaID = data.player1_CharaID;
             playerLeft_ChargeNow = data.player1_ChargeNow;
@@ -288,7 +291,7 @@ async function displayThumbnails() {
             playerLeft_Color = data.player1_Color;
             playerLeft_TimeLimit = data.player1_TimeLimit;
             playerLeft_UltCount = data.player1_UltCount;
-            
+
             playerRight_ID = data.player2_ID;
             playerRight_CharaID = data.player2_CharaID;
             playerRight_ChargeNow = data.player2_ChargeNow;
@@ -296,29 +299,31 @@ async function displayThumbnails() {
             playerRight_Color = data.player2_Color;
             playerRight_TimeLimit = data.player2_TimeLimit;
             playerRight_UltCount = data.player2_UltCount;
-            
+
             roomID = data.roomID;
             startP = data.startP;
             turn = data.turn;
             changeStone = data.changeStone;
-            
+            matchType = data.matchType || "ranked";
+            firestoreRoomDocRef = docSnap.ref; // Firestoreドキュメント参照を保持
+
             red_Win = data.red_Win;
             yellow_Win = data.yellow_Win;
-            
+
             player_info = 'P1';
             if (playerLeft_Color === 'red') {
                 updateWinLabels(red_Win, yellow_Win);
-                
+
             } else {
                 updateWinLabels(yellow_Win, red_Win);
             }
         });
-        
+
     } else {
 
-        querySnapshotP2.forEach((doc) => {
-            const data = doc.data(); // ドキュメントのデータを取得
-            
+        querySnapshotP2.forEach((docSnap) => {
+            const data = docSnap.data(); // ドキュメントのデータを取得
+
             playerLeft_ID = data.player2_ID;
             playerLeft_CharaID = data.player2_CharaID;
             playerLeft_ChargeNow = data.player2_ChargeNow;
@@ -326,7 +331,7 @@ async function displayThumbnails() {
             playerLeft_Color = data.player2_Color;
             playerLeft_TimeLimit = data.player2_TimeLimit;
             playerLeft_UltCount = data.player2_UltCount;
-            
+
             playerRight_ID = data.player1_ID;
             playerRight_CharaID = data.player1_CharaID;
             playerRight_ChargeNow = data.player1_ChargeNow;
@@ -334,17 +339,19 @@ async function displayThumbnails() {
             playerRight_Color = data.player1_Color;
             playerRight_TimeLimit = data.player1_TimeLimit;
             playerRight_UltCount = data.player1_UltCount;
-            
+
             roomID = data.roomID;
             startP = data.startP;
             turn = data.turn;
             changeStone = data.changeStone;
-            
+            matchType = data.matchType || "ranked";
+            firestoreRoomDocRef = docSnap.ref; // Firestoreドキュメント参照を保持
+
             red_Win = data.red_Win;
             yellow_Win = data.yellow_Win;
-            
+
             player_info = 'P2';
-            
+
             if (playerLeft_Color === 'red') {
                 updateWinLabels(red_Win, yellow_Win);
             } else {
@@ -487,7 +494,7 @@ async function dispP1Info(charaInfo, player_Name) {
 
 document.getElementById('specialMoveButton').addEventListener('click', () => {
     
-    if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 7) {
+    if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 6) {
         // アベンチュリンの場合の専用処理
         // 通常状態に戻す
         nowCol = 3;
@@ -631,6 +638,14 @@ async function deleteRoomByRoomID() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+
+    // Auth完了を待機（Security Rulesで auth != null が必要）
+    try {
+        await authReady;
+        console.log("[gameLogic] Auth ready");
+    } catch (error) {
+        console.error("[gameLogic] Auth failed:", error);
+    }
 
     await displayThumbnails(); // サムネイルの表示
     
@@ -954,25 +969,35 @@ async function watchRoomUpdates() {
 
     onSnapshot(q, async (snapshot) => {
         if (snapshot.empty) {
+            // P2: ドキュメント削除を検知（P1がTransaction後に削除）
+            console.log("[watchRoom] Room document deleted");
             return;
         }
 
         snapshot.forEach(async (doc) => {
             const data = doc.data();
 
+            // P2: rated===true を検知したらレート情報を再取得
+            if (data.rated === true && player_info === "P2") {
+                console.log("[Rating] P2: rated===true 検知、レート情報を再取得");
+                const myRating = await getUserRating(playerLeft_ID);
+                if (myRating) {
+                    console.log("[Rating] P2 updated rating:", myRating);
+                }
+            }
+
             // 部屋のステータスが "leave" になった場合の処理
             if (data.status === "leave") {
                 console.log("対戦相手が部屋を離れました。試合を中断します。");
 
+                // レーティング更新（leave扱い：自分が勝者）
+                await handleBO3Final(playerLeft_Color, "leave");
+
                 // 試合を終了してキャラクター画面に戻す処理
                 displayLeaveMessage();
-
-                // ■■■■■2026/01/10　追加
-                if (player_info === "P1") await deleteRoomByRoomID();
                 return;
             }
 
-            // ■■■■■2026/01/10　追加
             const isCleaner = (player_info === "P1");
 
             const myTimeout =
@@ -987,15 +1012,17 @@ async function watchRoomUpdates() {
 
             if (enemyTimeout >= 2) {
               console.log("相手が2回時間切れ。勝利として終了します。");
+              // レーティング更新（timeout扱い：自分が勝者）
+              await handleBO3Final(playerLeft_Color, "timeout");
               displayVictory(playerLeft_Color);
-              if (isCleaner) await deleteRoomByRoomID();
               return;
             }
 
             if (myTimeout >= 2) {
               console.log("自分が2回時間切れ。敗北として終了します。");
+              // レーティング更新（timeout扱い：相手が勝者）
+              await handleBO3Final(playerRight_Color, "timeout");
               displayVictory(playerRight_Color);
-              if (isCleaner) await deleteRoomByRoomID();
               return;
             }
 
@@ -1169,8 +1196,12 @@ async function watchRoomUpdates() {
             
             if (red_Win === 3 || yellow_Win === 3) {
                 console.log("◆◆◆◆◆◆◆◆◆◆◆");
-                console.log("勝利判定②");
+                console.log("勝利判定②（BO3確定）");
                 const winningColor = red_Win === 3 ? "red" : "yellow";
+
+                // レーティング更新処理（ranked のみ）
+                await handleBO3Final(winningColor, "normal");
+
                 displayVictory(winningColor); // 勝利画面を表示
                 resetTimeLimit();
                 console.log("◆◆◆◆◆◆◆◆◆◆◆");
@@ -2293,6 +2324,64 @@ async function getRandomEmptyColumn() {
 
 //------------------------------------------------------------------------------------------------
 
+// BO3確定時のレーティング更新処理
+// winningColor: 勝者の色 ("red" | "yellow")
+// resultType: "normal" | "leave" | "timeout"
+async function handleBO3Final(winningColor, resultType) {
+    if (!firestoreRoomDocRef) {
+        console.warn("[Rating] firestoreRoomDocRef is null, skipping rating");
+        return;
+    }
+
+    // 勝者UIDの特定
+    // playerLeft_Color が winningColor なら自分が勝者
+    const isMeWinner = (playerLeft_Color === winningColor);
+    const winnerUid = isMeWinner ? playerLeft_ID : playerRight_ID;
+
+    // p1Uid / p2Uid（Firestoreの視点）
+    const p1Uid = (player_info === "P1") ? playerLeft_ID : playerRight_ID;
+    const p2Uid = (player_info === "P1") ? playerRight_ID : playerLeft_ID;
+
+    // p1CharaId / p2CharaId（Firestoreの視点）
+    const p1CharaId = (player_info === "P1") ? playerLeft_CharaID : playerRight_CharaID;
+    const p2CharaId = (player_info === "P1") ? playerRight_CharaID : playerLeft_CharaID;
+
+    console.log("[Rating] handleBO3Final:", { winningColor, resultType, matchType, winnerUid, player_info });
+
+    try {
+        // 1. roomsに結果フィールドを書き込み
+        await writeBO3Result(firestoreRoomDocRef, {
+            winnerUid,
+            resultType,
+            matchType,
+            p1CharaId,
+            p2CharaId
+        });
+
+        // 2. P1のみがTransaction実行（ranked のみ）
+        if (player_info === "P1" && matchType === "ranked") {
+            const result = await executeRatingTransaction(firestoreRoomDocRef, p1Uid, p2Uid);
+            if (result) {
+                console.log("[Rating] レート更新完了:", result);
+            }
+            // 3. Transaction成功後にrooms削除
+            await deleteRoomAfterRating(firestoreRoomDocRef);
+        } else if (player_info === "P1" && matchType === "private") {
+            // private: レート更新なし、rooms削除のみ
+            await deleteRoomAfterRating(firestoreRoomDocRef);
+        }
+        // P2: rooms.rated===true検知またはdoc消失でリスナー解除（onSnapshot内で処理）
+    } catch (error) {
+        console.error("[Rating] handleBO3Final error:", error);
+        // エラー時もP1はrooms削除を試みる
+        if (player_info === "P1") {
+            await deleteRoomAfterRating(firestoreRoomDocRef);
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------
+
 function displayVictory(winningColor) {
     const victoryModal = document.getElementById("victoryModal");
     const victoryImage = document.getElementById("victoryImage");
@@ -2844,7 +2933,7 @@ async function ult_downThinkingTime() {
       const roomDocRef = doc(db, "rooms", roomDoc.id);
       if (player_info === "P1") {
         // 自分がP1 → 相手はP2 → player2_TimeLimit を減らす
-        const p2_Time = Math.max(0, (roomData.player2_TimeLimit ?? 100) - 16);
+        const p2_Time = Math.max(0, (roomData.player2_TimeLimit ?? 100) - 19);
         playerRight_TimeLimit = p2_Time;
         await updateDoc(roomDocRef, {
           player1_ChargeNow: p1_chargeNow,
@@ -2854,7 +2943,7 @@ async function ult_downThinkingTime() {
         console.log("[ULT] 相手(P2)の思考時間を減少:", { before: roomData.player2_TimeLimit, after: p2_Time });
       } else {
         // 自分がP2 → 相手はP1 → player1_TimeLimit を減らす
-        const p1_Time = Math.max(0, (roomData.player1_TimeLimit ?? 100) - 16);
+        const p1_Time = Math.max(0, (roomData.player1_TimeLimit ?? 100) - 19);
         playerRight_TimeLimit = p1_Time;
         await updateDoc(roomDocRef, {
           player1_ChargeNow: p1_chargeNow,

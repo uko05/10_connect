@@ -1,41 +1,99 @@
-【バグ修正依頼】player●_UltCount が1回発動で2回増える（二重カウント）
+# 実装依頼：Phase1 レーティング（Elo）+ キャラ統計（Pick/Win）
 
-■現象
-- player●_UltCount（必殺技発動回数）が、1回発動したはずなのに2回扱いで増えている。
-- 自分端末と相手端末の両方が更新している（二重でアップデート）疑い。
+これまで確定した詳細設計に基づき、Phase1の実装をお願いします。
 
-■前提（最重要）
-- レイアウト/サイズ（キャラ情報エリア、中央エリア、スケール周り）は一切触らない。ロジックのみ。
+────────────────────────────
+■ 目的
+────────────────────────────
 
-■原因候補（高確度）
-- 発動者側が Firestore に「ult発動」を書き込み
-- 相手側も onSnapshot で同じイベントを受け取り、ローカルで ult適用（＝UltCount加算）を実行
-- さらに発動者側でも onSnapshot で同じイベントを拾って再適用している
-→ 結果、両端末（あるいは同一端末内でも2経路）で UltCount が二重加算される
+- rankedマッチのみ：
+  - BO3最終結果で1回だけElo更新
+  - charaStats（Pick/Win）加算
+- private（合言葉）マッチは
+  - レート更新しない
+  - 統計にも含めない
+- roomsはTransaction成功後にP1のみ削除
 
-■やってほしいこと（必須）
-1) UltCount の更新は「単一の責務」にする（どちらか一方のみが更新）
-   例：
-   - 方式A: host（player1）だけが UltCount を Firestore 更新する（guestは書かない）
-   - 方式B: 発動者だけが更新する（発動者判定が100%正しいことが前提）
-   - 方式C: 「コマンドだけ書く」→「適用はhostのみ」→ 結果状態だけ同期（最も事故が少ない）
+Phase1ではCloud Functionsは使用しません。
+クライアント + Firestore Transactionで完結させます。
 
-2) 二重適用防止の“冪等性ガード”を入れる
-   - rooms に ultActionId（例: uuid + turn + usedBy）を保存
-   - 各端末は「最後に処理した ultActionId」を保持し、同じIDは二度処理しない
-   - Firestoreに processedUltActionId のようなフィールドを置いてもOK
+────────────────────────────
+■ 実装要件（確定仕様）
+────────────────────────────
 
-3) UltCount は Firestore 側の単一地点で increment する
-   - possible: transaction / runTransaction で「actionId未処理なら increment」まで原子的に行う
-   - FieldValue.increment(1) を複数クライアントから叩かない構造にする
+【レート仕様】
+- 初期rating: 1500
+- 下限: 100
+- K値:
+    matchCount < 10   → 48
+    < 50              → 32
+    それ以上         → 16
+- BO3最終結果で1回のみ更新
+- leave/timeoutは通常敗北の減少量 ×1.5（正の減少量で計算）
 
-■デバッグ（必須）
-- UltCount を増やす直前に必ずログ出しして「どの経路が2回走ってるか」確定する
-  - device: myRole(host/guest), myUid
-  - caller: useUltimate() / onSnapshot handler / applyUltEffect() など呼び出し元
-  - actionId / turn / usedBy
-  - increment対象フィールド名（player1_UltCount or player2_UltCount）
-- 1回の発動でログが2回出てる箇所を特定し、その片方を“処理しない”ようにする
+【ランク帯】
+Bronze        ：100–1399
+Silver        ：1400–1599
+Gold          ：1600–1799
+Legend        ：1800–1999
+Bakata Legend ：2000+
 
-■完了条件
-- 1回の必殺技発動につき、player●_UltCount が必ず +1 のみ増える（PC/スマホ両方、host/guest両方で再現なくなる）
+【キャラ統計】
+- 保存先: charaStats/{charaId}
+- rankedのみ対象
+- Pick: 両キャラ +1
+- Win: 勝者キャラ +1
+- 同一キャラ対戦は 1doc にまとめて pick+2 / win+1
+
+【実行条件】
+rooms:
+- bo3Final == true
+- rated == false
+- matchType == "ranked"
+
+上記を満たすときのみ Transaction 実行。
+
+【処理順序（重要）】
+1. rooms読み込み
+2. 条件チェック（冪等性）
+3. users読み込み（勝者/敗者）
+4. Elo計算
+5. charaStats更新
+6. users更新
+7. rooms.rated = true
+8. Transaction成功後に deleteDoc(rooms)（P1のみ）
+
+────────────────────────────
+■ Security Rules（Phase1最小防御）
+────────────────────────────
+
+- users：
+  auth必須 + フィールド制限 + 型制限 + rating>=100
+- rooms：
+  ratedはfalse→trueのみ許可
+  deleteはp1Uidのみ許可
+- charaStats：
+  auth必須 + フィールド制限 + 型制限 + 非負
+
+────────────────────────────
+■ 注意点
+────────────────────────────
+
+- 同一キャラ対戦は必ず1doc更新にまとめること
+- leave倍率は負の値に1.5をかけない（減少量を正で扱う）
+- Math.max(100, ...) は倍率適用後に行う
+- Transaction内で必ず get → write の順序を守る
+- private(matchType!="ranked")は即return
+
+────────────────────────────
+■ 実装完了後に確認したい点
+────────────────────────────
+
+- ranked1試合で users / charaStats が正しく更新される
+- privateでは更新されない
+- 同一キャラ対戦で pick+2 / win+1 になる
+- roomsがTransaction成功後に削除される
+- 二重実行しても更新されない（ratedフラグで防止）
+
+以上の仕様で実装してください。
+必要であれば既存コード構造に合わせて関数分割・最適化してOKです。
