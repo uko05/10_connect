@@ -33,7 +33,7 @@ service cloud.firestore {
       // ※ P1が相手usersも更新するため uid == auth.uid 制限はPhase1では緩和
       allow update: if request.auth != null
         && request.resource.data.keys().hasOnly(
-          ['rating', 'matchCount', 'winCount', 'rankTier', 'lastMatchAt']
+          ['rating', 'matchCount', 'winCount', 'lastMatchAt']
         )
         && request.resource.data.rating is int
         && request.resource.data.rating >= 100

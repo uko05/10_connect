@@ -14,6 +14,7 @@ import {
     getDocs,
     getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getRankTier, getRankCssClass } from "./rankConfig.js";
 
 // ────────────────────────────
 // 定数
@@ -32,17 +33,6 @@ function getK(matchCount) {
 }
 
 // ────────────────────────────
-// ランク帯算出
-// ────────────────────────────
-function getRankTier(rating) {
-    if (rating >= 2000) return "Bakata Legend";
-    if (rating >= 1800) return "Legend";
-    if (rating >= 1600) return "Gold";
-    if (rating >= 1400) return "Silver";
-    return "Bronze";
-}
-
-// ────────────────────────────
 // users/{uid} 初回作成（Auth成功時に呼ぶ）
 // ────────────────────────────
 export async function ensureUserDoc(uid) {
@@ -53,7 +43,6 @@ export async function ensureUserDoc(uid) {
             rating: INITIAL_RATING,
             matchCount: 0,
             winCount: 0,
-            rankTier: "Silver",
             lastMatchAt: serverTimestamp()
         });
         console.log("[Rating] users doc created for", uid);
@@ -104,29 +93,19 @@ export async function applyRatingDisplay(element, userData) {
         element.className = "player-rating";
         return;
     }
-    const { rating, rankTier } = userData;
-    const tier = rankTier || getRankTier(rating || 1500);
-    const displayRating = rating ?? 1500;
+    const displayRating = userData.rating ?? 1500;
+    const tier = getRankTier(displayRating);
+    const cssClass = getRankCssClass(displayRating);
 
     // まずレート表示（順位取得前に即時表示）
     element.textContent = `${tier} ${displayRating}`;
-    applyRankClass(element, tier);
+    element.className = `player-rating ${cssClass}`;
 
     // 順位を取得して追加表示
     const rankInfo = await getUserRank(displayRating);
     if (rankInfo) {
         element.textContent = `${tier} ${displayRating}（#${rankInfo.rank} / ${rankInfo.total}人）`;
     }
-}
-
-// ランク帯CSSクラスを適用
-function applyRankClass(element, tier) {
-    element.className = "player-rating";
-    if (tier === "Bronze") element.classList.add("rank-bronze");
-    else if (tier === "Silver") element.classList.add("rank-silver");
-    else if (tier === "Gold") element.classList.add("rank-gold");
-    else if (tier === "Legend") element.classList.add("rank-legend");
-    else if (tier === "Bakata Legend") element.classList.add("rank-bakata");
 }
 
 // ────────────────────────────
@@ -252,7 +231,6 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
                 rating: winnerNewRating,
                 matchCount: winner.matchCount + 1,
                 winCount: winner.winCount + 1,
-                rankTier: getRankTier(winnerNewRating),
                 lastMatchAt: serverTimestamp()
             }, { merge: true });
 
@@ -260,7 +238,6 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
                 rating: loserNewRating,
                 matchCount: loser.matchCount + 1,
                 winCount: loser.winCount,
-                rankTier: getRankTier(loserNewRating),
                 lastMatchAt: serverTimestamp()
             }, { merge: true });
 
@@ -304,9 +281,7 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
 
             return {
                 winnerNewRating,
-                loserNewRating,
-                winnerRankTier: getRankTier(winnerNewRating),
-                loserRankTier: getRankTier(loserNewRating)
+                loserNewRating
             };
         });
 
