@@ -666,6 +666,45 @@ nav ul li:hover > a {
     font-size: 18px;
 }
 
+.info-item-yoko {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.4);
+    font-size: 18px;
+    gap: 5px;
+}
+
+.value-yoko {
+    padding: 2px;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.4);
+    min-height: 26px;
+    box-sizing: border-box;
+    text-align: left;
+    height: 26px;
+}
+
+/* キャラ名 + CT + チャージ量を1行に並べる */
+.chara-name-short {
+    flex: 1;
+}
+.chara-ct-label {
+    width: 30px;
+    min-width: 30px;
+    text-align: center;
+    font-weight: bold;
+}
+.chara-charge-short {
+    width: 50px;
+    min-width: 50px;
+    text-align: center;
+}
+
 .label {
     width: 110px;
     color: #333; /* テキストの色 */
