@@ -1,57 +1,62 @@
-【追加実装依頼：BO3二重発火修正 + レート表示追加】
+rules_version = '2';
 
-■ ① BO3勝利時の勝敗判定が二重発火する問題（最優先）
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-現象：
-・4並び後にラベル表示中にも盤面クリア処理が走っている
-・BO3で3pt到達時、「勝利しました。5秒後に戻ります」表示中に再度勝敗判定が走る
-・その影響か users/{uid} の rating/matchCount/winCount が更新されないケースがある
+    // waitingPlayersコレクションに対するルール
+    match /waitingPlayers/{document=**} {
+      allow read, write: if request.auth != null;
+    }
 
-修正方針：
-1) ラウンド勝利とマッチ勝利を完全分離
-2) BO3確定時は盤面クリアや次ラウンド準備を絶対に実行しない
-3) 勝敗確定処理は1回だけ実行されるようガードフラグ追加
-   例：
-   if (isMatchFinalized) return;
-   isMatchFinalized = true;
-4) レーティングTransaction → 成功確認 → rooms削除 の順序保証
-5) BO3確定後は入力・タイマー・再判定を完全停止
+    // roomsコレクションに対するルール（Phase1最小防御）
+match /rooms/{roomId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null;
 
-期待動作：
-・BO3勝利時に勝敗処理は必ず1回のみ
-・users更新が必ず実行される
-・rooms削除はTransaction完了後のみ
+  // ratedは「触らない更新」or「false -> trueのみ」
+  allow update: if request.auth != null
+    && (
+      !("rated" in request.resource.data)
+      || (resource.data.rated == false && request.resource.data.rated == true)
+    );
 
+  // 削除はP1のみ
+  allow delete: if request.auth != null
+    && resource.data.player1_ID == request.auth.uid;
+}
 
-■ ② レートと階級を名前の下に表示（ロビー＆バトル両方）
+    // usersコレクション（レーティング用）
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      // 作成は自分のドキュメントのみ
+      allow create: if request.auth != null
+        && request.auth.uid == uid;
+      // 更新：auth必須 + フィールド制限 + 型制約 + rating下限100
+      // ※ P1が相手usersも更新するため uid == auth.uid 制限はPhase1では緩和
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasOnly(
+          ['rating', 'matchCount', 'winCount', 'rankTier', 'lastMatchAt']
+        )
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 100
+        && request.resource.data.matchCount is int
+        && request.resource.data.winCount is int;
+    }
 
-対象画面：
-・キャラ選択画面
-・バトル画面（両プレイヤー分）
+    // charaStats コレクション（キャラ統計用）
+    match /charaStats/{charaId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasOnly(['pickCount', 'winCount'])
+        && request.resource.data.pickCount is int
+        && request.resource.data.winCount is int
+        && request.resource.data.pickCount >= 0
+        && request.resource.data.winCount >= 0;
+    }
 
-表示形式：
-例）
-うーこ
-Silver 1523
-
-仕様：
-・users/{uid} から rating と rankTier を取得
-・未取得時は「---」表示
-・Anonymousログイン完了後に取得
-・バトル画面では自分と相手両方取得して表示
-
-UI仕様：
-・フォント小さめ（12〜14px）
-・rankTierごとに色変更
-  Bronze: #b87333
-  Silver: #c0c0c0
-  Gold: #ffd700
-  Legend: #a855f7
-  BakataLegend: グラデ or 強調色
-
-注意点：
-・usersが存在しない場合は初期値（1500 / Silver）
-・取得失敗してもゲーム進行は止めない
-・レート表示はランキング有無に関係なく常時表示
-
-以上、Phase1として実装お願いします。
+    // デフォルトのルール（全てのドキュメントに対して全てのアクセスを拒否）
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
