@@ -121,7 +121,7 @@ function displayThumbnails() {
 //キャラクターの情報を表示する関数
 function displayCharacterInfo(character) {
     document.getElementById('characterName').innerText = character.name; //キャラクター名を表示
-    document.getElementById('characterCharge').innerText = character.charge; //チャージ量を表示
+    document.getElementById('characterCharge').innerText = "CT: " + character.charge; //チャージ量を表示
     document.getElementById('Ability').innerText = character.Ability; //必殺技名を表示
     document.getElementById('AbilityDetail').innerText = character.AbilityDetail; //必殺技内容を表示
     document.getElementById('charaID').value = character.charaID; //キャラIDをhiddenフィールドに設定
