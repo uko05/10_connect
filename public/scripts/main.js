@@ -140,7 +140,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // ロビーにレート表示
         const myRating = await getUserRating(user.uid);
         const ratingEl = document.getElementById('lobbyRatingDisplay');
-        applyRatingDisplay(ratingEl, myRating);
+        const badgeEl = document.getElementById('lobbyRankBadge');
+        applyRatingDisplay(ratingEl, myRating, badgeEl);
     } catch (error) {
         console.error("[main] Auth initialization failed:", error);
     }

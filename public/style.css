@@ -416,6 +416,23 @@ header {
     background-clip: text;
 }
 
+/* ロビー：名前+レート左側 + バッジ右側 */
+.lobby-player-info {
+    flex-wrap: nowrap;
+    align-items: center;
+}
+.lobby-player-left {
+    flex: 1;
+    min-width: 0;
+}
+.rank-badge {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    flex-shrink: 0;
+    display: none; /* applyRatingDisplayで表示される */
+}
+
 .info-item-yoko {
     display: flex; /* フレックスボックスを使用 */
     flex-direction: row; /* 横に並べる */

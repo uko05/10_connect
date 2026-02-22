@@ -14,7 +14,7 @@ import {
     getDocs,
     getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getRankTier, getRankCssClass } from "./rankConfig.js";
+import { getRankTier, getRankCssClass, getRankBadgePath } from "./rankConfig.js";
 
 // ────────────────────────────
 // 定数
@@ -86,11 +86,12 @@ export async function getUserRank(rating) {
 // ────────────────────────────
 // レート表示をDOM要素に反映（順位付き）
 // ────────────────────────────
-export async function applyRatingDisplay(element, userData) {
+export async function applyRatingDisplay(element, userData, badgeElement) {
     if (!element) return;
     if (!userData) {
         element.textContent = "---";
         element.className = "player-rating";
+        if (badgeElement) badgeElement.style.display = "none";
         return;
     }
     const displayRating = userData.rating ?? 1500;
@@ -100,6 +101,13 @@ export async function applyRatingDisplay(element, userData) {
     // まずレート表示（順位取得前に即時表示）
     element.textContent = `${tier} ${displayRating}`;
     element.className = `player-rating ${cssClass}`;
+
+    // バッジ画像を設定
+    if (badgeElement) {
+        badgeElement.src = getRankBadgePath(displayRating);
+        badgeElement.alt = tier;
+        badgeElement.style.display = "";
+    }
 
     // 順位を取得して追加表示
     const rankInfo = await getUserRank(displayRating);
