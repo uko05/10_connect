@@ -27,9 +27,8 @@ service cloud.firestore {
     // usersコレクション（レーティング用）
     match /users/{uid} {
       allow read: if request.auth != null;
-      // 作成は自分のドキュメントのみ
-      allow create: if request.auth != null
-        && request.auth.uid == uid;
+      // Phase1: P1がTransaction内で相手のdocも作成する可能性があるため auth のみ
+      allow create: if request.auth != null;
       // 更新：auth必須 + フィールド制限 + 型制約 + rating下限100
       // ※ P1が相手usersも更新するため uid == auth.uid 制限はPhase1では緩和
       allow update: if request.auth != null

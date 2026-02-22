@@ -36,7 +36,7 @@ import {
     getStonesToChange as _getStonesToChange
 } from "./abilities.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
-import { writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
+import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 
 
 // バージョン表示
@@ -386,6 +386,17 @@ async function displayThumbnails() {
             
     await dispP1Info(charaInfo1, playerLeft_Name);
     await dispP2Info(charaInfo2, playerRight_Name);
+
+    // 両プレイヤーの users ドキュメントを保証（Transaction前に必須）
+    try {
+        await Promise.all([
+            ensureUserDoc(playerLeft_ID),
+            ensureUserDoc(playerRight_ID)
+        ]);
+        console.log("[gameLogic] 両プレイヤーの users doc 保証完了");
+    } catch (e) {
+        console.error("[gameLogic] ensureUserDoc 失敗:", e);
+    }
 
     // レート表示（バトル画面：両プレイヤー）
     try {

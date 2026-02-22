@@ -159,6 +159,12 @@ export async function writeBO3Result(roomDocRef, {
 export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
     console.log("[Rating] Transaction開始:", { roomDocRef: roomDocRef.path, p1Uid, p2Uid });
     try {
+        // Transaction前に両プレイヤーの users doc を保証（set merge:trueがcreateにならないよう）
+        await Promise.all([
+            ensureUserDoc(p1Uid),
+            ensureUserDoc(p2Uid)
+        ]);
+
         const result = await runTransaction(db, async (transaction) => {
             // ── 1. rooms読み取り ──
             const roomSnap = await transaction.get(roomDocRef);
