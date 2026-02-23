@@ -1408,11 +1408,22 @@ nav ul li:hover > a {
   }
 
   /* 必殺技名を縮小 */
-  #leftPane .abilityName,
-  #rightPane .abilityName {
+  .abilityName {
     height: auto;
     font-size: 8px;
     width: 100%;
+    word-break: break-all;
+    overflow-y: auto;
+  }
+
+  /* 必殺技詳細を縮小 */
+  .abilityDetail {
+    height: auto;
+    max-height: min(25vh, 200px);
+    font-size: 8px;
+    width: 100%;
+    word-break: break-all;
+    overflow-y: auto;
   }
 
   /* サムネイル小サイズ */
@@ -1444,11 +1455,45 @@ nav ul li:hover > a {
   }
 
   .player-rating {
-    font-size: 12px;
+    font-size: 8px;
+    word-break: break-all;
   }
   .rank-badge {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* ラベル幅を縮小（120pxペインに収めるため） */
+  .label {
     width: 30px;
-    height: 30px;
+    min-width: 30px;
+    font-size: 8px;
+    margin-bottom: 1px;
+  }
+
+  /* キャラ+CT行の固定幅を縮小 */
+  .chara-label-short {
+    width: 24px;
+    min-width: 24px;
+    font-size: 7px;
+  }
+  .chara-ct-label {
+    width: 16px;
+    min-width: 16px;
+    font-size: 7px;
+  }
+  .chara-charge-short {
+    width: 28px;
+    min-width: 28px;
+    font-size: 7px;
+  }
+
+  /* value-yoko 縮小 */
+  .value-yoko {
+    font-size: 7px;
+    min-height: 14px;
+    height: auto;
+    padding: 1px;
   }
 
   /* 音量スライダー非表示 */
@@ -1500,14 +1545,10 @@ nav ul li:hover > a {
   .info-item-yoko {
     font-size: 8px;
     padding: 1px;
+    gap: 2px;
   }
 
-  /* 必殺技説明テキスト欄をスマホで1.5倍（viewport追従） */
-  #AbilityDetail_1,
-  #AbilityDetail_2 {
-    height: min(30vh, 300px);
-    overflow-y: auto;
-  }
+  /* 必殺技説明テキスト欄（classで既に制御済み、IDで上書き不要） */
 
   /* characterInfoContainer 縮小 */
   #characterInfoContainer {
