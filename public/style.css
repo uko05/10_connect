@@ -416,7 +416,20 @@ header {
 }
 
 .player-rating.rank-gold {
-    color: #ffd700;
+    background: linear-gradient(
+        180deg,
+        #fff8c2 0%,
+        #ffd700 40%,
+        #e6b800 70%,
+        #b8860b 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    text-shadow:
+        0 1px 1px rgba(0,0,0,0.4),
+        0 0 4px rgba(255,215,0,0.6);
 }
 
 /* 上品な白銀グラデ */
