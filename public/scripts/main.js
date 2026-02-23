@@ -141,7 +141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const myRating = await getUserRating(user.uid);
         const ratingEl = document.getElementById('lobbyRatingDisplay');
         const badgeEl = document.getElementById('lobbyRankBadge');
-        applyRatingDisplay(ratingEl, myRating, badgeEl);
+        const rankNameEl = document.getElementById('lobbyRankName');
+        applyRatingDisplay(ratingEl, myRating, badgeEl, rankNameEl);
     } catch (error) {
         console.error("[main] Auth initialization failed:", error);
     }

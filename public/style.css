@@ -405,6 +405,11 @@ header {
     font-weight: bold;
     letter-spacing: 0.5px;
 }
+
+.player-rating-detail {
+    font-size: 14px;
+    margin: 1px 0;
+}
 /* ===== RANK TEXT COLOR ===== */
 
 .player-rating.rank-bronze {
