@@ -795,7 +795,7 @@ nav ul li:hover > a {
 }
 
 .label {
-    width: 110px;
+    width: 60px;
     color: #333; /* テキストの色 */
     margin-bottom: 5px; /* ラベルと値の間にスペースを追加 */
     text-align: left; /* 左揃え */

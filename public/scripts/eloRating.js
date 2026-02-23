@@ -99,7 +99,7 @@ export async function applyRatingDisplay(element, userData, badgeElement) {
     const cssClass = getRankCssClass(displayRating);
 
     // まずレート表示（順位取得前に即時表示）
-    element.textContent = `${tier} ${displayRating}`;
+    element.innerHTML = `${tier} ${displayRating}`;
     element.className = `player-rating ${cssClass}`;
 
     // バッジ画像を設定
@@ -109,10 +109,10 @@ export async function applyRatingDisplay(element, userData, badgeElement) {
         badgeElement.style.display = "block";
     }
 
-    // 順位を取得して追加表示
+    // 順位を取得して追加表示（改行で分割）
     const rankInfo = await getUserRank(displayRating);
     if (rankInfo) {
-        element.textContent = `${tier} ${displayRating}（#${rankInfo.rank} / ${rankInfo.total}人）`;
+        element.innerHTML = `${tier} ${displayRating}<br>#${rankInfo.rank} / ${rankInfo.total}人`;
     }
 }
 
