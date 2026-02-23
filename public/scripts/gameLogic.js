@@ -405,8 +405,8 @@ async function displayThumbnails() {
             getUserRating(playerRight_ID)
         ]);
         await Promise.all([
-            applyRatingDisplay(document.getElementById('playerRating_1'), leftRating, document.getElementById('rankBadge_1')),
-            applyRatingDisplay(document.getElementById('playerRating_2'), rightRating, document.getElementById('rankBadge_2'))
+            applyRatingDisplay(document.getElementById('playerRating_1'), leftRating, document.getElementById('rankBadge_1'), document.getElementById('playerRankName_1')),
+            applyRatingDisplay(document.getElementById('playerRating_2'), rightRating, document.getElementById('rankBadge_2'), document.getElementById('playerRankName_2'))
         ]);
     } catch (e) {
         console.warn("[Rating] レート表示取得失敗:", e);

@@ -86,21 +86,31 @@ export async function getUserRank(rating) {
 // ────────────────────────────
 // レート表示をDOM要素に反映（順位付き）
 // ────────────────────────────
-export async function applyRatingDisplay(element, userData, badgeElement) {
+export async function applyRatingDisplay(element, userData, badgeElement, rankNameElement) {
     if (!element) return;
     if (!userData) {
         element.textContent = "---";
         element.className = "player-rating";
         if (badgeElement) badgeElement.style.display = "none";
+        if (rankNameElement) rankNameElement.textContent = "";
         return;
     }
     const displayRating = userData.rating ?? 1500;
     const tier = getRankTier(displayRating);
     const cssClass = getRankCssClass(displayRating);
 
-    // まずレート表示（順位取得前に即時表示）
-    element.innerHTML = `${tier}<br>R:${displayRating}`;
-    element.className = `player-rating ${cssClass}`;
+    // ランク名を別要素に表示（バトル画面用）
+    if (rankNameElement) {
+        rankNameElement.textContent = tier;
+        rankNameElement.className = `player-rating ${cssClass}`;
+        // element にはレート数のみ
+        element.innerHTML = `R:${displayRating}`;
+        element.className = `player-rating-detail`;
+    } else {
+        // ロビー画面用（従来通り1要素にまとめる）
+        element.innerHTML = `${tier}<br>R:${displayRating}`;
+        element.className = `player-rating ${cssClass}`;
+    }
 
     // バッジ画像を設定
     if (badgeElement) {
@@ -109,10 +119,14 @@ export async function applyRatingDisplay(element, userData, badgeElement) {
         badgeElement.style.display = "block";
     }
 
-    // 順位を取得して追加表示（3行: ランク名 / R:レート / #順位）
+    // 順位を取得して追加表示
     const rankInfo = await getUserRank(displayRating);
     if (rankInfo) {
-        element.innerHTML = `${tier}<br>R:${displayRating}<br>#${rankInfo.rank} / ${rankInfo.total}人`;
+        if (rankNameElement) {
+            element.innerHTML = `R:${displayRating}<br>#${rankInfo.rank} / ${rankInfo.total}人`;
+        } else {
+            element.innerHTML = `${tier}<br>R:${displayRating}<br>#${rankInfo.rank} / ${rankInfo.total}人`;
+        }
     }
 }
 
