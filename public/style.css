@@ -405,15 +405,74 @@ header {
     font-weight: bold;
     letter-spacing: 0.5px;
 }
-.player-rating.rank-bronze { color: #ac6b25; }
-.player-rating.rank-silver { color: #808080; }
-.player-rating.rank-gold { color: #ffd700; }
-.player-rating.rank-legend { color: #a855f7; }
-.player-rating.rank-bakata {
-    background: linear-gradient(90deg, #ff6b6b, #ffd700, #48dbfb, #a855f7);
+/* ===== RANK TEXT COLOR ===== */
+
+.player-rating.rank-bronze {
+    color: #ac6b25;
+}
+
+.player-rating.rank-silver {
+    color: #808080;
+}
+
+.player-rating.rank-gold {
+    color: #ffd700;
+}
+
+/* 上品な白銀グラデ */
+.player-rating.rank-platinum {
+    background: linear-gradient(90deg, #e5e7eb, #cbd5e1, #f8fafc);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* 分光＋キラキラアニメ */
+.player-rating.rank-diamond {
+    background: linear-gradient(
+        90deg,
+        #ffffff,
+        #bde0fe,
+        #cdb4db,
+        #a2d2ff,
+        #ffffff
+    );
+    background-size: 200% auto;
+    animation: diamondShine 3s linear infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.player-rating.rank-legend {
+    color: #a855f7;
+}
+
+.player-rating.rank-bakata {
+    background: linear-gradient(
+        90deg,
+        #ff6b6b,
+        #ffd700,
+        #48dbfb,
+        #a855f7
+    );
+    background-size: 200% auto;
+    animation: bakataShine 4s linear infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ===== ANIMATIONS ===== */
+
+@keyframes diamondShine {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+}
+
+@keyframes bakataShine {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
 }
 
 /* ロビー：名前+レート左側 + バッジ右側 */
@@ -442,6 +501,13 @@ header {
     border-radius: 5px; /* 角を丸くする */
     background-color: rgba(255, 255, 255, 0.4);
     gap: 10px; /* 各要素間のスペースを設定 */
+}
+
+.info-row-no-bg {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
 }
 
 .label {

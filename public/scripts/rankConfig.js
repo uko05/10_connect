@@ -4,8 +4,10 @@
 const BADGE_BASE_PATH = "public/scripts/badges/";
 
 export const RANK_TIERS = [
-    { min: 2000, name: "Bakata Legend", cssClass: "rank-bakata",  badge: "badge_bakata.png" },
-    { min: 1800, name: "Legend",        cssClass: "rank-legend",  badge: "badge_legend.png" },
+    { min: 2500, name: "Bakata Legend", cssClass: "rank-bakata",  badge: "badge_bakata.png" },
+    { min: 2200, name: "Legend",        cssClass: "rank-legend",  badge: "badge_legend.png" },
+    { min: 2000, name: "Diamond",       cssClass: "rank-diamond",  badge: "badge_diamond.png" },
+    { min: 1800, name: "Platinum",      cssClass: "rank-platinum",  badge: "badge_platinum.png" },
     { min: 1600, name: "Gold",          cssClass: "rank-gold",    badge: "badge_gold.png" },
     { min: 1400, name: "Silver",        cssClass: "rank-silver",  badge: "badge_silver.png" },
     { min:    0, name: "Bronze",        cssClass: "rank-bronze",  badge: "badge_bronze.png" },
