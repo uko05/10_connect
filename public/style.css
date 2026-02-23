@@ -407,8 +407,10 @@ header {
 }
 
 .player-rating-detail {
-    font-size: 14px;
-    margin: 1px 0;
+    font-size: 18px;
+    margin: 2px 0;
+    font-weight: bold;
+    letter-spacing: 0.5px;
 }
 /* ===== RANK TEXT COLOR ===== */
 
