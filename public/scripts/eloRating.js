@@ -106,7 +106,7 @@ export async function applyRatingDisplay(element, userData, badgeElement) {
     if (badgeElement) {
         badgeElement.src = getRankBadgePath(displayRating);
         badgeElement.alt = tier;
-        badgeElement.style.display = "";
+        badgeElement.style.display = "block";
     }
 
     // 順位を取得して追加表示
