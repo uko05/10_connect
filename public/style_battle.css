@@ -679,72 +679,30 @@ nav ul li:hover > a {
     color: #808080;
 }
 
-/* GOLD：金属グラ＋ハイライト（擬似要素で重ねる） */
-.player-rating.rank-gold {
-  position: relative;
+.player-rating.rank-gold{
   display: inline-block;
-  color: #C28C04; /* ベースの濃い金 */
-  text-shadow: 1px 1px 1px rgba(0,0,0,0.35);
-}
+  font-weight: 900;
 
-/* 擬似要素で同じ文字を重ねる（data-text を使う） */
-.player-rating.rank-gold::before,
-.player-rating.rank-gold::after {
-  content: attr(data-text);
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  white-space: pre; /* 改行含むなら維持 */
-}
+  /* 金属グラデ */
+  background: linear-gradient(
+    180deg,
+    #fff6b0 0%,
+    #ffd34d 22%,
+    #c78a06 55%,
+    #ffea87 78%,
+    #b77900 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 
-/* 明るい金の帯（縦方向の金属感） */
-.player-rating.rank-gold::before {
-  color: #F6DD05;
-  -webkit-mask-image: -webkit-linear-gradient(
-    top,
-    rgba(0,0,0,0),
-    rgba(0,0,0,1) 40%,
-    rgba(0,0,0,0.8) 60%,
-    rgba(0,0,0,0) 90%,
-    rgba(0,0,0,0)
-  );
-          mask-image: linear-gradient(
-    to bottom,
-    rgba(0,0,0,0),
-    rgba(0,0,0,1) 40%,
-    rgba(0,0,0,0.8) 60%,
-    rgba(0,0,0,0) 90%,
-    rgba(0,0,0,0)
-  );
-}
+  /* ✅ 視認性を上げる縁取り */
+  -webkit-text-stroke: 1px rgba(0,0,0,0.35);
 
-/* 白いキラッ（ハイライト筋） */
-.player-rating.rank-gold::after {
-  color: #fff;
-  opacity: 0.95;
-  -webkit-mask-image: -webkit-linear-gradient(
-    top,
-    rgba(0,0,0,0),
-    rgba(0,0,0,0) 30%,
-    rgba(0,0,0,0.2) 36%,
-    rgba(0,0,0,0.7) 40%,
-    rgba(0,0,0,0.6) 45%,
-    rgba(0,0,0,0.2) 50%,
-    rgba(0,0,0,0) 60%,
-    rgba(0,0,0,0)
-  );
-          mask-image: linear-gradient(
-    to bottom,
-    rgba(0,0,0,0),
-    rgba(0,0,0,0) 30%,
-    rgba(0,0,0,0.2) 36%,
-    rgba(0,0,0,0.7) 40%,
-    rgba(0,0,0,0.6) 45%,
-    rgba(0,0,0,0.2) 50%,
-    rgba(0,0,0,0) 60%,
-    rgba(0,0,0,0)
-  );
+  /* ✅ 影（透明文字でも効くように drop-shadow を併用） */
+  filter:
+    drop-shadow(1px 1px 0 rgba(0,0,0,0.35))
+    drop-shadow(0 2px 2px rgba(0,0,0,0.25));
 }
 
 /* 上品な白銀グラデ */
