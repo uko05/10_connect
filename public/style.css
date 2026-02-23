@@ -479,8 +479,7 @@ header {
 .lobby-player-info {
     display: flex;
     flex-wrap: nowrap;
-    align-items: stretch;   /* 子を縦いっぱいに */
-    min-height: 90px;       /* ← ここが重要（3行分） */
+    align-items: center;   /* ← stretchやめる */
 }
 
 .lobby-player-left {
@@ -489,7 +488,7 @@ header {
 }
 
 .rank-badge {
-    height: 100%;           /* 親の高さに合わせる */
+    height: 90px;          /* ← 3行分固定 */
     width: auto;
     object-fit: contain;
     flex-shrink: 0;
