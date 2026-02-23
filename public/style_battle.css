@@ -789,8 +789,8 @@ nav ul li:hover > a {
     font-weight: bold;
 }
 .chara-charge-short {
-    width: 50px;
-    min-width: 50px;
+    width: 40px;
+    min-width: 40px;
     text-align: center;
 }
 
@@ -843,7 +843,7 @@ nav ul li:hover > a {
 
 #version {
   position: fixed;
-  right: 16px;
+  right: calc(16.67% + 16px);
   bottom: 28px;
   font-size: 12px;
   color: #aaa;

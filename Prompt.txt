@@ -1,62 +1,27 @@
-rules_version = '2';
+PCとスマホの両方で対応お願いします。
+バトル画面の修正です。
 
-service cloud.firestore {
-  match /databases/{database}/documents {
+現在左右の情報パネルのプレイヤー情報エリアには、
 
-    // waitingPlayersコレクションに対するルール
-    match /waitingPlayers/{document=**} {
-      allow read, write: if request.auth != null;
-    }
+①名前
+②Silver　1500
+③＃1/3人
+④◇◇◇
 
-    // roomsコレクションに対するルール（Phase1最小防御）
-match /rooms/{roomId} {
-  allow read: if request.auth != null;
-  allow create: if request.auth != null;
+そしてランク名（Silver）とレート数（1500）の行と
+順位（＃1/3人）の2行の横に、ランクのバッジが表示されています。
 
-  // ratedは「触らない更新」or「false -> trueのみ」
-  allow update: if request.auth != null
-    && (
-      !("rated" in request.resource.data)
-      || (resource.data.rated == false && request.resource.data.rated == true)
-    );
+これだとBAKATA LEGENDやDIAMONDなどの文字数が長い表示だと②行目が変なところで改行が入ってしまいます。
+そのため、ランク名（Silver）とレート数（1500）を改行してください。
 
-  // 削除はP1のみ
-  allow delete: if request.auth != null
-    && resource.data.player1_ID == request.auth.uid;
-}
+①名前
+②Silver
+③R:1500
+④＃1/3人
+⑤◇◇◇
 
-    // usersコレクション（レーティング用）
-    match /users/{uid} {
-      allow read: if request.auth != null;
-      // 作成は自分のドキュメントのみ
-      allow create: if request.auth != null
-        && request.auth.uid == uid;
-      // 更新：auth必須 + フィールド制限 + 型制約 + rating下限100
-      // ※ P1が相手usersも更新するため uid == auth.uid 制限はPhase1では緩和
-      allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(
-          ['rating', 'matchCount', 'winCount', 'rankTier', 'lastMatchAt']
-        )
-        && request.resource.data.rating is int
-        && request.resource.data.rating >= 100
-        && request.resource.data.matchCount is int
-        && request.resource.data.winCount is int;
-    }
+※③のレート数の左には「R:」をつけて、「R:1500」みたいになるようにしてください。
+もちろんですが①～⑤の数字はわかりやすく書いただけなので画面には記載不要です。
 
-    // charaStats コレクション（キャラ統計用）
-    match /charaStats/{charaId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.data.keys().hasOnly(['pickCount', 'winCount'])
-        && request.resource.data.pickCount is int
-        && request.resource.data.winCount is int
-        && request.resource.data.pickCount >= 0
-        && request.resource.data.winCount >= 0;
-    }
+②③④の3行の右側を使ってランクのバッジを表示しましょう。
 
-    // デフォルトのルール（全てのドキュメントに対して全てのアクセスを拒否）
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
