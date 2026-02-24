@@ -139,6 +139,7 @@ let matchType = "ranked"; // "ranked" | "private"
 let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
 let isMatchFinalized = false; // BO3確定済みフラグ（二重発火防止）
 let myPreRating = null; // レート変動表示用：試合前の自分のレート
+let disconnectTimer = null; // 相手切断検知用の猶予タイマー
 
 let winningflg = 0;
 
@@ -2224,8 +2225,18 @@ async function updateTimeLimit() {
         clearInterval(timeLimitTimer); // タイマーを停止
         timeLimitTimer = null;
         
-         // ★ターン側じゃないなら、ここで終わる（勝手にリセットしない）
+         // ★ターン側じゃない場合：相手のターンでタイムアウト
+         // → 5秒の猶予後にFirestore更新がなければ相手切断とみなす
          if (!isTurnPlayer()) {
+           timeLimitGauge.style.width = "0%";
+           console.log("[Timeout] 相手ターンでタイムアウト。5秒の猶予タイマー開始");
+           disconnectTimer = setTimeout(async () => {
+               if (isMatchFinalized) return;
+               isMatchFinalized = true;
+               console.log("[Timeout] 猶予タイマー満了。相手切断として処理");
+               await handleBO3Final(playerLeft_Color, "timeout");
+               displayVictory(playerLeft_Color);
+           }, 5000);
            return;
          }
 
@@ -2256,6 +2267,13 @@ async function updateTimeLimit() {
 
 // タイムリミットのリセット処理
 function resetTimeLimit() {
+
+    // 相手切断検知用の猶予タイマーがあればキャンセル
+    if (disconnectTimer) {
+        clearTimeout(disconnectTimer);
+        disconnectTimer = null;
+        console.log("[resetTimeLimit] 猶予タイマーをキャンセル");
+    }
 
     // 既存のタイマーがあれば停止
     if (timeLimitTimer !== null) {
