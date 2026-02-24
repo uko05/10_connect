@@ -138,6 +138,7 @@ let changeStone = 0;
 let matchType = "ranked"; // "ranked" | "private"
 let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
 let isMatchFinalized = false; // BO3確定済みフラグ（二重発火防止）
+let myPreRating = null; // レート変動表示用：試合前の自分のレート
 
 let winningflg = 0;
 
@@ -404,6 +405,8 @@ async function displayThumbnails() {
             getUserRating(playerLeft_ID),
             getUserRating(playerRight_ID)
         ]);
+        // 自分の事前レートを保存（レート変動表示用）
+        myPreRating = leftRating?.rating ?? null;
         await Promise.all([
             applyRatingDisplay(document.getElementById('playerRating_1'), leftRating, document.getElementById('rankBadge_1'), document.getElementById('playerRankName_1')),
             applyRatingDisplay(document.getElementById('playerRating_2'), rightRating, document.getElementById('rankBadge_2'), document.getElementById('playerRankName_2'))
@@ -2446,40 +2449,110 @@ function displayVictory(winningColor) {
     const victoryModal = document.getElementById("victoryModal");
     const victoryImage = document.getElementById("victoryImage");
     const victoryMessage = document.getElementById("victoryMessage");
+    const ratingChangeEl = document.getElementById("ratingChange");
 
     // 勝利キャラ画像とメッセージを設定
     if (winningColor === "red") {
-        victoryImage.src = playerLeft_Color === 'red' ? playerLeft_Image : playerRight_Image; // 赤プレイヤーのキャラ画像
+        victoryImage.src = playerLeft_Color === 'red' ? playerLeft_Image : playerRight_Image;
         victoryMessage.textContent = `${playerLeft_Color === 'red' ? playerLeft_Name : playerRight_Name} WIN!!`;
     } else if (winningColor === "yellow") {
-        victoryImage.src = playerLeft_Color === 'yellow' ? playerLeft_Image : playerRight_Image; // 黄プレイヤーのキャラ画像
+        victoryImage.src = playerLeft_Color === 'yellow' ? playerLeft_Image : playerRight_Image;
         victoryMessage.textContent = `${playerLeft_Color === 'yellow' ? playerLeft_Name : playerRight_Name} WIN!!`;
     }
 
     // モーダルを表示
     victoryModal.style.display = "block";
 
-    // 5秒後にキャラ選択画面に戻る
+    // rankedマッチの場合のみレート変動を表示
+    if (matchType === "ranked" && myPreRating !== null) {
+        ratingChangeEl.textContent = "レート計算中...";
+        fetchAndAnimateRating(ratingChangeEl);
+    } else {
+        ratingChangeEl.style.display = "none";
+    }
+
+    // 8秒後にキャラ選択画面に戻る（レートアニメーション分を考慮）
     setTimeout(() => {
-        window.location.href = "index.html"; // キャラ選択画面へのURL
-    }, 5000);
+        window.location.href = "index.html";
+    }, 8000);
+}
+
+// レート変動を取得してアニメーション表示
+async function fetchAndAnimateRating(element, retryCount = 0) {
+    const MAX_RETRY = 5;
+    const RETRY_DELAY = 1500;
+
+    try {
+        const updatedData = await getUserRating(playerLeft_ID);
+        const newRating = updatedData?.rating ?? myPreRating;
+
+        // トランザクション未完了の場合リトライ
+        if (newRating === myPreRating && retryCount < MAX_RETRY) {
+            console.log(`[Rating] レート未更新、リトライ ${retryCount + 1}/${MAX_RETRY}`);
+            setTimeout(() => fetchAndAnimateRating(element, retryCount + 1), RETRY_DELAY);
+            return;
+        }
+
+        animateRatingChange(element, myPreRating, newRating, 2000);
+    } catch (e) {
+        console.warn("[Rating] レート変動取得失敗:", e);
+        element.textContent = "";
+    }
+}
+
+// カウントアップ/ダウンアニメーション
+function animateRatingChange(element, fromRating, toRating, duration) {
+    const diff = toRating - fromRating;
+    const isUp = diff >= 0;
+
+    element.className = isUp ? "rating-up" : "rating-down";
+
+    const startTime = performance.now();
+
+    function tick(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // easeOut で最後に減速
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(fromRating + diff * eased);
+
+        if (progress < 1) {
+            element.textContent = `R: ${current}`;
+            requestAnimationFrame(tick);
+        } else {
+            // 完了時: 差分も表示
+            const sign = diff >= 0 ? "+" : "";
+            element.textContent = `R: ${toRating} (${sign}${diff})`;
+        }
+    }
+
+    requestAnimationFrame(tick);
 }
 
 function displayLeaveMessage() {
     const victoryModal = document.getElementById("victoryModal");
     const victoryImage = document.getElementById("victoryImage");
     const victoryMessage = document.getElementById("victoryMessage");
+    const ratingChangeEl = document.getElementById("ratingChange");
 
-    victoryImage.src = playerLeft_Image; // 赤プレイヤーのキャラ画像
-    victoryMessage.innerHTML = "相手が部屋を抜けたので、あなたの勝利です！<br>キャラクター選択画面に戻ります。"; // <br>で改行
+    victoryImage.src = playerLeft_Image;
+    victoryMessage.innerHTML = "相手が部屋を抜けたので、あなたの勝利です！<br>キャラクター選択画面に戻ります。";
 
     // モーダルを表示
     victoryModal.style.display = "block";
 
-    // 5秒後にキャラ選択画面に戻る
+    // rankedマッチの場合のみレート変動を表示
+    if (matchType === "ranked" && myPreRating !== null) {
+        ratingChangeEl.textContent = "レート計算中...";
+        fetchAndAnimateRating(ratingChangeEl);
+    } else {
+        ratingChangeEl.style.display = "none";
+    }
+
+    // 8秒後にキャラ選択画面に戻る
     setTimeout(() => {
-        window.location.href = "index.html"; // キャラ選択画面へのURL
-    }, 6000);
+        window.location.href = "index.html";
+    }, 8000);
 }
 
 function updateWinLabels(player1Wins, player2Wins) {

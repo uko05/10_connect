@@ -867,6 +867,19 @@ nav ul li:hover > a {
     margin-top: 15px; /* 上部にマージンを追加 */
 }
 
+/* レート変動表示 */
+#ratingChange {
+    font-size: 24px;
+    font-weight: bold;
+    min-height: 30px;
+}
+#ratingChange.rating-up {
+    color: #00ff88;
+}
+#ratingChange.rating-down {
+    color: #ff4444;
+}
+
 #playerName_1 #playerName_2 {
     height: 30px; /* 高さ */
     font-size: 28px;
