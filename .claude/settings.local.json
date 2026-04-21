@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:uko05.github.io)",
+      "Bash(curl -s \"https://uko05.github.io/TopPage00/shared/sidebar.js\")"
+    ]
+  }
+}

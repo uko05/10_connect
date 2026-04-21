@@ -20,46 +20,6 @@
     <link rel="icon" sizes="512x512" href="public/scripts/favicon_io/android-chrome-512x512.png">
 </head>
 <body>
-     <!-- ----------------------------左ペイン------------------------------------------- -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <a href="https://uko05.github.io/TopPage00/" class="sidebar-title">うーこの部屋</a> <!-- リンクを追加 -->
-            <button id="toggle-button" aria-expanded="true" aria-label="メニューを閉じる">☰</button>
-        </div>
-        <nav id="nav-links">
-            <ul>
-                <li>
-                    <a href="#" class="parent-node">▼ ゲーム</a> <!-- デフォルトで表示 -->
-                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
-                        <li><a href="https://uko05.github.io/TiersList01/">　コネクトフォー</a></li>
-                    </ul>
-                </li>
-                
-                <li>
-                    <a href="#" class="parent-node">▼ 推しキャラランキング</a> <!-- デフォルトで表示 -->
-                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
-                        <li><a href="https://uko05.github.io/TiersList01/">　原神</a></li>
-                        <li><a href="https://uko05.github.io/TiersList02/">　スタレ【運命】</a></li>
-                        <li><a href="https://uko05.github.io/TiersList03/">　スタレ【属性】</a></li>
-                    </ul>
-                </li>
-                
-                <li>
-                    <a href="#" class="parent-node">▼ フリーフォーマット</a> <!-- デフォルトで表示 -->
-                    <ul class="child-nodes active"> <!-- デフォルトで表示 -->
-                        <li><a href="https://uko05.github.io/genshinFormat04/">　原神</a></li>
-                        <li><a href="https://uko05.github.io/genshinFormat04/">　スタレ（未定）</a></li>
-                    </ul>
-                </li>
-                
-            </ul>
-        </nav>
-    </div>
-     <!-- ----------------------------左ペイン------------------------------------------- -->
-
-    <!-- サイドバーオーバーレイ（スマホ用） -->
-    <div id="sidebar-overlay"></div>
-
      <!-- ヘルプボタン -->
     <button id="helpButton" class="help-btn">
       <img src="public/font/rulebutton.png" alt="ヘルプ">
@@ -259,5 +219,6 @@
 
     <div id="version"></div>
 
+    <script src="https://uko05.github.io/TopPage00/shared/sidebar.js"></script>
 </body>
 </html>

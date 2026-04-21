@@ -43,53 +43,8 @@ import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfte
 document.getElementById('version').textContent = APP_VERSION;
 
 //------------------------------------------------------------------------------------------------
-const toggleButton = document.getElementById('toggle-button');
-const sidebar = document.getElementById('sidebar');
-const parentNode = document.querySelector('.parent-node');
-const childNodes = document.querySelector('.child-nodes');
 const topCanvas = document.getElementById("connect4Canvas_top");
 const canvas = document.getElementById('connect4Canvas');
-
-// 初期状態でサイドバーを隠す
-sidebar.classList.add('hidden');
-toggleButton.setAttribute('aria-expanded', false);
-toggleButton.setAttribute('aria-label', 'メニューを開く');
-
-const sidebarOverlay = document.getElementById('sidebar-overlay');
-
-toggleButton.addEventListener('click', () => {
-    const isMobile = window.matchMedia('(max-width: 1024px)').matches;
-    if (isMobile) {
-        // スマホ: mobile-openクラスで制御
-        const isOpen = sidebar.classList.toggle('mobile-open');
-        if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpen);
-        toggleButton.setAttribute('aria-expanded', isOpen);
-        toggleButton.setAttribute('aria-label', isOpen ? 'メニューを閉じる' : 'メニューを開く');
-    } else {
-        // PC: 従来のhiddenクラスで制御
-        sidebar.classList.toggle('hidden');
-        const isExpanded = !sidebar.classList.contains('hidden');
-        toggleButton.setAttribute('aria-expanded', isExpanded);
-        toggleButton.setAttribute('aria-label', isExpanded ? 'メニューを閉じる' : 'メニューを開く');
-    }
-});
-
-// オーバーレイタップでサイドバーを閉じる
-if (sidebarOverlay) {
-    sidebarOverlay.addEventListener('click', () => {
-        sidebar.classList.remove('mobile-open');
-        sidebarOverlay.classList.remove('active');
-        toggleButton.setAttribute('aria-expanded', false);
-        toggleButton.setAttribute('aria-label', 'メニューを開く');
-    });
-}
-
-parentNode.addEventListener('click', (event) => {
-    event.preventDefault(); // デフォルトのリンク動作を防止
-    childNodes.classList.toggle('active'); // 子ノードの表示・非表示を切り替え
-    const isActive = childNodes.classList.contains('active');
-    parentNode.textContent = `${isActive ? '▼' : '▶'} 推しキャラランキング`; // テキストを更新
-});
 
 let isInitialLoad = true; // 初期ロードかどうかを管理するフラグ
 
