@@ -104,11 +104,11 @@ export async function applyRatingDisplay(element, userData, badgeElement, rankNa
         rankNameElement.textContent = tier;
         rankNameElement.className = `player-rating ${cssClass}`;
         // element にはレート数のみ
-        element.innerHTML = `R:${displayRating}`;
+        element.innerHTML = `Rate: ${displayRating}`;
         element.className = `player-rating-detail`;
     } else {
         // ロビー画面用（従来通り1要素にまとめる）
-        element.innerHTML = `${tier}<br>R:${displayRating}`;
+        element.innerHTML = `${tier}<br>Rate: ${displayRating}`;
         element.className = `player-rating ${cssClass}`;
     }
 
@@ -119,13 +119,13 @@ export async function applyRatingDisplay(element, userData, badgeElement, rankNa
         badgeElement.style.display = "block";
     }
 
-    // 順位を取得して追加表示
+    // 順位を取得して追加表示（全体人数は表示しない）
     const rankInfo = await getUserRank(displayRating);
     if (rankInfo) {
         if (rankNameElement) {
-            element.innerHTML = `R:${displayRating}<br>#${rankInfo.rank} / ${rankInfo.total}人`;
+            element.innerHTML = `Rate: ${displayRating}<br>Ranking #${rankInfo.rank}`;
         } else {
-            element.innerHTML = `${tier}<br>R:${displayRating}<br>#${rankInfo.rank} / ${rankInfo.total}人`;
+            element.innerHTML = `${tier}<br>Rate: ${displayRating}<br>Ranking #${rankInfo.rank}`;
         }
     }
 }
@@ -206,10 +206,10 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
 
             const winner = winnerSnap.exists()
                 ? winnerSnap.data()
-                : { rating: INITIAL_RATING, matchCount: 0, winCount: 0 };
+                : { rating: INITIAL_RATING, matchCount: 0, winCount: 0, charaWins: {} };
             const loser = loserSnap.exists()
                 ? loserSnap.data()
-                : { rating: INITIAL_RATING, matchCount: 0, winCount: 0 };
+                : { rating: INITIAL_RATING, matchCount: 0, winCount: 0, charaWins: {} };
             console.log("[Rating] 現在のレート:", { winner: winner.rating, loser: loser.rating });
 
             // ── 4. charaStats読み取り（getはwriteの前に全部行う）──
@@ -248,11 +248,19 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
             winnerNewRating = Math.max(RATING_FLOOR, winnerNewRating);
             loserNewRating = Math.max(RATING_FLOOR, loserNewRating);
 
+            // ── 7.5. キャラ別個人勝利数（勝者のみ加算）──
+            const winnerCharaWins = winner.charaWins || {};
+            const updatedCharaWins = {
+                ...winnerCharaWins,
+                [winnerCharaId]: (winnerCharaWins[winnerCharaId] || 0) + 1
+            };
+
             // ── 8. users書き込み ──
             transaction.set(winnerRef, {
                 rating: winnerNewRating,
                 matchCount: winner.matchCount + 1,
                 winCount: winner.winCount + 1,
+                charaWins: updatedCharaWins,
                 lastMatchAt: serverTimestamp()
             }, { merge: true });
 

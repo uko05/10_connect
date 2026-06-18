@@ -56,6 +56,9 @@ let voicevolumeSlider = null;
 let charaSoundUrl = null;
 let charaSound = null;
 
+// キャラ別個人勝利数（users/{uid}.charaWins）。ログイン後に取得して反映する
+let myCharaWins = {};
+
 //------------------------------------------------------------------------------------------------
 //要素取得
 const modal = document.getElementById("helpModal");
@@ -86,6 +89,10 @@ function displayThumbnails() {
     //addEventListenerでクリックイベントを設定する
     //イベント内で実際に画面に表示する関数を実行する
     characterData.forEach((character, index) => {
+        //サムネイル画像と勝利数バッジをまとめるラッパー
+        const wrapper = document.createElement('div');
+        wrapper.className = 'thumbnail-wrapper';
+
         const img = document.createElement('img');
         img.src = character.src; //画像のソース
         img.alt = character.name; //代替テキスト
@@ -109,7 +116,7 @@ function displayThumbnails() {
             //現在のキャラクターを選択
             img.classList.add('selected');
             selectedCharacter = img; //選択中のキャラクターを更新
-            
+
             //キャラクター情報を表示
             displayCharacterInfo(character); //キャラクター情報を表示
 
@@ -119,7 +126,15 @@ function displayThumbnails() {
             charaSound.volume = 0.2;
             charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
         });
-        container.appendChild(img); //コンテナに画像を追加
+
+        //キャラ別勝利数バッジ（右下）
+        const winBadge = document.createElement('span');
+        winBadge.className = 'chara-win-badge';
+        winBadge.textContent = `勝利数：${myCharaWins[character.charaID] || 0}`;
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(winBadge);
+        container.appendChild(wrapper); //コンテナにラッパーを追加
     });
 }
 
@@ -148,6 +163,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const badgeEl = document.getElementById('lobbyRankBadge');
         const rankNameEl = document.getElementById('lobbyRankName');
         applyRatingDisplay(ratingEl, myRating, badgeEl, rankNameEl);
+
+        // キャラ別個人勝利数（サムネイルのバッジ表示用）
+        myCharaWins = myRating?.charaWins || {};
     } catch (error) {
         console.error("[main] Auth initialization failed:", error);
     }

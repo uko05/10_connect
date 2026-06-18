@@ -239,6 +239,27 @@ header {
     margin: 5px; /* 画像同士の間隔を広げるためのマージンを追加 */
 }
 
+/* サムネイルと勝利数バッジをまとめるラッパー */
+.thumbnail-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* キャラ別個人勝利数バッジ（サムネイル右下） */
+.chara-win-badge {
+    position: absolute;
+    bottom: 9px;
+    right: 9px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 8px;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
 .thumbnail:hover {
     /* ここではアニメーションを無効にします */
     box-shadow: none;  /* アニメーションの影を無効化 */

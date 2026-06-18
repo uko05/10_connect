@@ -109,8 +109,10 @@ service cloud.firestore {
 
       // 更新：フィールド制限 + 型制約 + 1回の更新あたりの変化量をK値(最大48)×離脱ペナルティ(1.5倍)以内に制限
       // ※ P1がTransaction内で相手(P2)のdocも更新するため uid == auth.uid には制限していない（Phase2でも継続）
+      // ※ charaWins（キャラ別個人勝利数）はランキング・レートに影響しない表示用の統計のため、
+      //    mapであることのみ確認し、キーごとの厳密な変化量チェックは行わない（コストに見合わない）
       allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt'])
+        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'charaWins'])
         && request.resource.data.rating is int
         && request.resource.data.rating >= 100
         && request.resource.data.rating <= resource.data.rating + 48
@@ -119,7 +121,8 @@ service cloud.firestore {
         && request.resource.data.matchCount == resource.data.matchCount + 1
         && request.resource.data.winCount is int
         && request.resource.data.winCount >= resource.data.winCount
-        && request.resource.data.winCount <= resource.data.winCount + 1;
+        && request.resource.data.winCount <= resource.data.winCount + 1
+        && (!("charaWins" in request.resource.data) || request.resource.data.charaWins is map);
     }
 
     // charaStats コレクション（キャラ統計用）
