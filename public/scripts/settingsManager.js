@@ -15,9 +15,18 @@ export const ULT_INTENSITY_LEVELS = [
     { id: "off", label: "なし" },
 ];
 
+// ソロモード(CPU対戦)の難易度。depthはミニマックス探索の先読み手数
+export const CPU_DIFFICULTY_LEVELS = [
+    { id: "easy", label: "EASY", depth: 1 },
+    { id: "normal", label: "NORMAL", depth: 3 },
+    { id: "hard", label: "HARD", depth: 6 },
+    { id: "bakatare", label: "BAKATARE", depth: 10 },
+];
+
 const DEFAULT_SETTINGS = {
     stoneColorPreset: "classic",
     ultIntensity: "strong",
+    cpuDifficulty: "normal",
 };
 
 function loadSettings() {
@@ -56,6 +65,22 @@ export function setUltIntensity(level) {
     if (!ULT_INTENSITY_LEVELS.some(l => l.id === level)) return;
     currentSettings.ultIntensity = level;
     persist();
+}
+
+export function setCpuDifficulty(difficultyId) {
+    if (!CPU_DIFFICULTY_LEVELS.some(d => d.id === difficultyId)) return;
+    currentSettings.cpuDifficulty = difficultyId;
+    persist();
+}
+
+export function getCpuDifficulty() {
+    return currentSettings.cpuDifficulty;
+}
+
+// 現在の難易度設定に対応するミニマックス探索の深さを返す
+export function getCpuSearchDepth() {
+    const level = CPU_DIFFICULTY_LEVELS.find(d => d.id === currentSettings.cpuDifficulty);
+    return (level || CPU_DIFFICULTY_LEVELS[1]).depth;
 }
 
 function getActivePreset() {
@@ -102,6 +127,15 @@ export function bindSettingsUI(root, onColorChange) {
         radio.checked = radio.value === currentSettings.ultIntensity;
         radio.addEventListener("change", () => {
             if (radio.checked) setUltIntensity(radio.value);
+        });
+    });
+
+    // CPU難易度（ソロモードのみで使用するセクションが存在する場合のみ）
+    const difficultyRadios = root.querySelectorAll('input[name="cpuDifficulty"]');
+    difficultyRadios.forEach(radio => {
+        radio.checked = radio.value === currentSettings.cpuDifficulty;
+        radio.addEventListener("change", () => {
+            if (radio.checked) setCpuDifficulty(radio.value);
         });
     });
 }

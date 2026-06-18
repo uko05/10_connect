@@ -109,20 +109,22 @@ service cloud.firestore {
 
       // 更新：フィールド制限 + 型制約 + 1回の更新あたりの変化量をK値(最大48)×離脱ペナルティ(1.5倍)以内に制限
       // ※ P1がTransaction内で相手(P2)のdocも更新するため uid == auth.uid には制限していない（Phase2でも継続）
-      // ※ charaWins（キャラ別個人勝利数）はランキング・レートに影響しない表示用の統計のため、
-      //    mapであることのみ確認し、キーごとの厳密な変化量チェックは行わない（コストに見合わない）
+      // ※ charaWins（キャラ別個人勝利数）・playerNameはランキング・レートに影響しない表示用の項目のため、
+      //    型(map/string)と簡易な制約のみ確認し、厳密な変化量チェックは行わない（コストに見合わない）
+      // ※ matchCountはレート更新を伴わない単独更新（プレイヤー名保存等）もあるため、不変 or +1 を許可
       allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'charaWins'])
+        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'charaWins', 'playerName'])
         && request.resource.data.rating is int
         && request.resource.data.rating >= 100
         && request.resource.data.rating <= resource.data.rating + 48
         && request.resource.data.rating >= resource.data.rating - 72
         && request.resource.data.matchCount is int
-        && request.resource.data.matchCount == resource.data.matchCount + 1
+        && (request.resource.data.matchCount == resource.data.matchCount || request.resource.data.matchCount == resource.data.matchCount + 1)
         && request.resource.data.winCount is int
         && request.resource.data.winCount >= resource.data.winCount
         && request.resource.data.winCount <= resource.data.winCount + 1
-        && (!("charaWins" in request.resource.data) || request.resource.data.charaWins is map);
+        && (!("charaWins" in request.resource.data) || request.resource.data.charaWins is map)
+        && (!("playerName" in request.resource.data) || (request.resource.data.playerName is string && request.resource.data.playerName.size() <= 20));
     }
 
     // charaStats コレクション（キャラ統計用）

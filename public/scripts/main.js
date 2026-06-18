@@ -18,7 +18,7 @@ import {
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
-import { ensureUserDoc, getUserRating, applyRatingDisplay } from './eloRating.js';
+import { ensureUserDoc, getUserRating, applyRatingDisplay, savePlayerName } from './eloRating.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
@@ -27,6 +27,12 @@ bindSettingsUI(document.getElementById('settingsModal'));
 
 // ソロモード（CPU対戦）への遷移。マッチング不要・Firestoreを使わない別画面
 document.getElementById('soloModeButton').addEventListener('click', () => {
+    const charaID = document.getElementById('charaID').value;
+    if (charaID.trim() === "") {
+        document.getElementById('statusMessage').innerText = "キャラクターを選択してください。";
+        return;
+    }
+    sessionStorage.setItem('soloPlayerCharaID', charaID);
     window.location.href = 'solo.html';
 });
 
@@ -63,6 +69,9 @@ let charaSound = null;
 
 // キャラ別個人勝利数（users/{uid}.charaWins）。ログイン後に取得して反映する
 let myCharaWins = {};
+
+// プレイヤー名保存用に、認証済みUIDを保持する
+let currentUid = null;
 
 //------------------------------------------------------------------------------------------------
 //要素取得
@@ -159,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Anonymous Auth 完了を待機し、usersドキュメントを初期化
     try {
         const user = await authReady;
+        currentUid = user.uid;
         await ensureUserDoc(user.uid);
         console.log("[main] Auth ready, uid:", user.uid);
 
@@ -171,6 +181,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // キャラ別個人勝利数（サムネイルのバッジ表示用）
         myCharaWins = myRating?.charaWins || {};
+
+        // 前回保存したプレイヤー名があれば自動入力
+        const playerNameInput = document.getElementById('playerName');
+        if (playerNameInput && !playerNameInput.value && myRating?.playerName) {
+            playerNameInput.value = myRating.playerName;
+        }
+        // 入力欄からフォーカスが外れたタイミングで保存（次回以降の自動入力用）
+        if (playerNameInput) {
+            playerNameInput.addEventListener('blur', () => {
+                if (currentUid) savePlayerName(currentUid, playerNameInput.value);
+            });
+        }
     } catch (error) {
         console.error("[main] Auth initialization failed:", error);
     }

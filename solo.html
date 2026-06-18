@@ -64,6 +64,16 @@
         </div>
 
         <div class="settings-section">
+          <h3>CPU難易度</h3>
+          <div class="intensity-radio-group" id="cpuDifficultyGroup">
+            <label><input type="radio" name="cpuDifficulty" value="easy"> EASY</label>
+            <label><input type="radio" name="cpuDifficulty" value="normal"> NORMAL</label>
+            <label><input type="radio" name="cpuDifficulty" value="hard"> HARD</label>
+            <label><input type="radio" name="cpuDifficulty" value="bakatare"> BAKATARE</label>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3>音量</h3>
           <div class="settings-volume-row">
             <label for="systemvolumeSlider">システム音量: </label>
@@ -73,10 +83,61 @@
       </div>
     </div>
 
+    <div id="leftPane">
+        <div class="player-info">
+            <p id="playerName_1">あなた</p>
+            <p id="player1_win">◇◇◇</p>
+        </div>
+        <div id="playerInfo">
+            <div id="characterInfo">
+                <div id="chargeGageInfo_1">
+                    <div class="thumbnail-container" id="thumbnailContainerP1"></div>
+                    <div class="gauge-container">
+                        <div class="gauge" id="playerGauge1"></div>
+                        <div class="gauge-marks">
+                            <div class="mark" style="bottom: 12.5%;"></div>
+                            <div class="mark" style="bottom: 25%;"></div>
+                            <div class="mark" style="bottom: 37.5%;"></div>
+                            <div class="mark" style="bottom: 50%;"></div>
+                            <div class="mark" style="bottom: 62.5%;"></div>
+                            <div class="mark" style="bottom: 75%;"></div>
+                            <div class="mark" style="bottom: 87.5%;"></div>
+                        </div>
+                    </div>
+                    <div id="chargeGage_1">
+                        <p id="chargeGageMax_1">200</p>
+                        <p id="chargeGageNow_1">0</p>
+                        <p>0</p>
+                    </div>
+                </div>
+                <div id="characterInfoContainer">
+                    <div class="info-item-yoko">
+                        <div class="label chara-label-short">キャラ</div>
+                        <div id="charaID_1" class="value-yoko chara-name-short"></div>
+                        <div id="charge_1" class="value-yoko chara-charge-short"></div>
+                    </div>
+                    <div class="info-item-tate">
+                        <div class="label label-even">必殺技</div>
+                        <div id="Ability_1" class="value-tate abilityName"></div>
+                        <div id="AbilityDetail_1" class="value-tate abilityDetail"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="centerPanel">
         <div class="board">
 
             <div id="soloModeLabel">ソロモード(CPU対戦)</div>
+
+            <div id="specialMoveButtonContainer" style="display: none; text-align: center;">
+                <button id="specialMoveButton" class="special-move-button">必殺技発動</button>
+            </div>
+
+            <div id="cutin-container">
+                <img id="cutin-image" src="">
+            </div>
 
             <div id="turnLabel" class="turn-label"></div>
             <div id="winLabel" class="win-label"></div>
@@ -93,6 +154,49 @@
 
             <div id="legal-footer">
           © miHoYo / HoYoverse. All rights reserved. Other properties belong to their respective owners.
+            </div>
+        </div>
+    </div>
+
+    <div id="rightPane">
+        <div class="player-info">
+            <p id="playerName_2">CPU</p>
+            <p id="player2_win">◇◇◇</p>
+        </div>
+        <div id="playerInfo">
+            <div id="characterInfo">
+                <div id="chargeGageInfo_2">
+                    <div id="chargeGage_2">
+                        <p id="chargeGageMax_2">200</p>
+                        <p id="chargeGageNow_2">0</p>
+                        <p>0</p>
+                    </div>
+                    <div class="gauge-container">
+                        <div class="gauge" id="playerGauge2"></div>
+                        <div class="gauge-marks">
+                            <div class="mark" style="bottom: 12.5%;"></div>
+                            <div class="mark" style="bottom: 25%;"></div>
+                            <div class="mark" style="bottom: 37.5%;"></div>
+                            <div class="mark" style="bottom: 50%;"></div>
+                            <div class="mark" style="bottom: 62.5%;"></div>
+                            <div class="mark" style="bottom: 75%;"></div>
+                            <div class="mark" style="bottom: 87.5%;"></div>
+                        </div>
+                    </div>
+                    <div class="thumbnail-container" id="thumbnailContainerP2"></div>
+                </div>
+                <div id="characterInfoContainer">
+                    <div class="info-item-yoko">
+                        <div class="label chara-label-short">キャラ</div>
+                        <div id="charaID_2" class="value-yoko chara-name-short"></div>
+                        <div id="charge_2" class="value-yoko chara-charge-short"></div>
+                    </div>
+                    <div class="info-item-tate">
+                        <div class="label label-even">必殺技</div>
+                        <div id="Ability_2" class="value-tate abilityName"></div>
+                        <div id="AbilityDetail_2" class="value-tate abilityDetail"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

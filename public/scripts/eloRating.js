@@ -61,6 +61,20 @@ export async function getUserRating(uid) {
 }
 
 // ────────────────────────────
+// プレイヤー名を保存（次回以降の自動入力用）
+// ────────────────────────────
+export async function savePlayerName(uid, playerName) {
+    const trimmed = (playerName || "").trim().slice(0, 20); // 念のため長さを制限
+    if (!trimmed) return;
+    try {
+        const userRef = doc(db, "users", uid);
+        await updateDoc(userRef, { playerName: trimmed });
+    } catch (e) {
+        console.warn("[Rating] プレイヤー名の保存に失敗:", e);
+    }
+}
+
+// ────────────────────────────
 // ランキング取得（自分より上の人数 + 1 = 順位）
 // ────────────────────────────
 export async function getUserRank(rating) {
