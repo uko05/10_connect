@@ -454,8 +454,10 @@ async function useAbility(side) {
         await showCutIn(chara);
         await executeAbility(side, chara.charaID);
     } finally {
-        updateGaugeUI();
+        // ★abilityInProgressをfalseにしてから再描画する（updateGaugeUI内のボタン表示/盤面操作可否判定が
+        //   正しい最終状態を見られるようにするため。順序を間違えると必殺技後に盤面が操作不能のまま固まる）
         abilityInProgress = false;
+        updateGaugeUI();
     }
 }
 
@@ -642,12 +644,24 @@ function updateGaugeUI() {
     updateSpecialMoveButtonVisibility();
 }
 
+// 連打対策：「今、盤面をクリックしてよい状態か」を一箇所で管理する。
+// JS変数のロック（playerMoveInProgress等）だけでは、ロック中に発生したクリックイベント自体は
+// ブラウザにキューイングされてしまい、ロック解除後（次のターン・次のラウンド）に
+// 古いクリックが連続消化されて「気付いたら3連勝していた」という事態が起きる。
+// pointer-events:none にしてクリックイベントの発生自体を止めることで、これを防ぐ。
+function setBoardInteractive(enabled) {
+    canvas.style.pointerEvents = enabled ? 'auto' : 'none';
+    topCanvas.style.pointerEvents = enabled ? 'auto' : 'none';
+}
+
 function updateSpecialMoveButtonVisibility() {
-    const show = turn === 'player' && !gameOver && !abilityInProgress && abilityAvailable('player');
+    const myTurnReady = turn === 'player' && !gameOver && !abilityInProgress && !playerMoveInProgress;
+    const show = myTurnReady && abilityAvailable('player');
     // ★ボタンはabsolute配置でtopCanvasの上に重ねるだけにする。
     //   topCanvas自体をdisplay:noneにすると、boardWrap(flex)の高さがその分縮んで
     //   再センタリングが起こり、盤面がずれてしまうため、表示状態は変更しない。
     document.getElementById('specialMoveButtonContainer').style.display = show ? 'block' : 'none';
+    setBoardInteractive(myTurnReady);
 }
 
 //------------------------------------------------------------------------------------------------
@@ -809,6 +823,7 @@ async function handlePlayerDrop(column) {
     if (getDropRow(column) < 0) return; // 満杯の列は無視
 
     playerMoveInProgress = true;
+    setBoardInteractive(false); // ロックと同時に盤面のクリックイベント自体を止める（キューイング防止）
     try {
         if (highlightedColumn) {
             highlightedColumn.remove();
@@ -826,7 +841,11 @@ async function handlePlayerDrop(column) {
         if (await checkGameEnd()) return;
         await cpuTurn();
     } finally {
+        // ★ロック解除後に必ず再評価する。checkGameEnd→startNextRound等の内部でも
+        //   updateGaugeUIは呼ばれているが、その時点ではまだplayerMoveInProgress=trueのため
+        //   盤面が無効化されたまま残ってしまう。ここで最終状態を反映させて復帰させる。
         playerMoveInProgress = false;
+        updateSpecialMoveButtonVisibility();
     }
 }
 
@@ -939,6 +958,7 @@ async function resetGame() {
     playerRoundWins = 0;
     cpuRoundWins = 0;
     abilityInProgress = false;
+    playerMoveInProgress = false;
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
 
     cpuChara = pickCpuCharacter();

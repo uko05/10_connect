@@ -975,8 +975,12 @@ function handleTouchTap(event) {
         if (dropInProgress) return;
         pendingDropCol = -1;
         dropInProgress = true;
+        canvas.style.pointerEvents = 'none';
+        topCanvas.style.pointerEvents = 'none';
         dropStone(col).finally(() => {
             dropInProgress = false;
+            canvas.style.pointerEvents = 'auto';
+            topCanvas.style.pointerEvents = 'auto';
         });
     } else {
         // 1回目タップ（or 別列タップ）：ハイライト更新のみ
@@ -1425,8 +1429,13 @@ function handleStoneDrop(event) {
     // ターンプレイヤーか確認 + 連打ロック（チェックとロックは同期的に行うことで多重実行を防ぐ）
     if (!isTurnPlayer() || dropInProgress) return;
     dropInProgress = true;
+    // ロックと同時にクリックイベント自体を止める（キューイングされた連打が後で消化されるのを防ぐ）
+    canvas.style.pointerEvents = 'none';
+    topCanvas.style.pointerEvents = 'none';
     dropStone(nowCol).finally(() => {
         dropInProgress = false;
+        canvas.style.pointerEvents = 'auto';
+        topCanvas.style.pointerEvents = 'auto';
     });
 }
 
