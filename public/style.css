@@ -605,6 +605,14 @@ footer.legal-footer {
   display: block;
 }
 
+/* ★ 設定ボタン（あそびかたボタンの直下に固定配置。画像の幅が可変なため横並びにせず縦に重ねる） */
+.settings-btn {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 1000000;
+}
+
 /* ===== スマホだけ適用 ===== */
 @media (max-width: 1024px){
 
@@ -656,6 +664,14 @@ footer.legal-footer {
 
   .help-btn img{
     height: 26px;
+  }
+
+  .settings-btn {
+    top: 38px;
+    right: 18px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
   }
 
   /* 縦持ち時の「横画面にしてください」ラベル — 横画面ではCSS非表示 */

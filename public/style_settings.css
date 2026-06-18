@@ -1,0 +1,131 @@
+/* style_settings.css - 設定ダイアログ（石カラー・必殺技演出強度・音量）共通スタイル */
+/* index.html / battle.html の両方から読み込まれる */
+
+.settings-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  font-size: 26px;
+  color: #333;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.settings-section {
+  margin: 16px 0;
+  text-align: left;
+}
+
+.settings-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.color-swatch-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.color-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  font-size: 12px;
+  color: #333;
+  min-width: 90px;
+}
+
+.color-swatch:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.color-swatch.selected {
+  border-color: #ff9900;
+  background: rgba(255, 153, 0, 0.12);
+}
+
+.color-swatch-preview {
+  display: flex;
+  gap: 4px;
+}
+
+.color-swatch-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.intensity-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.intensity-radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.settings-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.settings-volume-row input[type="range"] {
+  flex: 1;
+  max-width: 260px;
+}
+
+/* スマホ向け：モーダル内が狭くなりすぎないよう調整 */
+@media (max-width: 1024px) {
+  .settings-section h3 {
+    font-size: 15px;
+  }
+
+  .color-swatch {
+    min-width: 70px;
+    font-size: 11px;
+    padding: 6px;
+  }
+
+  .color-swatch-dot {
+    width: 22px;
+    height: 22px;
+  }
+
+  .intensity-radio-group {
+    font-size: 13px;
+    gap: 10px;
+  }
+
+  .settings-volume-row {
+    font-size: 12px;
+  }
+}

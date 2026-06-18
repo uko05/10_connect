@@ -1,8 +1,43 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
       "WebFetch(domain:uko05.github.io)",
-      "Bash(curl -s \"https://uko05.github.io/TopPage00/shared/sidebar.js\")"
+      "Bash(curl -s \"https://uko05.github.io/TopPage00/shared/sidebar.js\")",
+      "Read(//c/Users/hiros/.claude/projects/E--20-GitHub-10-connect/memory//**)",
+      "Read(//c/Users/hiros/.claude/projects/E--20-GitHub-10-connect/memory/**)",
+      "Bash(node --check public/scripts/gameLogic.js)",
+      "Bash(node --check public/scripts/renderer.js)",
+      "Bash(node --check public/scripts/version.js)",
+      "Bash(cp public/scripts/gameLogic.js /tmp/gameLogic.mjs)",
+      "Bash(cp public/scripts/renderer.js /tmp/renderer.mjs)",
+      "Bash(node --check /tmp/gameLogic.mjs)",
+      "Bash(node --check /tmp/renderer.mjs)",
+      "Bash(ls .claude/skills/)",
+      "Bash(cat firebase.json)",
+      "Bash(which firebase *)",
+      "Bash(firebase --version)",
+      "Bash(which python3 *)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(node -e \"const m = require\\('module'\\); console.log\\(require.resolve.paths ? '' : ''\\)\")",
+      "Bash(find / -maxdepth 0)",
+      "Bash(npm root *)",
+      "Bash(mkdir -p /tmp/verify-connect)",
+      "Read(//tmp/**)",
+      "Bash(npm install *)",
+      "Bash(node verify.js)",
+      "Bash(pwd -W)",
+      "Bash(node -e \"console.log\\(process.cwd\\(\\)\\)\")",
+      "Bash(find /c -maxdepth 2 -iname \"tmp\")",
+      "Read(//c/tmp/**)",
+      "Read(//c/Users/hiros/AppData/Local/Temp/verify-connect/**)",
+      "Bash(pkill -f \"http.server 8765\")",
+      "Skill(update-config)"
     ]
   }
 }

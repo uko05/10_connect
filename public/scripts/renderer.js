@@ -37,59 +37,84 @@ export function drawPiece(ctx, column, y, color, cellSize) {
 }
 
 /**
- * 石を描画し、パーティクル演出を追加する
- * @param {CanvasRenderingContext2D} ctx
- * @param {HTMLCanvasElement} canvas
- * @param {number} column - 列番号
- * @param {number} y - Y座標（ピクセル）
- * @param {string} color - 石の色
- * @param {number} cellSize - セルのサイズ
+ * 画面全体を一瞬フラッシュさせる（必殺技発動の衝撃演出）
+ * @param {string} color - フラッシュ色（rgba推奨）
+ * @param {number} duration - フラッシュの合計時間(ms)
  */
-export function drawPieceWithParticles(ctx, canvas, column, y, color, cellSize) {
-    // 通常の石を描画
-    drawPiece(ctx, column, y, color, cellSize);
+export function flashScreen(color = 'rgba(255, 255, 255, 0.7)', duration = 200) {
+    const flash = document.createElement('div');
+    flash.style.position = 'fixed';
+    flash.style.inset = '0';
+    flash.style.backgroundColor = color;
+    flash.style.zIndex = '10000';
+    flash.style.pointerEvents = 'none';
+    document.body.appendChild(flash);
 
-    // パーティクル用キャンバス
-    const particleCanvas = document.createElement('canvas');
-    const particleCtx = particleCanvas.getContext('2d');
-    particleCanvas.width = canvas.width;
-    particleCanvas.height = canvas.height;
-    document.body.appendChild(particleCanvas);
+    const anim = flash.animate(
+        [{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 0 }],
+        { duration, easing: 'ease-out' }
+    );
+    anim.onfinish = () => flash.remove();
+}
 
-    // パーティクルの設定
-    const particles = Array.from({ length: 20 }, () => ({
-        x: column * cellSize + cellSize / 2 + (Math.random() - 0.5) * 10,
-        y: y + cellSize / 2 + (Math.random() - 0.5) * 10,
-        radius: Math.random() * 4 + 2,
-        dx: (Math.random() - 0.5) * 6,
-        dy: (Math.random() - 0.5) * 6,
-        alpha: 1.0,
-    }));
-
-    function animateParticles() {
-        particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-
-        particles.forEach(p => {
-            particleCtx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
-            particleCtx.beginPath();
-            particleCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            particleCtx.fill();
-            particleCtx.closePath();
-
-            p.x += p.dx;
-            p.y += p.dy;
-            p.radius *= 0.98;
-            p.alpha -= 0.01;
-        });
-
-        if (particles.some(p => p.alpha > 0)) {
-            requestAnimationFrame(animateParticles);
-        } else {
-            // パーティクル終了後にキャンバスを削除
-            document.body.removeChild(particleCanvas);
-        }
+/**
+ * 指定要素を短時間振動させる（衝撃の演出）。要素のinline transformは元々の値に依存しないよう、終了後は何も残さない。
+ * @param {HTMLElement} el - 振動させる要素
+ * @param {number} intensity - 振幅(px)
+ * @param {number} duration - 振動時間(ms)
+ */
+export function shakeElement(el, intensity = 12, duration = 400) {
+    if (!el) return;
+    const steps = 8;
+    const frames = [];
+    for (let i = 0; i <= steps; i++) {
+        const decay = 1 - i / steps;
+        const x = (i % 2 === 0 ? 1 : -1) * intensity * decay;
+        const y = (i % 2 === 0 ? -1 : 1) * (intensity * 0.5) * decay;
+        frames.push({ transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)` });
     }
-    animateParticles();
+    frames.push({ transform: 'translate(0, 0)' });
+    el.animate(frames, { duration, easing: 'ease-out' });
+}
+
+/**
+ * 指定座標（viewport基準のfixed座標）から弾けるパーティクルを発生させる（石破壊の演出）
+ * @param {number} x - 中心X座標
+ * @param {number} y - 中心Y座標
+ * @param {string[]} colors - パーティクル色のバリエーション
+ * @param {number} count - パーティクル数
+ */
+export function spawnParticleBurst(x, y, colors = ['#ff7a00', '#ffd400', '#fff6cc'], count = 16) {
+    for (let i = 0; i < count; i++) {
+        const particle = document.createElement('div');
+        const size = 4 + Math.random() * 6;
+        particle.style.position = 'fixed';
+        particle.style.left = `${x - size / 2}px`;
+        particle.style.top = `${y - size / 2}px`;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.borderRadius = '50%';
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.boxShadow = '0 0 6px 2px rgba(255, 180, 0, 0.6)';
+        particle.style.zIndex = '9998';
+        particle.style.pointerEvents = 'none';
+        document.body.appendChild(particle);
+
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 40 + Math.random() * 70;
+        const dx = Math.cos(angle) * distance;
+        const dy = Math.sin(angle) * distance;
+        const duration = 450 + Math.random() * 250;
+
+        const anim = particle.animate(
+            [
+                { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(0.2)`, opacity: 0 }
+            ],
+            { duration, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+        );
+        anim.onfinish = () => particle.remove();
+    }
 }
 
 /**

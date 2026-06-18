@@ -19,7 +19,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 import { characterData } from "./characterData.js";
-import { drawPiece as _drawPiece, drawPieceWithParticles as _drawPieceWithParticles, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone } from "./renderer.js";
+import { drawPiece as _drawPiece, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
 import { APP_VERSION } from "./version.js";
 import {
     chargeSound, moveSound, highlightSound, AbilityStandby,
@@ -37,6 +37,7 @@ import {
 } from "./abilities.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity } from "./settingsManager.js";
 
 
 // バージョン表示
@@ -111,6 +112,27 @@ const abilities = {
     ult_downThinkingTime,
     ult_randomVertical1Drop
 };
+
+// 設定の必殺技演出強度に応じて、画面フラッシュ・シェイク・パーティクルの強さを調整するラッパー
+// （renderer.jsの関数自体は強度を意識しない「素の」演出プリミティブとして保つ）
+function fxFlash(color, duration) {
+    const level = getUltIntensity();
+    if (level === 'off') return;
+    _flashScreen(color, level === 'weak' ? duration * 0.5 : duration);
+}
+
+function fxShake(el, intensity, duration) {
+    const level = getUltIntensity();
+    if (level === 'off') return;
+    _shakeElement(el, level === 'weak' ? intensity * 0.5 : intensity, level === 'weak' ? duration * 0.5 : duration);
+}
+
+function fxParticles(x, y, colors = ['#ff7a00', '#ffd400', '#fff6cc'], count = 16) {
+    const level = getUltIntensity();
+    if (level === 'off') return;
+    const n = level === 'weak' ? Math.max(1, Math.round(count * 0.5)) : count;
+    _spawnParticleBurst(x, y, colors, n);
+}
 
 // 石の色
 let playerColor = null;
@@ -624,6 +646,16 @@ async function deleteRoomByRoomID() {
 
 document.addEventListener('DOMContentLoaded', async () => {
 
+    // 設定ダイアログ（石カラー・必殺技演出強度・音量）
+    // ★ 認証やマッチデータ取得とは無関係に動くため、それらより前に必ず初期化する
+    //   （displayThumbnails等が失敗してもユーザーが設定画面に到達できるようにする）
+    setupSettingsModal('settingsButton', 'settingsModal');
+    bindSettingsUI(document.getElementById('settingsModal'), () => {
+        // 石カラー変更時に即座に盤面を再描画
+        init_drawBoard(true);
+        disp_TopStone(turn, nowCol);
+    });
+
     // Auth完了を待機（Security Rulesで auth != null が必要）
     try {
         await authReady;
@@ -633,10 +665,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await displayThumbnails(); // サムネイルの表示
-    
+
     backcolor_player(turn);
     watchRoomUpdates(); // リアルタイムのルーム更新を監視
-    
+
     // ================================================================
     // クリック・スライド・タッチ イベント管理
     // ④ PC: マウスドラッグ中にハイライト追従
@@ -1339,6 +1371,14 @@ function wait(ms) {
 //}
 
 // ターンを表示するための関数
+// hex色("#rrggbb")をrgba()文字列に変換する（設定で選んだ石カラーをグラデーションに反映するため）
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 async function showTurnLabel() {
   const turnLabel = document.getElementById("turnLabel");
 
@@ -1347,16 +1387,10 @@ async function showTurnLabel() {
 
   // ★ここが本体：今ターンの色を決める
   const turnColor = (turn === player_info) ? playerLeft_Color : playerRight_Color;
+  const turnHex = getDisplayColor(turnColor);
 
-  if (turnColor === "red") {
-    // 赤側グラデーション
-    turnLabel.style.background =
-      "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
-  } else {
-    // 黄色側グラデーション
-    turnLabel.style.background =
-      "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
-  }
+  turnLabel.style.background =
+    `linear-gradient(90deg, ${hexToRgba(turnHex, 0.8)}, ${hexToRgba(turnHex, 0.5)})`;
 
   turnLabel.innerHTML = `${turnlbl} <br> ${turnCount}ターン目`;
 
@@ -1853,8 +1887,8 @@ function disp_TopStone(turn, col) {
     if (changeStone > 0 && color === playerLeft_Color) {
         color = color === 'red' ? 'yellow' : 'red'; // 色交換
     }
-    // メインの石を描画
-    topCtx.fillStyle = color;
+    // メインの石を描画（'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする）
+    topCtx.fillStyle = getDisplayColor(color);
     topCtx.beginPath();
     topCtx.arc(col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, 0, Math.PI * 2);
     topCtx.fill();
@@ -1907,11 +1941,8 @@ async function init_drawBoard(allstones = false) {
 }
 
 function drawPiece(column, y, color) {
-    _drawPiece(ctx, column, y, color, cellSize);
-}
-
-function drawPieceWithParticles(column, y, color) {
-    _drawPieceWithParticles(ctx, canvas, column, y, color, cellSize);
+    // 'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする
+    _drawPiece(ctx, column, y, getDisplayColor(color), cellSize);
 }
 
 //------------------------------------------------------------------------------------------------
@@ -2078,9 +2109,12 @@ async function highlightWinningCells(winPositions) {
 async function showWinner(result) {
     const turnLabel = document.getElementById("winLabel");
     let turnlbl = "";
+    let isMyWin = false;
+    let isDraw = false;
 
     if (result.red && !result.yellow) {
-        if (playerLeft_Color === 'red') {
+        isMyWin = playerLeft_Color === 'red';
+        if (isMyWin) {
             turnlbl = "YOU WIN!";
             turnLabel.innerHTML = `${turnlbl}<br>${red_Win} - ${yellow_Win}`;
         } else {
@@ -2088,7 +2122,8 @@ async function showWinner(result) {
             turnLabel.innerHTML = `${turnlbl}<br>${yellow_Win} - ${red_Win}`;
         }
     } else if (!result.red && result.yellow) {
-        if (playerLeft_Color === 'yellow') {
+        isMyWin = playerLeft_Color === 'yellow';
+        if (isMyWin) {
             turnlbl = "YOU WIN!";
             turnLabel.innerHTML = `${turnlbl}<br>${yellow_Win} - ${red_Win}`;
         } else {
@@ -2096,14 +2131,31 @@ async function showWinner(result) {
             turnLabel.innerHTML = `${turnlbl}<br>${red_Win} - ${yellow_Win}`;
         }
     } else if (result.red && result.yellow) {
+        isDraw = true;
         turnlbl = "DRAW";
         turnLabel.innerHTML = `${turnlbl}<br>${red_Win} - ${yellow_Win}`;
     }
 
-    // フェードイン
+    // 演出: 勝ち=祝福のフラッシュ+紙吹雪、負け=衝撃の赤フラッシュ+シェイク、引き分け=控えめなフラッシュ
+    // (画面幅基準なのでスマホ/PCどちらでも中央に発生する)
+    const burstX = window.innerWidth / 2;
+    const burstY = window.innerHeight / 2;
+    if (isDraw) {
+        fxFlash('rgba(200, 200, 200, 0.3)', 200);
+    } else if (isMyWin) {
+        fxFlash('rgba(255, 215, 0, 0.4)', 250);
+        fxParticles(burstX, burstY, ['#ffd700', '#ff7a00', '#fff6cc', '#5cff5c', '#5cc8ff'], 26);
+    } else {
+        fxFlash('rgba(180, 0, 0, 0.45)', 220);
+        fxShake(document.getElementById('centerPanel'), 14, 400);
+    }
+
+    // フェードイン + ポップイン演出
+    turnLabel.classList.remove('label-pop');
     turnLabel.style.display = "block"; // 初めに表示状態に
     setTimeout(() => {
         turnLabel.style.opacity = 1; // 透明度を1にしてフェードイン
+        turnLabel.classList.add('label-pop');
     }, 10); // 少し遅れて実行（レイアウトを反映させるため）
 
     // 3秒後にフェードアウト
@@ -2115,6 +2167,7 @@ async function showWinner(result) {
         // フェードアウト後に完全に非表示にする
         setTimeout(() => {
             turnLabel.style.display = "none"; // 透明度が0になったら非表示
+            turnLabel.classList.remove('label-pop');
             resolve(); // 処理が完了したことを通知
         }, 5000); // フェードアウト後に少し待ってから非表示
     });
@@ -2424,6 +2477,8 @@ function displayVictory(winningColor) {
     const victoryMessage = document.getElementById("victoryMessage");
     const ratingChangeEl = document.getElementById("ratingChange");
 
+    const isMyWin = winningColor === playerLeft_Color;
+
     // 勝利キャラ画像とメッセージを設定
     if (winningColor === "red") {
         victoryImage.src = playerLeft_Color === 'red' ? playerLeft_Image : playerRight_Image;
@@ -2431,6 +2486,21 @@ function displayVictory(winningColor) {
     } else if (winningColor === "yellow") {
         victoryImage.src = playerLeft_Color === 'yellow' ? playerLeft_Image : playerRight_Image;
         victoryMessage.textContent = `${playerLeft_Color === 'yellow' ? playerLeft_Name : playerRight_Name} WIN!!`;
+    }
+
+    // 演出: 自分が勝った場合は祝福のフラッシュ+紙吹雪+金色の光彩、負けた場合は控えめな赤フラッシュ+シェイク
+    // (画面幅基準なのでスマホ/PCどちらでも中央に発生する)
+    const burstX = window.innerWidth / 2;
+    const burstY = window.innerHeight / 2;
+    victoryModal.classList.remove('victory-pop', 'victory-glow');
+    if (isMyWin) {
+        fxFlash('rgba(255, 215, 0, 0.5)', 300);
+        fxParticles(burstX, burstY, ['#ffd700', '#ff7a00', '#fff6cc', '#5cff5c', '#5cc8ff', '#ff5c8a'], 36);
+        requestAnimationFrame(() => victoryModal.classList.add('victory-glow'));
+    } else {
+        fxFlash('rgba(150, 0, 0, 0.4)', 220);
+        fxShake(document.getElementById('centerPanel'), 10, 350);
+        requestAnimationFrame(() => victoryModal.classList.add('victory-pop'));
     }
 
     // モーダルを表示
@@ -2706,30 +2776,43 @@ function showCutIn() {
             // カットインコンテナを表示
             cutinContainer.style.display = 'block'; // 画面中央に表示
 
-            // 初期位置は画面外（centerPanel の横幅に基づく）
+            // 初期位置は画面外（centerPanel の横幅に基づく）+ 突入前の縮小・回転
             const parentWidth = centerPanel.offsetWidth; // centerPanel の横幅を取得
+            cutinImage.classList.remove('ult-cutin-glow');
+            cutinImage.style.transition = 'none';
             cutinImage.style.right = `-${parentWidth}px`; // 横幅に基づいて初期位置設定
             cutinImage.style.opacity = '0'; // 初期状態で非表示
+            cutinImage.style.transform = 'scale(1.3) rotate(-3deg)';
 
-            // スライドインとフェードインのアニメーションを追加
+            // 衝撃の予兆フラッシュ + 盤面シェイク（スライドインと同時に発火）
             setTimeout(() => {
-                cutinImage.style.transition = 'right 1s ease-in-out, opacity 1s ease-in-out'; // 1秒でスライドインとフェードイン
+                fxFlash('rgba(255, 60, 20, 0.55)', 250);
+                fxShake(centerPanel, 16, 500);
+
+                // スライドイン + フェードイン + 着地時にオーバーシュートする弾けるような演出
+                cutinImage.style.transition =
+                    'right 0.6s cubic-bezier(0.17, 0.84, 0.44, 1), opacity 0.4s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
                 cutinImage.style.right = '0'; // 画面内にスライドイン
                 cutinImage.style.opacity = '1'; // フェードイン
+                cutinImage.style.transform = 'scale(1) rotate(0deg)';
+                cutinImage.classList.add('ult-cutin-glow'); // 表示中は脈動する光彩
             }, 50); // 少し遅れてアニメーション開始
 
-            // 3秒後にスライドアウトとフェードアウト
+            // 2.5秒後にスライドアウトとフェードアウト
             setTimeout(() => {
-                cutinImage.style.transition = 'right 1s ease-in-out, opacity 1s ease-in-out'; // 1秒でスライドアウトとフェードアウト
+                cutinImage.classList.remove('ult-cutin-glow');
+                cutinImage.style.transition = 'right 1s ease-in-out, opacity 1s ease-in-out, transform 1s ease-in-out';
                 cutinImage.style.right = `-${parentWidth}px`; // 横幅に基づいて画面外にスライドアウト
                 cutinImage.style.opacity = '0'; // フェードアウト
+                cutinImage.style.transform = 'scale(1.1)';
 
                 // フェードアウト後に非表示
                 setTimeout(() => {
                     cutinContainer.style.display = 'none'; // 完全に非表示
+                    cutinImage.style.transform = '';
                     resolve(); // カットイン終了を通知
                 }, 1000); // フェードアウトのアニメーション終了後
-            }, 2500); // 3秒後にスライドアウトとフェードアウト
+            }, 2500); // 2.5秒後にスライドアウトとフェードアウト
         };
     });
 }
@@ -2904,7 +2987,9 @@ async function deleteStones(stonesToDelete) {
             });
         });
         
-        await wait(stonesToDelete.length * 500);
+        // ★演出を一発の「衝撃」に揃えるため、件数に依存しない固定待機に変更
+        //   （以前は stonesToDelete.length * 500ms で多列破壊時に最大9秒近く待たされていた）
+        await wait(700);
         init_drawBoard(true);
     } catch (error) {
         console.error("石の削除中にエラーが発生しました:", error);
@@ -2916,9 +3001,14 @@ async function highlightStones(stonesToDelete, wt = 500) {
         console.error("stonesToDelete is not an array:", stonesToDelete);
         return;
     }
+    if (stonesToDelete.length === 0) return;
 
     const canvasRect = canvas.getBoundingClientRect(); // Canvasの位置とサイズを取得
+    const cellW = canvasRect.width / cols;
+    const cellH = canvasRect.height / rows;
 
+    // 全セットを同時に光らせる（以前は1個ずつ順番に光って消える直列処理で地味だった）
+    const highlightedCells = [];
     for (const stoneKey of stonesToDelete) {
         const [col, row] = stoneKey.split('_').map(Number);
 
@@ -2927,13 +3017,14 @@ async function highlightStones(stonesToDelete, wt = 500) {
             continue;
         }
 
+        const centerX = canvasRect.left + (col + 0.5) * cellW;
+        const centerY = canvasRect.top + (row + 0.5) * cellH;
+
         // 新しいハイライト要素を作成
         const highlightedCell = document.createElement('div');
         highlightedCell.classList.add('cell', 'selected'); // CSSのクラスを適用
 
         // ハイライトのスタイルを設定（getBoundingClientRect基準でscale非依存）
-        const cellW = canvasRect.width / cols;
-        const cellH = canvasRect.height / rows;
         highlightedCell.style.position = 'fixed';
         highlightedCell.style.width = `${cellW}px`;
         highlightedCell.style.height = `${cellH}px`;
@@ -2941,15 +3032,22 @@ async function highlightStones(stonesToDelete, wt = 500) {
         highlightedCell.style.top = `${canvasRect.top + row * cellH}px`;
         highlightedCell.style.pointerEvents = 'none';
 
-        // ボード全体の親要素に追加
         document.body.appendChild(highlightedCell);
+        highlightedCells.push(highlightedCell);
 
-        // 少し待機して次のセルをハイライト
-        await wait(wt); // 0.5秒待機（必要に応じて調整）
-
-        // ハイライトを削除
-        highlightedCell.remove();
+        // 破壊される石の位置から弾けるパーティクル
+        fxParticles(centerX, centerY);
     }
+
+    // 衝撃フラッシュ + 盤面シェイク（破壊数が多いほど少し強めに）
+    fxFlash('rgba(255, 140, 0, 0.35)', 180);
+    fxShake(document.getElementById('centerPanel'), Math.min(6 + highlightedCells.length, 18), 350);
+
+    // 全セルを同時に少し保持してから一括で消す
+    const holdTime = Math.min(wt, 450);
+    await wait(holdTime);
+
+    highlightedCells.forEach(cell => cell.remove());
 }
 
 async function getRandomTopStones(count) {

@@ -3,22 +3,94 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // waitingPlayersコレクションに対するルール
+    // waitingPlayersコレクション（現行コードからは未使用。将来のため最小限のルールを残置）
     match /waitingPlayers/{document=**} {
       allow read, write: if request.auth != null;
     }
 
-    // roomsコレクションに対するルール（Phase1最小防御）
+    // roomsコレクションに対するルール（Phase2: 参加者限定 + フィールド制限 + 値の変化量チェック）
     match /rooms/{roomId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
+
+      // 新規作成：自分をplayer1として名乗る場合のみ、waiting状態で作成
+      allow create: if request.auth != null
+        && request.resource.data.player1_ID == request.auth.uid
+        && request.resource.data.player2_ID == null
+        && request.resource.data.status == "waiting";
+
+      // マッチング参加：waiting中の部屋にplayer2として自分のUIDを書き込む場合のみ
       allow update: if request.auth != null
+        && resource.data.status == "waiting"
+        && resource.data.player2_ID == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['player2_ID', 'player2_CharaID', 'player2_Name', 'status']
+        )
+        && request.resource.data.player2_ID == request.auth.uid
+        && request.resource.data.player1_ID == resource.data.player1_ID;
+
+      // 対局中の更新：参加者(P1/P2)のみ、許可フィールドのみ、値の範囲・変化量チェック
+      allow update: if request.auth != null
+        && request.auth.uid in [resource.data.player1_ID, resource.data.player2_ID]
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'player1_ChargeNow', 'player2_ChargeNow',
+          'player1_UltCount', 'player2_UltCount',
+          'player1_TimeLimit', 'player2_TimeLimit',
+          'player1_TimeoutCount', 'player2_TimeoutCount',
+          'red_Win', 'yellow_Win',
+          'status', 'turn', 'turnCount', 'changeStone', 'stones', 'startP',
+          'winnerUid', 'resultType', 'p1CharaId', 'p2CharaId',
+          'bo3Final', 'rated', 'finishedAt'
+        ])
+        // 識別子・初期設定フィールドは不変（参加者の入れ替えやマッチタイプの偽装を防止）
+        && request.resource.data.player1_ID == resource.data.player1_ID
+        && request.resource.data.player2_ID == resource.data.player2_ID
+        && request.resource.data.player1_CharaID == resource.data.player1_CharaID
+        && request.resource.data.player2_CharaID == resource.data.player2_CharaID
+        && request.resource.data.player1_Color == resource.data.player1_Color
+        && request.resource.data.player2_Color == resource.data.player2_Color
+        && request.resource.data.roomID == resource.data.roomID
+        && request.resource.data.matchType == resource.data.matchType
+        // 値の型・範囲チェック（チャージ・タイマー・状態の異常値書き込みを防止）
+        && request.resource.data.player1_ChargeNow is int && request.resource.data.player1_ChargeNow >= 0 && request.resource.data.player1_ChargeNow <= 200
+        && request.resource.data.player2_ChargeNow is int && request.resource.data.player2_ChargeNow >= 0 && request.resource.data.player2_ChargeNow <= 200
+        && request.resource.data.player1_TimeLimit is int && request.resource.data.player1_TimeLimit >= 0 && request.resource.data.player1_TimeLimit <= 100
+        && request.resource.data.player2_TimeLimit is int && request.resource.data.player2_TimeLimit >= 0 && request.resource.data.player2_TimeLimit <= 100
+        && request.resource.data.changeStone is int && request.resource.data.changeStone >= 0 && request.resource.data.changeStone <= 3
+        && request.resource.data.turn in ['P1', 'P2']
+        && request.resource.data.startP in ['P1', 'P2']
+        && request.resource.data.status in ['waiting', 'in_progress', 'leave']
+        // 勝利数・必殺技回数・タイムアウト回数・ターン数は「不変 or 1ずつ増加」のみ許可（即勝利・無限必殺技を防止）
+        && request.resource.data.red_Win is int && request.resource.data.red_Win >= resource.data.red_Win && request.resource.data.red_Win <= resource.data.red_Win + 1 && request.resource.data.red_Win <= 3
+        && request.resource.data.yellow_Win is int && request.resource.data.yellow_Win >= resource.data.yellow_Win && request.resource.data.yellow_Win <= resource.data.yellow_Win + 1 && request.resource.data.yellow_Win <= 3
+        && request.resource.data.turnCount is int && (request.resource.data.turnCount == resource.data.turnCount || request.resource.data.turnCount == resource.data.turnCount + 1 || request.resource.data.turnCount == 1)
+        && request.resource.data.player1_UltCount is int && request.resource.data.player1_UltCount >= resource.data.player1_UltCount && request.resource.data.player1_UltCount <= resource.data.player1_UltCount + 1
+        && request.resource.data.player2_UltCount is int && request.resource.data.player2_UltCount >= resource.data.player2_UltCount && request.resource.data.player2_UltCount <= resource.data.player2_UltCount + 1
+        && request.resource.data.player1_TimeoutCount is int && request.resource.data.player1_TimeoutCount >= resource.data.player1_TimeoutCount && request.resource.data.player1_TimeoutCount <= resource.data.player1_TimeoutCount + 1
+        && request.resource.data.player2_TimeoutCount is int && request.resource.data.player2_TimeoutCount >= resource.data.player2_TimeoutCount && request.resource.data.player2_TimeoutCount <= resource.data.player2_TimeoutCount + 1
+        // BO3確定（bo3Final）は実際に3勝した場合のみ・確定後は決着フィールドを凍結
         && (
-          // rated フィールドの巻き戻し防止（false→trueのみ許可）
+          request.resource.data.bo3Final != true
+          || resource.data.red_Win == 3 || resource.data.yellow_Win == 3
+        )
+        && (
+          !("bo3Final" in resource.data) || resource.data.bo3Final != true
+          || (
+            request.resource.data.winnerUid == resource.data.winnerUid
+            && request.resource.data.resultType == resource.data.resultType
+            && request.resource.data.p1CharaId == resource.data.p1CharaId
+            && request.resource.data.p2CharaId == resource.data.p2CharaId
+            && request.resource.data.bo3Final == resource.data.bo3Final
+          )
+        )
+        // winnerUid は実在の参加者のみ
+        && (!("winnerUid" in request.resource.data) || request.resource.data.winnerUid in [resource.data.player1_ID, resource.data.player2_ID])
+        // rated フィールドの巻き戻し防止（false→trueのみ許可）
+        && (
           !("rated" in resource.data)
           || resource.data.rated == false
           || resource.data.rated == request.resource.data.rated
         );
+
       // 削除はP1（rooms作成者）のみ許可
       allow delete: if request.auth != null
         && resource.data.player1_ID == request.auth.uid;
@@ -27,29 +99,46 @@ service cloud.firestore {
     // usersコレクション（レーティング用）
     match /users/{uid} {
       allow read: if request.auth != null;
-      // Phase1: P1がTransaction内で相手のdocも作成する可能性があるため auth のみ
-      allow create: if request.auth != null;
-      // 更新：auth必須 + フィールド制限 + 型制約 + rating下限100
-      // ※ P1が相手usersも更新するため uid == auth.uid 制限はPhase1では緩和
+
+      // 新規作成：初期値固定（1500スタート・0戦0勝のみ許可。最初から高レートでの偽装作成を防止）
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt'])
+        && request.resource.data.rating == 1500
+        && request.resource.data.matchCount == 0
+        && request.resource.data.winCount == 0;
+
+      // 更新：フィールド制限 + 型制約 + 1回の更新あたりの変化量をK値(最大48)×離脱ペナルティ(1.5倍)以内に制限
+      // ※ P1がTransaction内で相手(P2)のdocも更新するため uid == auth.uid には制限していない（Phase2でも継続）
       allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(
-          ['rating', 'matchCount', 'winCount', 'lastMatchAt']
-        )
+        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt'])
         && request.resource.data.rating is int
         && request.resource.data.rating >= 100
+        && request.resource.data.rating <= resource.data.rating + 48
+        && request.resource.data.rating >= resource.data.rating - 72
         && request.resource.data.matchCount is int
-        && request.resource.data.winCount is int;
+        && request.resource.data.matchCount == resource.data.matchCount + 1
+        && request.resource.data.winCount is int
+        && request.resource.data.winCount >= resource.data.winCount
+        && request.resource.data.winCount <= resource.data.winCount + 1;
     }
 
     // charaStats コレクション（キャラ統計用）
     match /charaStats/{charaId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
+
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['pickCount', 'winCount'])
+        && request.resource.data.pickCount is int && request.resource.data.pickCount >= 0 && request.resource.data.pickCount <= 2
+        && request.resource.data.winCount is int && request.resource.data.winCount >= 0 && request.resource.data.winCount <= 1;
+
+      allow update: if request.auth != null
         && request.resource.data.keys().hasOnly(['pickCount', 'winCount'])
         && request.resource.data.pickCount is int
+        && request.resource.data.pickCount >= resource.data.pickCount
+        && request.resource.data.pickCount <= resource.data.pickCount + 2
         && request.resource.data.winCount is int
-        && request.resource.data.pickCount >= 0
-        && request.resource.data.winCount >= 0;
+        && request.resource.data.winCount >= resource.data.winCount
+        && request.resource.data.winCount <= resource.data.winCount + 1;
     }
 
     // デフォルトのルール（全てのドキュメントに対して全てのアクセスを拒否）

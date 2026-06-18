@@ -19,6 +19,11 @@ import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
 import { ensureUserDoc, getUserRating, applyRatingDisplay } from './eloRating.js';
+import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
+
+// 設定ダイアログ（石カラー・必殺技演出強度・音量）
+setupSettingsModal('settingsButton', 'settingsModal');
+bindSettingsUI(document.getElementById('settingsModal'));
 
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;

@@ -156,6 +156,13 @@ html, body {
   object-fit: contain; /* 比率を保ちながら調整 */
 }
 
+/* 設定ボタン（あそびかたボタンの直上に固定配置。画像の幅が可変なため横並びにせず縦に重ねる） */
+.settings-btn {
+  position: fixed;
+  bottom: 70px;
+  right: 10px;
+}
+
 /* ------------------------------------------------------------------------------------------- */
 
 #leftPane, #centerPane, #rightPane {
@@ -244,6 +251,17 @@ html, body {
 .turn-label.show {
     opacity: 1; /* アニメーションで表示 */
     transform: scale(1); /* アニメーションで拡大 */
+}
+
+/* 勝敗ラベルのポップイン演出（必殺技演出と統一感を持たせる） */
+@keyframes labelPop {
+    0% { transform: translate(-50%, -50%) scale(0.5); }
+    60% { transform: translate(-50%, -50%) scale(1.08); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.win-label.label-pop {
+    animation: labelPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -438,6 +456,41 @@ html, body {
     width: 100%; /* 横幅を親要素に合わせる */
     height: auto; /* アスペクト比を保ちながら高さを自動調整 */
     object-fit: cover; /* 必要に応じてサイズ内に収める */
+}
+
+/* カットイン表示中に脈動する光彩（必殺技発動の演出） */
+@keyframes ultCutinGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 20px rgba(255, 120, 0, 0.8)) drop-shadow(0 0 40px rgba(255, 200, 0, 0.4));
+    }
+    50% {
+        filter: drop-shadow(0 0 35px rgba(255, 60, 0, 1)) drop-shadow(0 0 60px rgba(255, 220, 0, 0.6));
+    }
+}
+
+.ult-cutin-glow {
+    animation: ultCutinGlow 0.8s ease-in-out infinite;
+}
+
+/* 最終勝利モーダルのポップイン演出（victoryModalはinline styleでtransform:translate(-50%,-50%)が
+   設定されているため、アニメーション終了時にその値へ戻るようキーフレーム内でも明示している） */
+@keyframes victoryPop {
+    0% { transform: translate(-50%, -50%) scale(0.4) rotate(-6deg); opacity: 0; }
+    60% { transform: translate(-50%, -50%) scale(1.08) rotate(2deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+}
+
+#victoryModal.victory-pop {
+    animation: victoryPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes victoryGoldGlow {
+    0%, 100% { box-shadow: 0 0 30px 10px rgba(255, 200, 0, 0.5), 0 0 60px 20px rgba(255, 120, 0, 0.25); }
+    50% { box-shadow: 0 0 50px 18px rgba(255, 220, 80, 0.8), 0 0 90px 30px rgba(255, 140, 0, 0.4); }
+}
+
+#victoryModal.victory-glow {
+    animation: victoryPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), victoryGoldGlow 1.2s ease-in-out 0.5s infinite;
 }
 
 /* カットインコンテナ */
@@ -1397,14 +1450,6 @@ html, body {
     padding: 1px;
   }
 
-  /* 音量スライダー非表示 */
-  #leftPane label[for="systemvolumeSlider"],
-  #leftPane #systemvolumeSlider,
-  #leftPane label[for="voicevolumeSlider"],
-  #leftPane #voicevolumeSlider {
-    display: none;
-  }
-
   /* 必殺技ボタン縮小 */
   .special-move-button {
     width: 100%;
@@ -1428,6 +1473,18 @@ html, body {
   .help-btn img {
     height: 18px;
     width: auto;
+  }
+
+  /* 設定ボタン（ヘルプボタンの直上、右下に表示） */
+  .settings-btn {
+    position: fixed;
+    bottom: 40px;
+    right: 10px;
+    top: auto;
+    z-index: 100001;
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
   }
 
   /* value-tate 縮小 */

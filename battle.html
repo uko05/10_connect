@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>原壊：コネクトバトル</title>
+    <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
     <link rel="stylesheet" href="public/style_battle.css"> <!-- スタイルシートのリンク -->
     <script type="module" src="public/scripts/gameLogic.js" defer></script> <!-- ゲームロジックのJavaScriptファイル -->
     
@@ -24,6 +25,9 @@
     <button id="helpButton" class="help-btn">
       <img src="public/font/rulebutton.png" alt="ヘルプ">
     </button>
+
+    <!-- 設定ボタン -->
+    <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
 
     <!-- Help Modal -->
     <div id="helpModal" class="modal">
@@ -48,7 +52,63 @@
         </div>
       </div>
     </div>
-     
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>設定</h2>
+
+        <div class="settings-section">
+          <h3>石の色</h3>
+          <div class="color-swatch-group" id="colorSwatchGroup">
+            <button type="button" class="color-swatch" data-preset-id="classic">
+              <div class="color-swatch-preview">
+                <span class="color-swatch-dot" style="background:#ff0000;"></span>
+                <span class="color-swatch-dot" style="background:#ffff00;"></span>
+              </div>
+              クラシック
+            </button>
+            <button type="button" class="color-swatch" data-preset-id="colorsafeA">
+              <div class="color-swatch-preview">
+                <span class="color-swatch-dot" style="background:#0072B2;"></span>
+                <span class="color-swatch-dot" style="background:#E69F00;"></span>
+              </div>
+              カラーセーフ(青/オレンジ)
+            </button>
+            <button type="button" class="color-swatch" data-preset-id="colorsafeB">
+              <div class="color-swatch-preview">
+                <span class="color-swatch-dot" style="background:#009E73;"></span>
+                <span class="color-swatch-dot" style="background:#CC79A7;"></span>
+              </div>
+              カラーセーフ(緑/紫)
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>必殺技演出の強度</h3>
+          <div class="intensity-radio-group" id="ultIntensityGroup">
+            <label><input type="radio" name="ultIntensity" value="strong"> 強(おすすめ)</label>
+            <label><input type="radio" name="ultIntensity" value="weak"> 弱(控えめ)</label>
+            <label><input type="radio" name="ultIntensity" value="off"> なし</label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>音量</h3>
+          <div class="settings-volume-row">
+            <label for="systemvolumeSlider">システム音量: </label>
+            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
+          </div>
+          <div class="settings-volume-row">
+            <label for="voicevolumeSlider">ボイス音量: </label>
+            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
+          </div>
+        </div>
+      </div>
+    </div>
+
      <!-- ----------------------------モーダル------------------------------------------- -->
       
     <div id="leftPane">
@@ -99,16 +159,6 @@
                         <div id="Ability_1" class="value-tate abilityName"></div>
                         <div id="AbilityDetail_1" class="value-tate abilityDetail"></div>
                     </div>
-                            
-                    <div>
-                        <label for="systemvolumeSlider">システム音量: </label>
-                        <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
-                    </div>
-                    <div>
-                        <label for="voicevolumeSlider">　ボイス音量: </label>
-                        <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
-                    </div>
-                    
                 </div>
             </div>
         </div>
