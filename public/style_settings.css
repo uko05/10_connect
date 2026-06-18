@@ -128,4 +128,31 @@
   .settings-volume-row {
     font-size: 12px;
   }
+
+  .leave-btn {
+    font-size: 10px;
+    padding: 4px 8px;
+    margin-top: 6px;
+  }
+}
+
+/* 退出ボタン（バトル画面・ソロモード共通、自分側パネルの下部に表示） */
+#leaveButtonContainer {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.leave-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #b71c1c;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #b71c1c;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.leave-btn:hover {
+  background: rgba(183, 28, 28, 0.12);
 }

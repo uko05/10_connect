@@ -499,6 +499,17 @@ async function dispP1Info(charaInfo, player_Name) {
     thumbnailContainer.appendChild(img1); // 画像を追加
 }
 
+// 退出ボタン：確認のうえ離脱扱い（resultType: "leave"）でキャラ選択へ戻る。レートには通常より大きいペナルティが入る
+document.getElementById('leaveButton').addEventListener('click', async () => {
+    const confirmed = window.confirm(
+        '本当に退出しますか？\nこの試合は敗北扱いとなり、通常よりも大きいレートペナルティが入ります。'
+    );
+    if (!confirmed) return;
+
+    await updateLeaveRooms();
+    window.location.href = 'index.html';
+});
+
 document.getElementById('specialMoveButton').addEventListener('click', () => {
     
     if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 6) {
@@ -2477,6 +2488,8 @@ function displayVictory(winningColor) {
     const victoryMessage = document.getElementById("victoryMessage");
     const ratingChangeEl = document.getElementById("ratingChange");
 
+    document.getElementById('leaveButtonContainer').style.display = 'none'; // 試合終了後は退出ボタンを隠す
+
     const isMyWin = winningColor === playerLeft_Color;
 
     // 勝利キャラ画像とメッセージを設定
@@ -2577,6 +2590,8 @@ function displayLeaveMessage() {
     const victoryImage = document.getElementById("victoryImage");
     const victoryMessage = document.getElementById("victoryMessage");
     const ratingChangeEl = document.getElementById("ratingChange");
+
+    document.getElementById('leaveButtonContainer').style.display = 'none'; // 試合終了後は退出ボタンを隠す
 
     victoryImage.src = playerLeft_Image;
     victoryMessage.innerHTML = "相手が部屋を抜けたので、あなたの勝利です！<br>キャラクター選択画面に戻ります。";

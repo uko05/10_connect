@@ -652,7 +652,7 @@ function showTurnLabel(text) {
     turnLabel.style.background = turn === 'player'
         ? 'linear-gradient(90deg, rgba(0, 153, 255, 0.8), rgba(100, 200, 255, 0.8))'
         : 'linear-gradient(90deg, rgba(255, 100, 0, 0.8), rgba(255, 180, 80, 0.8))';
-    turnLabel.innerHTML = text;
+    turnLabel.innerHTML = `${text}<br>${turnCount}ターン目`;
     turnLabel.style.display = 'block';
     setTimeout(() => (turnLabel.style.opacity = 1), 10);
     setTimeout(() => (turnLabel.style.opacity = 0), 1000);
@@ -884,10 +884,27 @@ function initCharacters() {
         window.location.href = 'index.html';
         return false;
     }
+    const playerName = sessionStorage.getItem('soloPlayerName') || 'プレイヤー';
+    document.getElementById('playerName_1').innerText = playerName;
+
     cpuChara = pickCpuCharacter();
     displayCharaPanel('player', playerChara);
     displayCharaPanel('cpu', cpuChara);
+    applyPaneColors();
     return true;
+}
+
+// 通常戦のbackcolor_player()と同じ考え方で、左右のプレイヤーパネルを石カラーで色付けする
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyPaneColors() {
+    document.getElementById('leftPane').style.backgroundColor = hexToRgba(getDisplayColor(PLAYER_COLOR), 0.15);
+    document.getElementById('rightPane').style.backgroundColor = hexToRgba(getDisplayColor(CPU_COLOR), 0.15);
 }
 
 //------------------------------------------------------------------------------------------------
@@ -1014,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindSettingsUI(document.getElementById('settingsModal'), () => {
         drawBoard();
         dispTopStone();
+        applyPaneColors();
     });
 
     const systemvolumeSlider = document.getElementById('systemvolumeSlider');
@@ -1037,6 +1055,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('soloRestartButton').addEventListener('click', resetGame);
     document.getElementById('soloBackButton').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+
+    // 退出ボタン：ソロモードはペナルティ等が無いので即座にキャラ選択へ戻る
+    document.getElementById('leaveButton').addEventListener('click', () => {
         window.location.href = 'index.html';
     });
 

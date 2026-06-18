@@ -32,7 +32,9 @@ document.getElementById('soloModeButton').addEventListener('click', () => {
         document.getElementById('statusMessage').innerText = "キャラクターを選択してください。";
         return;
     }
+    const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
     sessionStorage.setItem('soloPlayerCharaID', charaID);
+    sessionStorage.setItem('soloPlayerName', playerName);
     window.location.href = 'solo.html';
 });
 
