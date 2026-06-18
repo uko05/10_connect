@@ -25,6 +25,11 @@ import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
 
+// ソロモード（CPU対戦）への遷移。マッチング不要・Firestoreを使わない別画面
+document.getElementById('soloModeButton').addEventListener('click', () => {
+    window.location.href = 'solo.html';
+});
+
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;
 
