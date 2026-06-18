@@ -1,16 +1,15 @@
 /* style_solo.css - ソロモード(CPU対戦)専用の追加スタイル */
 /* 盤面自体は style_battle.css を再利用し、ここでは差分のみ定義する */
 
-#soloModeLabel {
+/* 必殺技ボタンをabsolute配置にして、表示/非表示でフレックスレイアウトの高さが変わらないようにする
+   （通常戦はtopCanvasとの表示切替で高さがほぼ相殺されるが、ソロモードのモバイル実寸レイアウトでは
+   　topCanvasの高さがJSで固定計算されているため、display切替だけでは正しく相殺されない） */
+#specialMoveButtonContainer {
     position: absolute;
-    top: -36px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 20px;
-    font-weight: bold;
-    color: #333;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-    white-space: nowrap;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 50;
 }
 
 #soloResultPanel {
@@ -43,11 +42,6 @@
 }
 
 @media (max-width: 1024px) {
-    #soloModeLabel {
-        top: -24px;
-        font-size: 14px;
-    }
-
     #soloResultPanel {
         padding: 10px 16px;
     }

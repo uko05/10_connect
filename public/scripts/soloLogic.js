@@ -641,6 +641,9 @@ function updateGaugeUI() {
 
 function updateSpecialMoveButtonVisibility() {
     const show = turn === 'player' && !gameOver && !abilityInProgress && abilityAvailable('player');
+    // ★ボタンはabsolute配置でtopCanvasの上に重ねるだけにする。
+    //   topCanvas自体をdisplay:noneにすると、boardWrap(flex)の高さがその分縮んで
+    //   再センタリングが起こり、盤面がずれてしまうため、表示状態は変更しない。
     document.getElementById('specialMoveButtonContainer').style.display = show ? 'block' : 'none';
 }
 
@@ -894,17 +897,19 @@ function initCharacters() {
     return true;
 }
 
-// 通常戦のbackcolor_player()と同じ考え方で、左右のプレイヤーパネルを石カラーで色付けする
-function hexToRgba(hex, alpha) {
+// 通常戦のbackcolor_player()(#ffe5e5 / #ffffe5 の不透明な薄色)と同じ見た目になるよう、
+// 石カラーを白に向けてratio=0.1で混ぜた「不透明」な色を作る（rgbaの半透明だと壁紙が透けて見えてしまうため）
+function paleTint(hex, ratio = 0.1) {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    const mix = (c) => Math.round(c * ratio + 255 * (1 - ratio));
+    return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
 function applyPaneColors() {
-    document.getElementById('leftPane').style.backgroundColor = hexToRgba(getDisplayColor(PLAYER_COLOR), 0.15);
-    document.getElementById('rightPane').style.backgroundColor = hexToRgba(getDisplayColor(CPU_COLOR), 0.15);
+    document.getElementById('leftPane').style.backgroundColor = paleTint(getDisplayColor(PLAYER_COLOR));
+    document.getElementById('rightPane').style.backgroundColor = paleTint(getDisplayColor(CPU_COLOR));
 }
 
 //------------------------------------------------------------------------------------------------
