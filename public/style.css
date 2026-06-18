@@ -535,6 +535,7 @@ header {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    z-index: 999; /* サムネイルラッパー(position:relative)より前面に表示する */
     font-size: 60px;
     font-weight: bold;
     color: black;
