@@ -123,9 +123,9 @@ export async function applyRatingDisplay(element, userData, badgeElement, rankNa
     const rankInfo = await getUserRank(displayRating);
     if (rankInfo) {
         if (rankNameElement) {
-            element.innerHTML = `Rate: ${displayRating}<br>Ranking #${rankInfo.rank}`;
+            element.innerHTML = `Rate: ${displayRating}<br>Ranking: #${rankInfo.rank}`;
         } else {
-            element.innerHTML = `${tier}<br>Rate: ${displayRating}<br>Ranking #${rankInfo.rank}`;
+            element.innerHTML = `${tier}<br>Rate: ${displayRating}<br>Ranking: #${rankInfo.rank}`;
         }
     }
 }
