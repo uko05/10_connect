@@ -140,20 +140,29 @@ html, body {
   position: fixed; /* 画面固定 */
   bottom: 10px; /* 画面下からの位置 */
   right: 10px; /* 画面右端に固定 */
-  background: none; /* 背景なし */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 182px;
+  height: 47px; /* rulebutton.pngと同じ見た目 */
+  margin: 0; /* 外側の余白なし */
   border: none; /* 枠線なし */
-  padding: 0; /* 内側の余白なし */
-  margin: 0; /* 外側の余白なし */
+  border-radius: 999px;
+  background: linear-gradient(to right, #ff6c60, #fff064); /* 元画像のグラデーションを再現 */
   cursor: pointer;
-}
-
-.help-btn img {
-  display: block; /* 画像周囲の余白を防ぐ */
-  width: 100%; /* 親要素にフィット */
-  height: auto; /* 比率を保ちながら高さを調整 */
-  margin: 0; /* 外側の余白なし */
-  padding: 0; /* 内側の余白なし */
-  object-fit: contain; /* 比率を保ちながら調整 */
+  font-family: 'SDK_JP_WEB', sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow:
+    -2px -2px 0 #000,
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+    0px -2px 0 #000,
+    0px  2px 0 #000,
+    -2px  0px 0 #000,
+     2px  0px 0 #000;
 }
 
 /* 設定ボタン（あそびかたボタンの直上に固定配置。画像の幅が可変なため横並びにせず縦に重ねる） */
@@ -1082,10 +1091,6 @@ html, body {
         padding: 3px;
         font-size: 16px;
     }
-    
-    .help-btn {
-      width: 10%; 
-    }
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -1465,14 +1470,10 @@ html, body {
     right: 10px;
     top: auto;
     z-index: 100001;
-    padding: 4px;
-    width: auto;
-    height: auto;
-    pointer-events: auto;
-  }
-  .help-btn img {
+    width: 70px;
     height: 18px;
-    width: auto;
+    font-size: 8px;
+    pointer-events: auto;
   }
 
   /* 設定ボタン（ヘルプボタンの直上、右下に表示） */

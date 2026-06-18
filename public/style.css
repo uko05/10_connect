@@ -629,17 +629,30 @@ footer.legal-footer {
   /* ★ヘッダーやスケール要素より前に出す */
   z-index: 1000000;
 
-  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 155px;
+  height: 40px;           /* PCの基本サイズ（rulebutton.pngと同じ見た目） */
+  padding: 0;
   border: none;
-  padding: 6px;          /* 当たり判定確保 */
-  line-height: 0;
+  border-radius: 999px;
+  background: linear-gradient(to right, #ff6c60, #fff064); /* 元画像のグラデーションを再現 */
   cursor: pointer;
   pointer-events: auto;  /* 念のため */
-}
-.help-btn img{
-  height: 40px;          /* PCの基本サイズ（好みで調整OK） */
-  width: auto;
-  display: block;
+  font-family: 'SDK_JP_WEB', sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow:
+    -2px -2px 0 #000,
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+    0px -2px 0 #000,
+    0px  2px 0 #000,
+    -2px  0px 0 #000,
+     2px  0px 0 #000;
 }
 
 /* ★ 設定ボタン（あそびかたボタンの直下に固定配置。画像の幅が可変なため横並びにせず縦に重ねる） */
@@ -696,11 +709,9 @@ footer.legal-footer {
   .help-btn{
     top: 6px;
     right: 18px;
-    padding: 4px;
-  }
-
-  .help-btn img{
+    width: 101px;
     height: 26px;
+    font-size: 12px;
   }
 
   .settings-btn {

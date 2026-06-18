@@ -44,6 +44,7 @@ let cpuCharge = 0;
 let playerUltCount = 0;
 let cpuUltCount = 0;
 let abilityInProgress = false;
+let playerMoveInProgress = false; // 連打で複数手が同時に処理されるのを防ぐロック
 
 //------------------------------------------------------------------------------------------------
 // 必殺技演出強度に応じたフラッシュ・シェイク・パーティクル（バトル画面と同じ考え方）
@@ -449,11 +450,13 @@ async function useAbility(side) {
     AbilityStandby.currentTime = 0;
     AbilityStandby.play().catch(() => {});
 
-    await showCutIn(chara);
-    await executeAbility(side, chara.charaID);
-
-    updateGaugeUI();
-    abilityInProgress = false;
+    try {
+        await showCutIn(chara);
+        await executeAbility(side, chara.charaID);
+    } finally {
+        updateGaugeUI();
+        abilityInProgress = false;
+    }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -799,25 +802,32 @@ async function startNextRound() {
 }
 
 async function handlePlayerDrop(column) {
-    if (gameOver || turn !== 'player' || abilityInProgress) return;
+    // ★ここから次のawaitまでは同期的に実行されるため、チェックと同時にロックを立てることで
+    //   連打（複数のクリック/タップイベント）による多重実行を確実に防げる
+    if (gameOver || turn !== 'player' || abilityInProgress || playerMoveInProgress) return;
     if (column < 0 || column >= cols) return;
     if (getDropRow(column) < 0) return; // 満杯の列は無視
 
-    if (highlightedColumn) {
-        highlightedColumn.remove();
-        highlightedColumn = null;
+    playerMoveInProgress = true;
+    try {
+        if (highlightedColumn) {
+            highlightedColumn.remove();
+            highlightedColumn = null;
+        }
+
+        const ok = await dropAt(column, applyColorSwap(PLAYER_COLOR));
+        if (!ok) return;
+
+        playerCharge = Math.min(200, playerCharge + playerChara.charge);
+        if (changeStone > 0) changeStone--;
+        turnCount++;
+        updateGaugeUI();
+
+        if (await checkGameEnd()) return;
+        await cpuTurn();
+    } finally {
+        playerMoveInProgress = false;
     }
-
-    const ok = await dropAt(column, applyColorSwap(PLAYER_COLOR));
-    if (!ok) return;
-
-    playerCharge = Math.min(200, playerCharge + playerChara.charge);
-    if (changeStone > 0) changeStone--;
-    turnCount++;
-    updateGaugeUI();
-
-    if (await checkGameEnd()) return;
-    await cpuTurn();
 }
 
 async function cpuTurn() {
@@ -1019,7 +1029,7 @@ function setupInput() {
     });
 
     document.getElementById('specialMoveButton').addEventListener('click', async () => {
-        if (turn !== 'player' || gameOver || abilityInProgress) return;
+        if (turn !== 'player' || gameOver || abilityInProgress || playerMoveInProgress) return;
         if (!abilityAvailable('player')) return;
         await useAbility('player');
         if (await checkGameEnd()) return;
