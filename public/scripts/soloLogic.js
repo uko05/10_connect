@@ -913,7 +913,7 @@ function initCharacters() {
     playerChara = characterData.find(c => c.charaID === playerCharaID);
     if (!playerChara) {
         alert('キャラクターが選択されていません。キャラクター選択画面に戻ります。');
-        window.location.href = 'index.html';
+        window.location.href = 'select.html?mode=cpu';
         return false;
     }
     const playerName = sessionStorage.getItem('soloPlayerName') || 'プレイヤー';
@@ -1072,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const systemvolumeSlider = document.getElementById('systemvolumeSlider');
     setupSystemVolumeSlider(systemvolumeSlider);
 
-    if (!initCharacters()) return; // キャラ未選択ならindex.htmlへリダイレクト済み
+    if (!initCharacters()) return; // キャラ未選択ならselect.htmlへリダイレクト済み
 
     // レイアウト（バトル画面と同じスケーリング方式）
     const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
@@ -1090,12 +1090,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('soloRestartButton').addEventListener('click', resetGame);
     document.getElementById('soloBackButton').addEventListener('click', () => {
-        window.location.href = 'index.html';
+        window.location.href = 'select.html?mode=cpu';
     });
 
     // 退出ボタン：ソロモードはペナルティ等が無いので即座にキャラ選択へ戻る
     document.getElementById('leaveButton').addEventListener('click', () => {
-        window.location.href = 'index.html';
+        window.location.href = 'select.html?mode=cpu';
     });
 
     updateWinIndicators();

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>原壊：コネクトバトル（プレイヤー情報）</title>
+    <link rel="stylesheet" href="public/style_settings.css">
+    <link rel="stylesheet" href="public/style.css">
+    <script type="module" src="public/scripts/playerInfo.js" defer></script>
+
+    <!-- Favicon -->
+    <link rel="icon" href="public/scripts/favicon_io/favicon.ico" type="image/x-icon">
+    <link rel="icon" sizes="16x16" href="public/scripts/favicon_io/favicon-16x16.png">
+    <link rel="icon" sizes="32x32" href="public/scripts/favicon_io/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="public/scripts/favicon_io/apple-touch-icon.png">
+    <link rel="icon" sizes="192x192" href="public/scripts/favicon_io/android-chrome-192x192.png">
+    <link rel="icon" sizes="512x512" href="public/scripts/favicon_io/android-chrome-512x512.png">
+</head>
+<body>
+    <header>
+        <h1>原壊：コネクトバトル</h1>
+    </header>
+
+    <main>
+        <div id="playerInfoWrap" class="player-info-wrap">
+            <button id="backToHubButton" class="back-btn">← モード選択に戻る</button>
+
+            <h2 class="hub-title">プレイヤー情報</h2>
+
+            <div class="info-item-yoko lobby-player-info">
+                <div class="lobby-player-left">
+                    <div id="playerInfoName" class="player-name-display">---</div>
+                    <div id="playerInfoRankName" class="player-rating" style="text-align:center; margin:2px 0;">---</div>
+                    <div id="playerInfoRatingDisplay" class="player-rating-detail" style="text-align:center; margin:2px 0;">---</div>
+                </div>
+                <img id="playerInfoRankBadge" class="rank-badge" src="" alt="">
+            </div>
+
+            <div id="achievementSection" class="info-box top15">▼アチーブメント▼（近日対応）</div>
+        </div>
+    </main>
+
+    <div id="version"></div>
+
+    <footer class="legal-footer">
+      © miHoYo / HoYoverse. All rights reserved. Other properties belong to their respective owners.
+    </footer>
+
+    <script src="https://uko05.github.io/TopPage00/shared/sidebar.js"></script>
+</body>
+</html>

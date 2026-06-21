@@ -37,7 +37,8 @@
       "Read(//c/tmp/**)",
       "Read(//c/Users/hiros/AppData/Local/Temp/verify-connect/**)",
       "Bash(pkill -f \"http.server 8765\")",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Skill(run)"
     ]
   }
 }

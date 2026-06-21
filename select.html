@@ -7,7 +7,7 @@
     <title>原壊：コネクトバトル</title>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
     <link rel="stylesheet" href="public/style.css"> <!-- スタイルシートのリンク -->
-    <script type="module" src="public/scripts/main.js" defer></script> <!-- JavaScriptファイルの読み込み -->
+    <script type="module" src="public/scripts/characterSelect.js" defer></script>
 
     <!-- Favicon -->
     <link rel="icon" href="public/scripts/favicon_io/favicon.ico" type="image/x-icon">
@@ -127,13 +127,88 @@
     <!-- ② 縦画面ラベル: transform親の外に配置（position:fixedが正しく効くように） -->
     <div id="orientationLabel"></div>
 
-    <div id="hubWrap" class="hub-wrap">
-        <h2 class="hub-title">モードを選択</h2>
+    <div id="lobbyViewport">
+    <div id="lobbyWrap">
+    <div class="parent-container"> <!-- 幅を指定した親Div -->
 
-        <button id="goCpuButton" class="btn hub-btn hub-btn-cpu">CPU対戦</button>
-        <button id="goMatchButton" class="btn hub-btn hub-btn-match">マッチング対戦</button>
-        <button id="goPlayerInfoButton" class="btn hub-btn hub-btn-info">プレイヤー情報</button>
-    </div>
+        <div id="matchLabel" class="match-label"></div>
+
+        <div class="container">
+
+            <button id="backToHubButton" class="back-btn">← モード選択に戻る</button>
+
+            <div id="playerIdDisplay" class="info-box">あなたのプレイヤーID: <span id="generatedId"></span></div>
+
+            <div class="info-item-yoko lobby-player-info">
+                <div class="lobby-player-left">
+                    <div class="info-row-no-bg" style="border:none; padding:0;">
+                        <div class="label label-even">名前</div>
+                        <input id="playerName" class="value-yoko" type="text" placeholder="プレイヤー名を入力" />
+                    </div>
+                    <div id="lobbyRankName" class="player-rating" style="text-align:center; margin:2px 0;">---</div>
+                    <div id="lobbyRatingDisplay" class="player-rating-detail" style="text-align:center; margin:2px 0;">---</div>
+                </div>
+                <img id="lobbyRankBadge" class="rank-badge" src="" alt="">
+            </div>
+            <div id="characterInfoLabel" class="info-box top15">▼キャラクター情報▼</div>
+
+            <!-- キャラクター情報を表示するためのテーブル -->
+            <div id="characterInfoContainer">
+                <div class="info-item-yoko">
+                    <div class="label label-even">キャラ</div>
+                    <div id="characterName" class="value-yoko chara-name-short"></div>
+                    <div class="label chara-ct-label">CT</div>
+                    <div id="characterCharge" class="value-yoko chara-charge-short"></div>
+                </div>
+                <div class="info-item-tate">
+                    <div class="label label-even">必殺技</div>
+                    <div id="Ability" class="value-tate"></div>
+                    <div id="AbilityDetail" class="value-tate abilityDetail"></div>
+                </div>
+            </div>
+            <!-- 選択したキャラのcharaIDを保持する非表示のフィールド -->
+            <input type="hidden" id="charaID" value="">
+
+            <!-- マッチング対戦専用ブロック（?mode=match の場合のみ表示） -->
+            <div id="matchModeBlock">
+                <button id="matchButton" class="btn">マッチング</button>
+
+                <div class="info-item-yoko">
+                    <div class="label label-even">合言葉</div>
+                    <input id="roomMatching" class="value-yoko" type="text" placeholder="合言葉を入力" />
+                </div>
+            </div>
+
+            <!-- CPU対戦専用ブロック（?mode=cpu の場合のみ表示） -->
+            <div id="soloModeBlock">
+                <div id="soloModeGroup" class="solo-mode-group">
+                    <button id="soloModeButton" class="btn solo-mode-btn">ソロモード(CPU対戦)</button>
+
+                    <div id="cpuDifficultySelector" class="cpu-difficulty-selector">
+                        <div class="cpu-difficulty-radio-row">
+                            <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="easy"></label>
+                            <span class="cpu-difficulty-line"></span>
+                            <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="normal"></label>
+                            <span class="cpu-difficulty-line"></span>
+                            <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="hard"></label>
+                            <span class="cpu-difficulty-line"></span>
+                            <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="bakatare"></label>
+                        </div>
+                        <div id="cpuDifficultyLabel" class="cpu-difficulty-label"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="status"></div>
+
+        </div>
+
+        <div class="charalist"> <!-- charalistを追加 -->
+            <div class="thumbnail-container" id="thumbnailContainer"></div>
+        </div>
+    </div><!-- /.parent-container -->
+    </div><!-- /#lobbyWrap -->
+    </div><!-- /#lobbyViewport -->
     </main>
 
     <div id="version"></div>

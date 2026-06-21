@@ -1,5 +1,5 @@
 // settingsManager.js - 石カラー・必殺技演出強度などのユーザー設定を管理する共通モジュール
-// localStorageに保存し、ロビー(index.html)・バトル(battle.html)の両方から利用する
+// localStorageに保存し、ハブ(index.html)・キャラ選択(select.html)・バトル(battle.html)など各画面から利用する
 
 const STORAGE_KEY = "gameSettings";
 

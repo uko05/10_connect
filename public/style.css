@@ -274,6 +274,96 @@ header {
     color: #ff4c4c;
 }
 
+/* ===== ハブ画面（モード選択） ===== */
+.hub-wrap {
+    max-width: 480px;
+    margin: 40px auto;
+    padding: 30px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hub-title {
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 20px;
+    color: #333;
+    margin: 0 0 10px;
+}
+
+.hub-btn {
+    font-family: 'SDK_JP_WEB', sans-serif;
+    color: white;
+    padding: 16px 0;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    width: 100%;
+}
+
+.hub-btn-cpu {
+    background-color: #6f42c1;
+    border: 2px solid #6f42c1;
+}
+
+.hub-btn-match {
+    background-color: #007bff;
+    border: 2px solid #007bff;
+}
+
+.hub-btn-info {
+    background-color: #aa8800;
+    border: 2px solid #aa8800;
+}
+
+/* ===== 戻るボタン（キャラ選択・プレイヤー情報画面の先頭に表示） ===== */
+.back-btn {
+    display: block;
+    margin: 0 0 14px;
+    padding: 6px 14px;
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid #999;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.back-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* ===== プレイヤー情報画面 ===== */
+.player-info-wrap {
+    max-width: 480px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-name-display {
+    font-weight: bold;
+    text-align: center;
+    font-size: 1.1em;
+}
+
+@media (max-width: 1024px) {
+    .hub-wrap, .player-info-wrap {
+        margin: 16px auto;
+        box-sizing: border-box;
+    }
+}
+
 .thumbnail-container {
     margin-top: 10px;
     display: flex; /* 横並びにする */

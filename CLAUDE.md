@@ -28,8 +28,11 @@ There is no build step, no npm, and no test suite. Files are served directly.
 
 ### Page Flow
 
-1. **`index.html`** + `public/scripts/main.js` — Lobby & character selection. Manages matchmaking via `waitingPlayers` Firestore collection.
-2. **`battle.html`** + `public/scripts/gameLogic.js` — Core game engine (~3000 lines). Canvas rendering, turn logic, win detection, ability system, real-time Firestore sync.
+1. **`index.html`** + `public/scripts/main.js` — Hub screen (landing page). Three entry points: CPU対戦 → `select.html?mode=cpu`, マッチング対戦 → `select.html?mode=match`, プレイヤー情報 → `playerInfo.html`.
+2. **`select.html`** + `public/scripts/characterSelect.js` — Character selection, shared by both modes. Reads `?mode=` to show/hide the solo-difficulty block vs. the matching/passphrase block. Manages matchmaking via the `rooms` Firestore collection. Has a back button to the hub.
+3. **`solo.html`** + `public/scripts/soloLogic.js` — CPU battle (no Firestore, no rating impact by design).
+4. **`battle.html`** + `public/scripts/gameLogic.js` — Core PvP game engine (~3000 lines). Canvas rendering, turn logic, win detection, ability system, real-time Firestore sync.
+5. **`playerInfo.html`** + `public/scripts/playerInfo.js` — Rating/rank display; future home for the achievement gallery and title selection.
 
 ### Key Modules
 

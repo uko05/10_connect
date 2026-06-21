@@ -508,7 +508,7 @@ document.getElementById('leaveButton').addEventListener('click', async () => {
     if (!confirmed) return;
 
     await updateLeaveRooms();
-    window.location.href = 'index.html';
+    window.location.href = 'select.html?mode=match';
 });
 
 document.getElementById('specialMoveButton').addEventListener('click', () => {
@@ -2545,7 +2545,7 @@ function displayVictory(winningColor) {
 
     // 8秒後にキャラ選択画面に戻る（レートアニメーション分を考慮）
     setTimeout(() => {
-        window.location.href = "index.html";
+        window.location.href = "select.html?mode=match";
     }, 8000);
 }
 
@@ -2625,7 +2625,7 @@ function displayLeaveMessage() {
 
     // 8秒後にキャラ選択画面に戻る
     setTimeout(() => {
-        window.location.href = "index.html";
+        window.location.href = "select.html?mode=match";
     }, 8000);
 }
 
