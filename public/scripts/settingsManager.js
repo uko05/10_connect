@@ -129,15 +129,6 @@ export function bindSettingsUI(root, onColorChange) {
             if (radio.checked) setUltIntensity(radio.value);
         });
     });
-
-    // CPU難易度（ソロモードのみで使用するセクションが存在する場合のみ）
-    const difficultyRadios = root.querySelectorAll('input[name="cpuDifficulty"]');
-    difficultyRadios.forEach(radio => {
-        radio.checked = radio.value === currentSettings.cpuDifficulty;
-        radio.addEventListener("change", () => {
-            if (radio.checked) setCpuDifficulty(radio.value);
-        });
-    });
 }
 
 /**

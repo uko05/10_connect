@@ -168,12 +168,27 @@
             <input type="hidden" id="charaID" value="">
             
             <button id="matchButton" class="btn">マッチング</button>
-            <button id="soloModeButton" class="btn solo-mode-btn">ソロモード(CPU対戦)</button>
 
             <div class="info-item-yoko">
                 <div class="label label-even">合言葉</div>
                 <input id="roomMatching" class="value-yoko" type="text" placeholder="合言葉を入力" />
             </div>
+
+            <button id="soloModeButton" class="btn solo-mode-btn">ソロモード(CPU対戦)</button>
+
+            <div id="cpuDifficultySelector" class="cpu-difficulty-selector">
+                <div class="cpu-difficulty-radio-row">
+                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="easy"></label>
+                    <span class="cpu-difficulty-line"></span>
+                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="normal"></label>
+                    <span class="cpu-difficulty-line"></span>
+                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="hard"></label>
+                    <span class="cpu-difficulty-line"></span>
+                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="bakatare"></label>
+                </div>
+                <div id="cpuDifficultyLabel" class="cpu-difficulty-label"></div>
+            </div>
+
             <div id="statusMessage" class="status"></div>
             
         </div>

@@ -19,11 +19,33 @@ import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
 import { ensureUserDoc, getUserRating, applyRatingDisplay, savePlayerName } from './eloRating.js';
-import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
+import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty } from './settingsManager.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
+
+// CPU難易度選択（キャラ選択画面、ソロモードボタンの下）。前回対戦時の難易度がデフォルトで選択される
+const cpuDifficultyRadios = document.querySelectorAll('input[name="cpuDifficulty"]');
+const cpuDifficultyLabel = document.getElementById('cpuDifficultyLabel');
+
+function updateCpuDifficultyLabel(difficultyId) {
+    if (!cpuDifficultyLabel) return;
+    const level = CPU_DIFFICULTY_LEVELS.find(d => d.id === difficultyId);
+    cpuDifficultyLabel.textContent = level ? level.label : "";
+}
+
+const initialCpuDifficulty = getCpuDifficulty();
+cpuDifficultyRadios.forEach(radio => {
+    radio.checked = radio.value === initialCpuDifficulty;
+    radio.addEventListener('change', () => {
+        if (radio.checked) {
+            setCpuDifficulty(radio.value);
+            updateCpuDifficultyLabel(radio.value);
+        }
+    });
+});
+updateCpuDifficultyLabel(initialCpuDifficulty);
 
 // ソロモード（CPU対戦）への遷移。マッチング不要・Firestoreを使わない別画面
 document.getElementById('soloModeButton').addEventListener('click', () => {
