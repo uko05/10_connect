@@ -174,19 +174,21 @@
                 <input id="roomMatching" class="value-yoko" type="text" placeholder="合言葉を入力" />
             </div>
 
-            <button id="soloModeButton" class="btn solo-mode-btn">ソロモード(CPU対戦)</button>
+            <div id="soloModeGroup" class="solo-mode-group">
+                <button id="soloModeButton" class="btn solo-mode-btn">ソロモード(CPU対戦)</button>
 
-            <div id="cpuDifficultySelector" class="cpu-difficulty-selector">
-                <div class="cpu-difficulty-radio-row">
-                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="easy"></label>
-                    <span class="cpu-difficulty-line"></span>
-                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="normal"></label>
-                    <span class="cpu-difficulty-line"></span>
-                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="hard"></label>
-                    <span class="cpu-difficulty-line"></span>
-                    <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="bakatare"></label>
+                <div id="cpuDifficultySelector" class="cpu-difficulty-selector">
+                    <div class="cpu-difficulty-radio-row">
+                        <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="easy"></label>
+                        <span class="cpu-difficulty-line"></span>
+                        <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="normal"></label>
+                        <span class="cpu-difficulty-line"></span>
+                        <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="hard"></label>
+                        <span class="cpu-difficulty-line"></span>
+                        <label class="cpu-difficulty-radio"><input type="radio" name="cpuDifficulty" value="bakatare"></label>
+                    </div>
+                    <div id="cpuDifficultyLabel" class="cpu-difficulty-label"></div>
                 </div>
-                <div id="cpuDifficultyLabel" class="cpu-difficulty-label"></div>
             </div>
 
             <div id="statusMessage" class="status"></div>

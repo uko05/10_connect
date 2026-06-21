@@ -206,6 +206,15 @@ header {
     margin-bottom: 20px;
 }
 
+.solo-mode-group {
+    margin-top: 30px; /* 合言葉欄との間隔を広げる */
+    margin-bottom: 20px;
+    padding: 12px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
 #soloModeButton {
     font-family: 'SDK_JP_WEB', sans-serif;
     background-color: #6f42c1; /* マッチングボタンと区別する紫系 */
@@ -218,11 +227,10 @@ header {
     cursor: pointer;
     transition: background-color 0.3s ease, border-color 0.3s ease;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .cpu-difficulty-selector {
-    margin: 0 0 20px;
     text-align: center;
 }
 
