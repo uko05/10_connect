@@ -30,14 +30,21 @@
 
             <div class="info-item-yoko lobby-player-info">
                 <div class="lobby-player-left">
-                    <div id="playerInfoName" class="player-name-display">---</div>
+                    <div class="info-row-no-bg" style="border:none; padding:0; gap:8px;">
+                        <div class="label label-even">名前</div>
+                        <input id="playerInfoNameInput" class="value-yoko name-input-flex" type="text" placeholder="プレイヤー名を入力" />
+                        <button id="savePlayerNameButton" class="save-name-btn">保存</button>
+                    </div>
+                    <div id="saveNameFeedback" class="save-name-feedback"></div>
                     <div id="playerInfoRankName" class="player-rating" style="text-align:center; margin:2px 0;">---</div>
                     <div id="playerInfoRatingDisplay" class="player-rating-detail" style="text-align:center; margin:2px 0;">---</div>
                 </div>
                 <img id="playerInfoRankBadge" class="rank-badge" src="" alt="">
             </div>
 
-            <div id="achievementSection" class="info-box top15">▼アチーブメント▼（近日対応）</div>
+            <div class="info-box top15">▼アチーブメント▼</div>
+            <div id="achievementSummary" class="achievement-summary">---</div>
+            <div id="achievementList" class="achievement-list"></div>
         </div>
     </main>
 

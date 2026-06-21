@@ -113,8 +113,9 @@ service cloud.firestore {
       // ※ charaWins（キャラ別個人勝利数）・playerNameはランキング・レートに影響しない表示用の項目のため、
       //    型(map/string)と簡易な制約のみ確認し、厳密な変化量チェックは行わない（コストに見合わない）
       // ※ matchCountはレート更新を伴わない単独更新（プレイヤー名保存等）もあるため、不変 or +1 を許可
+      // ※ achievements/achievementCount/achStatsもレート・勝利数とは別フィールドのため、簡易な型・サイズ制約のみ確認する
       allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'charaWins', 'playerName'])
+        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'charaWins', 'playerName', 'achievements', 'achievementCount', 'achStats'])
         && request.resource.data.rating is int
         && request.resource.data.rating >= 100
         && request.resource.data.rating <= resource.data.rating + 48
@@ -125,7 +126,10 @@ service cloud.firestore {
         && request.resource.data.winCount >= resource.data.winCount
         && request.resource.data.winCount <= resource.data.winCount + 1
         && (!("charaWins" in request.resource.data) || request.resource.data.charaWins is map)
-        && (!("playerName" in request.resource.data) || (request.resource.data.playerName is string && request.resource.data.playerName.size() <= 20));
+        && (!("playerName" in request.resource.data) || (request.resource.data.playerName is string && request.resource.data.playerName.size() <= 20))
+        && (!("achievements" in request.resource.data) || request.resource.data.achievements is list)
+        && (!("achievementCount" in request.resource.data) || (request.resource.data.achievementCount is int && request.resource.data.achievementCount >= 0 && request.resource.data.achievementCount <= 200))
+        && (!("achStats" in request.resource.data) || request.resource.data.achStats is map);
     }
 
     // charaStats コレクション（キャラ統計用）

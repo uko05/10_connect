@@ -343,18 +343,135 @@ header {
 
 /* ===== プレイヤー情報画面 ===== */
 .player-info-wrap {
-    max-width: 480px;
+    max-width: 700px;
     margin: 40px auto;
     padding: 20px;
     background-color: rgba(255, 255, 255, 0.4);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: left;
 }
 
-.player-name-display {
+/* ===== アチーブメント一覧 ===== */
+.achievement-summary {
+    text-align: right;
+    font-size: 0.85em;
     font-weight: bold;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.achievement-group {
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.achievement-group-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.achievement-items {
+    padding: 0 10px 10px;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.achievement-item:first-child {
+    border-top: none;
+}
+
+.achievement-icon {
+    flex-shrink: 0;
+    width: 1.4em;
     text-align: center;
-    font-size: 1.1em;
+    font-size: 1.2em;
+}
+
+.achievement-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.achievement-name {
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.achievement-condition {
+    font-size: 0.8em;
+    color: #555;
+}
+
+.achievement-progress {
+    font-size: 0.78em;
+    color: #888;
+}
+
+.achievement-item.locked .achievement-name,
+.achievement-item.locked .achievement-icon {
+    color: #999;
+}
+
+.rarity-badge {
+    font-size: 0.65em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: white;
+}
+
+.rarity-bronze .achievement-icon, .rarity-badge.rarity-bronze { background-color: #cd7f32; }
+.rarity-silver .achievement-icon, .rarity-badge.rarity-silver { background-color: #8a96a3; }
+.rarity-gold .achievement-icon, .rarity-badge.rarity-gold { background-color: #d4a800; }
+.rarity-legend .achievement-icon, .rarity-badge.rarity-legend { background-color: #9b59b6; }
+
+.achievement-item.locked .achievement-icon {
+    background-color: #ccc !important;
+}
+
+.name-input-flex {
+    width: auto;
+    flex: 1;
+}
+
+.save-name-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: white;
+    background-color: #28a745;
+    border: 1px solid #28a745;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.save-name-btn:hover {
+    background-color: #218838;
+}
+
+.save-name-feedback {
+    min-height: 1.2em;
+    font-size: 0.8em;
+    color: #28a745;
+    text-align: center;
+    margin: 2px 0;
 }
 
 @media (max-width: 1024px) {

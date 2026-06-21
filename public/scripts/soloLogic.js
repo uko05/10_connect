@@ -1,13 +1,16 @@
-// soloLogic.js - ソロモード(CPU対戦)。Firestoreを使わず、ブラウザ内だけで完結するConnect4。
+// soloLogic.js - ソロモード(CPU対戦)。対局自体はFirestoreを使わず、ブラウザ内だけで完結するConnect4。
 // キャラ選択・チャージ・必殺技は通常戦同様に使えるが、レート・キャラ別勝利数には一切影響しない。
+// アチーブメント（難易度別勝利）のみ、users/{uid}.achStats に記録する（rating/charaWinsとは完全に別フィールド）。
 
 import { drawPiece as _drawPiece, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
-import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth } from "./settingsManager.js";
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty } from "./settingsManager.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers } from "./abilities.js";
 import { characterData } from "./characterData.js";
 import { APP_VERSION } from "./version.js";
+import { authReady } from "./firebaseConfig.js";
+import { recordSoloWin } from "./achievementManager.js";
 
 document.getElementById('version').textContent = APP_VERSION;
 
@@ -39,6 +42,8 @@ let startingSide = 'player'; // 各ラウンドの先攻
 
 let playerChara = null;
 let cpuChara = null;
+let currentUid = null; // アチーブメント記録用（認証は裏で進める。対局の進行はブロックしない）
+authReady.then((user) => { currentUid = user.uid; }).catch((e) => console.warn("[solo] 認証取得失敗:", e));
 let playerCharge = 0;
 let cpuCharge = 0;
 let playerUltCount = 0;
@@ -707,6 +712,13 @@ async function checkGameEnd() {
         updateWinIndicators();
 
         if (playerRoundWins >= 3 || cpuRoundWins >= 3) {
+            if (winnerSide === 'player' && currentUid) {
+                try {
+                    await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                } catch (e) {
+                    console.error("[Achievement] ソロ勝利の記録に失敗:", e);
+                }
+            }
             await showFinalResult(winnerSide === 'player' ? 'win' : 'lose');
         } else {
             startingSide = winnerSide === 'player' ? 'cpu' : 'player'; // 負けた側が次ラウンドの先攻

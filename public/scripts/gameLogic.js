@@ -38,6 +38,7 @@ import {
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity } from "./settingsManager.js";
+import { recordPvpMatchAchievements } from "./achievementManager.js";
 
 
 // バージョン表示
@@ -90,6 +91,8 @@ let startP = null;
 
 let red_Win = 0;
 let yellow_Win = 0;
+let redComebackFromDown02 = false; // redが0-2の劣勢から逆転したか（アチーブメント「大逆転」判定用）
+let yellowComebackFromDown02 = false;
 let changeStone = 0;
 let matchType = "ranked"; // "ranked" | "private"
 let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
@@ -1243,7 +1246,11 @@ async function watchRoomUpdates() {
             
                     }
                 }
-                
+
+                // 0-2の劣勢を記録（アチーブメント「大逆転」判定用。このラウンド更新後の値で判定する）
+                if (red_Win === 0 && yellow_Win === 2) redComebackFromDown02 = true;
+                if (yellow_Win === 0 && red_Win === 2) yellowComebackFromDown02 = true;
+
                 // 勝利したときのラベル表示（YOU WIN:YOU LOSE）
                 await showWinner(result);
                 
@@ -1261,9 +1268,11 @@ async function watchRoomUpdates() {
                 console.log("◆◆◆◆◆◆◆◆◆◆◆");
                 console.log("勝利判定②（BO3確定）");
                 const winningColor = red_Win === 3 ? "red" : "yellow";
+                const isStraightWin = winningColor === "red" ? yellow_Win === 0 : red_Win === 0;
+                const isComebackWin = winningColor === "red" ? redComebackFromDown02 : yellowComebackFromDown02;
 
                 // レーティング更新処理（ranked のみ）
-                await handleBO3Final(winningColor, "normal");
+                await handleBO3Final(winningColor, "normal", { isStraightWin, isComebackWin });
 
                 displayVictory(winningColor); // 勝利画面を表示
                 resetTimeLimit();
@@ -2435,7 +2444,8 @@ async function getRandomEmptyColumn() {
 // BO3確定時のレーティング更新処理
 // winningColor: 勝者の色 ("red" | "yellow")
 // resultType: "normal" | "leave" | "timeout"
-async function handleBO3Final(winningColor, resultType) {
+// matchFlags: { isStraightWin, isComebackWin } - "normal"決着時のみ意味を持つ
+async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
     // P2はレート処理に関与しない（P1のみが全責務を持つ）
     if (player_info !== "P1") {
         console.log("[Rating] P2: レート処理はP1に委任");
@@ -2446,6 +2456,8 @@ async function handleBO3Final(winningColor, resultType) {
         console.warn("[Rating] firestoreRoomDocRef is null, skipping rating");
         return;
     }
+
+    const { isStraightWin = false, isComebackWin = false } = matchFlags;
 
     // 勝者UIDの特定（P1視点: playerLeft = P1, playerRight = P2）
     const isMeWinner = (playerLeft_Color === winningColor);
@@ -2474,6 +2486,29 @@ async function handleBO3Final(winningColor, resultType) {
             const result = await executeRatingTransaction(firestoreRoomDocRef, p1Uid, p2Uid);
             if (result) {
                 console.log("[Rating] レート更新完了:", result);
+
+                // アチーブメント関連スタッツの更新（rating/winCount/charaWinsとは別フィールド。
+                // 失敗してもレート処理自体には影響させないようtry/catchで隔離する）
+                try {
+                    const ratingFor = (uid) => (uid === winnerUid ? result.winnerNewRating : result.loserNewRating);
+                    const isCleanWin = resultType === "normal";
+                    await Promise.all([
+                        recordPvpMatchAchievements(p1Uid, {
+                            newRating: ratingFor(p1Uid),
+                            ultCountThisMatch: playerLeft_UltCount,
+                            isWinner: winnerUid === p1Uid,
+                            isStraightWin, isCleanWin, isComebackWin,
+                        }),
+                        recordPvpMatchAchievements(p2Uid, {
+                            newRating: ratingFor(p2Uid),
+                            ultCountThisMatch: playerRight_UltCount,
+                            isWinner: winnerUid === p2Uid,
+                            isStraightWin, isCleanWin, isComebackWin,
+                        }),
+                    ]);
+                } catch (achError) {
+                    console.error("[Achievement] PvP実績更新失敗:", achError);
+                }
             } else {
                 console.warn("[Rating] Transaction returned null（条件不一致 or エラー）");
             }
