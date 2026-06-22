@@ -52,13 +52,14 @@ function renderAchievements(userData) {
         const groupItems = items.filter((a) => a.groupId === group.id);
         const groupUnlocked = groupItems.filter((a) => a.unlocked).length;
 
-        const groupEl = document.createElement('div');
-        groupEl.className = 'achievement-group';
+        // グループはdetails/summaryで開閉式にする（デフォルトは閉じた状態）
+        const details = document.createElement('details');
+        details.className = 'achievement-group';
 
-        const header = document.createElement('div');
-        header.className = 'achievement-group-header';
-        header.innerHTML = `<span>${group.name}</span><span>${groupUnlocked} / ${groupItems.length}</span>`;
-        groupEl.appendChild(header);
+        const summaryEl = document.createElement('summary');
+        summaryEl.className = 'achievement-group-header';
+        summaryEl.innerHTML = `<span>${group.name}</span><span>${groupUnlocked} / ${groupItems.length}</span>`;
+        details.appendChild(summaryEl);
 
         const itemsEl = document.createElement('div');
         itemsEl.className = 'achievement-items';
@@ -72,7 +73,6 @@ function renderAchievements(userData) {
                 : '';
 
             item.innerHTML =
-                `<span class="achievement-icon">${ach.unlocked ? '✦' : '？'}</span>` +
                 `<div class="achievement-text">` +
                     `<span class="achievement-name">${ach.unlocked ? ach.name : '？？？'}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
                     `<span class="achievement-condition">${ach.condition}</span>` +
@@ -81,8 +81,8 @@ function renderAchievements(userData) {
             itemsEl.appendChild(item);
         });
 
-        groupEl.appendChild(itemsEl);
-        list.appendChild(groupEl);
+        details.appendChild(itemsEl);
+        list.appendChild(details);
     });
 }
 

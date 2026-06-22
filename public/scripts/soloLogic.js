@@ -11,6 +11,7 @@ import { characterData } from "./characterData.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
 import { recordSoloWin } from "./achievementManager.js";
+import { showAchievementToast } from "./achievementToast.js";
 
 document.getElementById('version').textContent = APP_VERSION;
 
@@ -714,7 +715,8 @@ async function checkGameEnd() {
         if (playerRoundWins >= 3 || cpuRoundWins >= 3) {
             if (winnerSide === 'player' && currentUid) {
                 try {
-                    await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                    const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                    newlyUnlocked.forEach((id) => showAchievementToast(id));
                 } catch (e) {
                     console.error("[Achievement] ソロ勝利の記録に失敗:", e);
                 }

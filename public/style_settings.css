@@ -159,3 +159,122 @@
 .leave-btn:hover {
   background: rgba(183, 28, 28, 0.12);
 }
+
+/* ===== アチーブメントトースト（解放時に画面下からスライドイン） ===== */
+@keyframes ach-toast-in {
+  from { transform: translateX(-50%) translateY(120px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);     opacity: 1; }
+}
+@keyframes ach-toast-out {
+  from { transform: translateX(-50%) translateY(0);     opacity: 1; }
+  to   { transform: translateX(-50%) translateY(120px); opacity: 0; }
+}
+@keyframes ach-toast-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes ach-legend-glow {
+  0%,100% { box-shadow: 0 0 10px 2px rgba(155,89,182,0.4); }
+  50%      { box-shadow: 0 0 22px 7px rgba(155,89,182,0.75); }
+}
+
+.ach-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: #1e2140;
+  border: 2px solid #ffcc00;
+  border-radius: 10px;
+  padding: 12px 20px 14px;
+  text-align: center;
+  width: min(70vw, 420px);
+  z-index: 2000000;
+  pointer-events: none;
+}
+
+/* 基底スタイル：グラデーション背景と枠線のみ（animation はここに置かない） */
+.ach-toast.rarity-bronze {
+  background: linear-gradient(45deg, #a57e65 0%, #a57e65 45%, #f3cfb8 70%, #a57e65 85%, #a57e65 100%);
+  background-size: 800% 400%;
+  border-color: #cd7f32;
+  box-shadow: 0 0 14px 2px rgba(205,127,50,0.5);
+}
+.ach-toast.rarity-silver {
+  background: linear-gradient(45deg, #757575 0%, #9e9e9e 45%, #e8e8e8 70%, #9e9e9e 85%, #757575 100%);
+  background-size: 800% 400%;
+  border-color: #a8b8c8;
+  box-shadow: 0 0 14px 2px rgba(168,184,200,0.5);
+}
+.ach-toast.rarity-gold {
+  background: linear-gradient(45deg, #daaf08 0%, #daaf08 45%, #fee9a0 70%, #daaf08 85%, #daaf08 100%);
+  background-size: 800% 400%;
+  border-color: #d4a800;
+  box-shadow: 0 0 14px 2px rgba(212,168,0,0.55);
+}
+.ach-toast.rarity-legend {
+  background: linear-gradient(45deg, #5a1090 0%, #8b3cc8 45%, #d4a8ff 70%, #8b3cc8 85%, #5a1090 100%);
+  background-size: 800% 400%;
+  border-color: #9b59b6;
+  box-shadow: 0 0 14px 2px rgba(155,89,182,0.6);
+}
+
+/* 表示アニメーション：スライドイン＋シマーをここで定義（詳細度を hide より優先させる） */
+.ach-toast-show.rarity-bronze,
+.ach-toast-show.rarity-silver,
+.ach-toast-show.rarity-gold {
+  animation: ach-toast-in      0.38s ease-out forwards,
+             ach-toast-shimmer 5s    infinite cubic-bezier(.62,.28,.23,.99) 0.38s both;
+}
+.ach-toast-show.rarity-legend {
+  animation: ach-toast-in      0.38s ease-out forwards,
+             ach-toast-shimmer 4s    infinite cubic-bezier(.62,.28,.23,.99) 0.38s both,
+             ach-legend-glow   1.2s  ease-in-out 0.38s infinite;
+}
+
+/* 退場アニメーション：hide を rarity より詳細度高く定義してスライドアウトを確保 */
+.ach-toast-hide.rarity-bronze,
+.ach-toast-hide.rarity-silver,
+.ach-toast-hide.rarity-gold,
+.ach-toast-hide.rarity-legend {
+  animation: ach-toast-out 0.42s ease-in forwards;
+}
+.ach-toast-hide {
+  animation: ach-toast-out 0.42s ease-in forwards;
+}
+
+/* ブロンズ・シルバー・ゴールドは明るい背景なので暗い文字色に */
+.ach-toast.rarity-bronze .ach-toast-label,
+.ach-toast.rarity-silver .ach-toast-label,
+.ach-toast.rarity-gold   .ach-toast-label { color: rgba(0,0,0,0.55); }
+.ach-toast.rarity-bronze .ach-toast-name,
+.ach-toast.rarity-silver .ach-toast-name,
+.ach-toast.rarity-gold   .ach-toast-name  { color: #1a1000; }
+.ach-toast.rarity-bronze .ach-toast-condition,
+.ach-toast.rarity-silver .ach-toast-condition,
+.ach-toast.rarity-gold   .ach-toast-condition { color: rgba(0,0,0,0.6); }
+
+/* レジェンドは暗い紫背景なので明るい文字色に */
+.ach-toast.rarity-legend .ach-toast-label     { color: #e0c0ff; }
+.ach-toast.rarity-legend .ach-toast-name      { color: #ffffff; }
+.ach-toast.rarity-legend .ach-toast-condition { color: #d0a8f8; }
+
+.ach-toast-label {
+  font-size: 0.68rem;
+  color: #aa8800;
+  letter-spacing: 0.12em;
+  margin-bottom: 5px;
+}
+
+.ach-toast-name {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 4px;
+}
+
+.ach-toast-condition {
+  font-size: 0.75rem;
+  color: #888888;
+}

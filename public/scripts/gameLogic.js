@@ -39,6 +39,7 @@ import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity } from "./settingsManager.js";
 import { recordPvpMatchAchievements } from "./achievementManager.js";
+import { showAchievementToast } from "./achievementToast.js";
 
 
 // バージョン表示
@@ -98,6 +99,8 @@ let matchType = "ranked"; // "ranked" | "private"
 let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
 let isMatchFinalized = false; // BO3確定済みフラグ（二重発火防止）
 let myPreRating = null; // レート変動表示用：試合前の自分のレート
+let myPreAchievements = new Set(); // 試合前の自分の解放済みアチーブメントID（P2側のトースト表示用の差分検知に使う）
+let achievementToastShownForMatch = false; // P2側のトースト多重表示防止
 let disconnectTimer = null; // 相手切断検知用の猶予タイマー
 
 let winningflg = 0;
@@ -389,6 +392,8 @@ async function displayThumbnails() {
         ]);
         // 自分の事前レートを保存（レート変動表示用）
         myPreRating = leftRating?.rating ?? null;
+        // 自分の事前解放済みアチーブメントを保存（P2側のトースト差分検知用）
+        myPreAchievements = new Set(leftRating?.achievements || []);
         await Promise.all([
             applyRatingDisplay(document.getElementById('playerRating_1'), leftRating, document.getElementById('rankBadge_1'), document.getElementById('playerRankName_1')),
             applyRatingDisplay(document.getElementById('playerRating_2'), rightRating, document.getElementById('rankBadge_2'), document.getElementById('playerRankName_2'))
@@ -1003,6 +1008,18 @@ function moveStoneToColumn(col) {
 
 //------------------------------------------------------------------------------------------------
 
+// P2側：自分のuser docの解放済みアチーブメントを試合前のスナップショットと比較し、
+// 新規解放分があればトーストを出す（P1はhandleBO3Final内で直接トーストするためここでは扱わない）
+function checkAndToastNewAchievements(myRating) {
+    if (!myRating || achievementToastShownForMatch) return;
+    const currentAchievements = myRating.achievements || [];
+    const newlyUnlocked = currentAchievements.filter((id) => !myPreAchievements.has(id));
+    if (newlyUnlocked.length > 0) {
+        achievementToastShownForMatch = true;
+        newlyUnlocked.forEach((id) => showAchievementToast(id));
+    }
+}
+
 async function watchRoomUpdates() {
     const roomsRef = collection(db, "rooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
@@ -1022,6 +1039,7 @@ async function watchRoomUpdates() {
                     console.log("[Rating] P2: rated===true 検知（finalized後）");
                     const myRating = await getUserRating(playerLeft_ID);
                     if (myRating) console.log("[Rating] P2 updated rating:", myRating);
+                    checkAndToastNewAchievements(myRating);
                 }
             });
             return;
@@ -1037,6 +1055,7 @@ async function watchRoomUpdates() {
                 if (myRating) {
                     console.log("[Rating] P2 updated rating:", myRating);
                 }
+                checkAndToastNewAchievements(myRating);
             }
 
             // 部屋のステータスが "leave" になった場合の処理
@@ -2492,7 +2511,7 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
                 try {
                     const ratingFor = (uid) => (uid === winnerUid ? result.winnerNewRating : result.loserNewRating);
                     const isCleanWin = resultType === "normal";
-                    await Promise.all([
+                    const [p1Newly] = await Promise.all([
                         recordPvpMatchAchievements(p1Uid, {
                             newRating: ratingFor(p1Uid),
                             ultCountThisMatch: playerLeft_UltCount,
@@ -2506,6 +2525,9 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
                             isStraightWin, isCleanWin, isComebackWin,
                         }),
                     ]);
+                    // playerLeft = P1 = 自分。自分の新規解放分のみトースト表示する（P2は別途rated検知で表示）
+                    achievementToastShownForMatch = true;
+                    p1Newly.forEach((id) => showAchievementToast(id));
                 } catch (achError) {
                     console.error("[Achievement] PvP実績更新失敗:", achError);
                 }

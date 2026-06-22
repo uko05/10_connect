@@ -361,6 +361,7 @@ header {
     margin-bottom: 8px;
 }
 
+/* アチーブメント一覧：グループはdetails/summaryで開閉式（デフォルト閉） */
 .achievement-group {
     margin-bottom: 10px;
     border: 1px solid #ccc;
@@ -370,10 +371,30 @@ header {
 
 .achievement-group-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
     font-weight: bold;
     cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.achievement-group-header::-webkit-details-marker {
+    display: none;
+}
+
+.achievement-group-header::after {
+    content: '▶';
+    font-size: 0.7em;
+    color: #888;
+    margin-left: 8px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+details[open] > .achievement-group-header::after {
+    transform: rotate(90deg);
 }
 
 .achievement-items {
@@ -383,20 +404,12 @@ header {
 .achievement-item {
     display: flex;
     align-items: center;
-    gap: 10px;
     padding: 6px 4px;
     border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .achievement-item:first-child {
     border-top: none;
-}
-
-.achievement-icon {
-    flex-shrink: 0;
-    width: 1.4em;
-    text-align: center;
-    font-size: 1.2em;
 }
 
 .achievement-text {
@@ -423,8 +436,7 @@ header {
     color: #888;
 }
 
-.achievement-item.locked .achievement-name,
-.achievement-item.locked .achievement-icon {
+.achievement-item.locked .achievement-name {
     color: #999;
 }
 
@@ -435,14 +447,10 @@ header {
     color: white;
 }
 
-.rarity-bronze .achievement-icon, .rarity-badge.rarity-bronze { background-color: #cd7f32; }
-.rarity-silver .achievement-icon, .rarity-badge.rarity-silver { background-color: #8a96a3; }
-.rarity-gold .achievement-icon, .rarity-badge.rarity-gold { background-color: #d4a800; }
-.rarity-legend .achievement-icon, .rarity-badge.rarity-legend { background-color: #9b59b6; }
-
-.achievement-item.locked .achievement-icon {
-    background-color: #ccc !important;
-}
+.rarity-badge.rarity-bronze { background-color: #cd7f32; }
+.rarity-badge.rarity-silver { background-color: #8a96a3; }
+.rarity-badge.rarity-gold { background-color: #d4a800; }
+.rarity-badge.rarity-legend { background-color: #9b59b6; }
 
 .name-input-flex {
     width: auto;
