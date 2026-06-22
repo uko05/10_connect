@@ -1,5 +1,5 @@
 // achievementToast.js - アチーブメント解放トースト（画面下からスライドイン）。キューで順番に表示する。
-import { ALL_ACHIEVEMENTS } from './achievements.js';
+import { ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
 
 let achToastQueue = [];
 let achToastBusy = false;
@@ -14,7 +14,7 @@ function processToastQueue() {
     achToastBusy = true;
 
     const achId = achToastQueue.shift();
-    const ach = ALL_ACHIEVEMENTS.find((a) => a.id === achId);
+    const ach = ALL_ACHIEVEMENTS.find((a) => a.id === achId) || (achId === DEBUG_ACHIEVEMENT.id ? DEBUG_ACHIEVEMENT : null);
     if (!ach) { processToastQueue(); return; }
 
     const toast = document.getElementById('ach-toast');

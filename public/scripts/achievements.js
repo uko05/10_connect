@@ -72,3 +72,13 @@ export const ACHIEVEMENT_GROUPS = [
 export const ALL_ACHIEVEMENTS = ACHIEVEMENT_GROUPS.flatMap((g) =>
     g.items.map((a) => ({ ...a, groupId: g.id }))
 );
+
+// デバッグ専用アチーブメント。ACHIEVEMENT_GROUPS / ALL_ACHIEVEMENTS には含めない
+// （一覧に出さず、解放記録もしない＝何度でもトーストを確認できる）。
+// プレイヤー情報画面で名前の末尾に「@debug」をつけて保存すると、このトーストが毎回表示される。
+export const DEBUG_ACHIEVEMENT = {
+    id: 'debug_test',
+    rarity: 'legend',
+    name: 'デバッグテスト@debug',
+    condition: 'プレイヤー情報画面で名前の末尾に「@debug」をつけて保存する',
+};

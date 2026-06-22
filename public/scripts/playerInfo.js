@@ -2,8 +2,9 @@
 import { authReady } from './firebaseConfig.js';
 import { APP_VERSION } from './version.js';
 import { ensureUserDoc, getUserRating, applyRatingDisplay, savePlayerName } from './eloRating.js';
-import { ACHIEVEMENT_GROUPS } from './achievements.js';
+import { ACHIEVEMENT_GROUPS, DEBUG_ACHIEVEMENT } from './achievements.js';
 import { getAchievementViewModel } from './achievementManager.js';
+import { showAchievementToast } from './achievementToast.js';
 
 document.getElementById('version').textContent = APP_VERSION;
 
@@ -101,5 +102,10 @@ document.getElementById('savePlayerNameButton').addEventListener('click', async 
     if (feedback) {
         feedback.textContent = '保存しました';
         setTimeout(() => { feedback.textContent = ''; }, 2000);
+    }
+
+    // デバッグ専用：名前の末尾が「@debug」の場合、何度でもトーストを確認できる（一覧には出さず、解放記録もしない）
+    if (nameInput.value.trim().endsWith('@debug')) {
+        showAchievementToast(DEBUG_ACHIEVEMENT.id);
     }
 });
