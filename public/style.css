@@ -43,6 +43,16 @@ body {
     overflow-x: hidden;
 }
 
+/* 通常の縦スクロールだけで十分なシンプルなページ（プレイヤー情報画面など）用。
+   body{overflow-x:hidden}とhtml,body{height:100%}の組み合わせは、仕様上overflow-yが暗黙的にautoとなり、
+   bodyがウィンドウとは別の内部スクロール領域になってしまう（コンテンツが伸びても上にスクロールして戻れない原因）。
+   このクラスでheight/overflowを解除し、ウィンドウ自体が1つのスクロール領域になるようにする。 */
+body.simple-page {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+}
+
 main {
   flex: 1 0 auto;
   width: 100%;
@@ -492,6 +502,13 @@ details[open] > .achievement-group-header::after {
 .ach-set-btn.set {
     color: #007bff;
     background-color: white;
+}
+
+.ach-set-btn:disabled {
+    color: #999;
+    background-color: #e0e0e0;
+    border-color: #ccc;
+    cursor: not-allowed;
 }
 
 /* .rarity-badge / .rarity-bronze等の色定義は style_settings.css（全画面共通）に移動済み */

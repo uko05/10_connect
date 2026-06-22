@@ -97,7 +97,7 @@ function renderAchievements() {
             const isSet = equippedInSlot === ach.id;
             const setBtnHtml = ach.unlocked
                 ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? '設定済み' : '設定'}</button>`
-                : '';
+                : `<button type="button" class="ach-set-btn" disabled>未所持</button>`;
 
             item.innerHTML =
                 `<div class="achievement-text">` +
@@ -117,7 +117,7 @@ function renderAchievements() {
 // 「設定」/「設定済み」ボタンのクリック（イベント委任：一覧が再描画されても再バインド不要）
 document.getElementById('achievementList').addEventListener('click', async (event) => {
     const btn = event.target.closest('.ach-set-btn');
-    if (!btn || !currentUid) return;
+    if (!btn || !currentUid || btn.disabled) return;
 
     const achId = btn.dataset.id;
     const isCurrentlySet = btn.classList.contains('set');
