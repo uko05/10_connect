@@ -80,7 +80,7 @@ function renderAchievements() {
 
         const summaryEl = document.createElement('summary');
         summaryEl.className = 'achievement-group-header';
-        summaryEl.innerHTML = `<span>${group.name}</span><span>${groupUnlocked} / ${groupItems.length}</span>`;
+        summaryEl.innerHTML = `<span class="achievement-group-name">${group.name}</span><span class="achievement-group-count">${groupUnlocked} / ${groupItems.length}</span>`;
         details.appendChild(summaryEl);
 
         const itemsEl = document.createElement('div');

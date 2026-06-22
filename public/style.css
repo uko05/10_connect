@@ -383,8 +383,8 @@ header {
 
 .achievement-tab-btn.active {
     color: white;
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    background-color: #007bff;
+    border-color: #007bff;
 }
 
 /* アチーブメント一覧：グループはdetails/summaryで開閉式（デフォルト閉） */
@@ -398,12 +398,21 @@ header {
 .achievement-group-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: 8px 12px;
     font-weight: bold;
     cursor: pointer;
     list-style: none;
     user-select: none;
+}
+
+.achievement-group-name {
+    flex: 1;
+}
+
+.achievement-group-count {
+    color: #888;
+    font-weight: normal;
+    font-size: 0.85em;
 }
 
 .achievement-group-header::-webkit-details-marker {
@@ -468,20 +477,20 @@ details[open] > .achievement-group-header::after {
 
 .ach-set-btn {
     flex-shrink: 0;
-    margin-left: 8px;
-    padding: 4px 10px;
+    margin-left: 10px;
+    padding: 10px 18px;
     font-family: 'SDK_JP_WEB', sans-serif;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: bold;
     color: white;
-    background-color: #6f42c1;
-    border: 1px solid #6f42c1;
+    background-color: #007bff;
+    border: 1px solid #007bff;
     border-radius: 6px;
     cursor: pointer;
 }
 
 .ach-set-btn.set {
-    color: #6f42c1;
+    color: #007bff;
     background-color: white;
 }
 
