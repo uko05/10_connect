@@ -28,14 +28,26 @@
                 <div class="lobby-player-left">
                     <div class="info-row-no-bg" style="border:none; padding:0; gap:8px;">
                         <div class="label label-even">名前</div>
-                        <input id="playerInfoNameInput" class="value-yoko name-input-flex" type="text" placeholder="プレイヤー名を入力" />
+                        <input id="playerInfoNameInput" class="value-yoko name-input-short" type="text" placeholder="名前" />
                         <button id="savePlayerNameButton" class="save-name-btn">保存</button>
                     </div>
                     <div id="saveNameFeedback" class="save-name-feedback"></div>
-                    <div id="playerInfoRankName" class="player-rating" style="text-align:center; margin:2px 0;">---</div>
-                    <div id="playerInfoRatingDisplay" class="player-rating-detail" style="text-align:center; margin:2px 0;">---</div>
+
+                    <div class="title-slots-row">
+                        <div class="title-slot">
+                            <div class="title-slot-label">アチーブメント1</div>
+                            <div id="titleSlotBanner0" class="title-slot-banner empty">未設定</div>
+                        </div>
+                        <div class="title-slot">
+                            <div class="title-slot-label">アチーブメント2</div>
+                            <div id="titleSlotBanner1" class="title-slot-banner empty">未設定</div>
+                        </div>
+                    </div>
+
+                    <div id="playerInfoRankName" class="player-rating" style="text-align:left; margin:2px 0;">---</div>
+                    <div id="playerInfoRatingDisplay" class="player-rating-detail" style="text-align:left; margin:2px 0;">---</div>
                 </div>
-                <img id="playerInfoRankBadge" class="rank-badge" src="" alt="">
+                <img id="playerInfoRankBadge" class="rank-badge rank-badge-large" src="" alt="">
             </div>
 
             <div class="info-box top15">▼アチーブメント▼</div>

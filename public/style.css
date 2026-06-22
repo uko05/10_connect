@@ -362,6 +362,52 @@ header {
     text-align: left;
 }
 
+/* 称号スロット（アチーブメント1/2）のバナー表示。下のアチーブメント一覧で「設定」した内容を反映する */
+.title-slots-row {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.title-slot {
+    flex: 1;
+    min-width: 0;
+}
+
+.title-slot-label {
+    font-size: 0.7em;
+    color: #777;
+    margin-bottom: 2px;
+}
+
+.title-slot-banner {
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 0.78em;
+    font-weight: bold;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.title-slot-banner.empty {
+    color: #999;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px dashed #ccc;
+    font-weight: normal;
+}
+
+.title-slot-banner.rarity-bronze { background-color: #cd7f32; }
+.title-slot-banner.rarity-silver { background-color: #8a96a3; }
+.title-slot-banner.rarity-gold   { background-color: #d4a800; }
+.title-slot-banner.rarity-legend { background-color: #9b59b6; }
+
+/* レートのランクバッジ画像を大きく表示（名前欄を短くした分の余白を使う） */
+.rank-badge.rank-badge-large {
+    height: 140px;
+}
+
 /* ===== アチーブメント一覧 ===== */
 .achievement-summary {
     text-align: right;
@@ -487,11 +533,13 @@ details[open] > .achievement-group-header::after {
 
 .ach-set-btn {
     flex-shrink: 0;
+    width: 92px;
     margin-left: 10px;
-    padding: 10px 18px;
+    padding: 10px 0;
     font-family: 'SDK_JP_WEB', sans-serif;
     font-size: 14px;
     font-weight: bold;
+    text-align: center;
     color: white;
     background-color: #007bff;
     border: 1px solid #007bff;
@@ -513,9 +561,9 @@ details[open] > .achievement-group-header::after {
 
 /* .rarity-badge / .rarity-bronze等の色定義は style_settings.css（全画面共通）に移動済み */
 
-.name-input-flex {
-    width: auto;
-    flex: 1;
+.value-yoko.name-input-short {
+    width: 110px;
+    flex: 0 0 auto;
 }
 
 .save-name-btn {

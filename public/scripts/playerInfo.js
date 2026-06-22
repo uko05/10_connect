@@ -1,8 +1,9 @@
 // playerInfo.js - プレイヤー情報画面（レート・アチーブメント・称号の表示）
 import { authReady } from './firebaseConfig.js';
 import { APP_VERSION } from './version.js';
-import { ensureUserDoc, getUserRating, applyRatingDisplay, savePlayerName } from './eloRating.js';
-import { ACHIEVEMENT_GROUPS, DEBUG_ACHIEVEMENT } from './achievements.js';
+import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './eloRating.js';
+import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
+import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle } from './achievementManager.js';
 import { showAchievementToast } from './achievementToast.js';
 
@@ -28,13 +29,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const nameInput = document.getElementById('playerInfoNameInput');
         if (nameInput) nameInput.value = latestUserData.playerName || '';
 
-        applyRatingDisplay(
-            document.getElementById('playerInfoRatingDisplay'),
-            myRating,
-            document.getElementById('playerInfoRankBadge'),
-            document.getElementById('playerInfoRankName')
-        );
-
+        renderRankInfo(latestUserData);
+        renderTitleSlots(latestUserData);
         renderAchievements();
     } catch (error) {
         console.error('[playerInfo] Auth initialization failed:', error);
@@ -49,6 +45,48 @@ document.querySelectorAll('.achievement-tab-btn').forEach((btn) => {
         renderAchievements();
     });
 });
+
+// ランク名・レート・ランキングを表示する（playerInfo画面専用のレイアウトのため、共有のapplyRatingDisplay()は使わない）
+function renderRankInfo(userData) {
+    const rating = userData?.rating ?? 1500;
+    const tier = getRankTier(rating);
+    const cssClass = getRankCssClass(rating);
+
+    const rankNameEl = document.getElementById('playerInfoRankName');
+    if (rankNameEl) {
+        rankNameEl.textContent = `ランク：${tier}`;
+        rankNameEl.className = `player-rating ${cssClass}`;
+    }
+
+    const badgeEl = document.getElementById('playerInfoRankBadge');
+    if (badgeEl) {
+        badgeEl.src = getRankBadgePath(rating);
+        badgeEl.alt = tier;
+        badgeEl.style.display = 'block';
+    }
+
+    const rateEl = document.getElementById('playerInfoRatingDisplay');
+    if (rateEl) rateEl.textContent = `Rate: ${rating}`;
+
+    getUserRank(rating).then((rankInfo) => {
+        if (rateEl && rankInfo) {
+            rateEl.textContent = `Rate: ${rating}　　Ranking： #${rankInfo.rank}`;
+        }
+    });
+}
+
+// アチーブメント1/2の称号バナーを表示する（下のアチーブメント一覧で「設定」した内容を反映）
+function renderTitleSlots(userData) {
+    const ids = userData?.equippedTitles || [];
+    for (let slot = 0; slot < 2; slot++) {
+        const bannerEl = document.getElementById(`titleSlotBanner${slot}`);
+        if (!bannerEl) continue;
+        const achId = ids[slot];
+        const ach = achId ? ALL_ACHIEVEMENTS.find((a) => a.id === achId) : null;
+        bannerEl.className = ach ? `title-slot-banner rarity-${ach.rarity}` : 'title-slot-banner empty';
+        bannerEl.textContent = ach ? ach.name : '未設定';
+    }
+}
 
 function renderAchievements() {
     const list = document.getElementById('achievementList');
@@ -126,6 +164,7 @@ document.getElementById('achievementList').addEventListener('click', async (even
     try {
         const updated = await setEquippedTitle(currentUid, currentSlot, isCurrentlySet ? null : achId);
         latestUserData = { ...latestUserData, equippedTitles: updated };
+        renderTitleSlots(latestUserData);
         renderAchievements();
     } catch (e) {
         console.error('[playerInfo] 称号の設定に失敗:', e);
