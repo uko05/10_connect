@@ -361,6 +361,32 @@ header {
     margin-bottom: 8px;
 }
 
+/* 称号スロットタブ（アチーブメント1/2）。どちらも同じ一覧内容で、それぞれの枠への「設定」操作を切り替える */
+.achievement-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.achievement-tab-btn {
+    flex: 1;
+    padding: 6px 0;
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #555;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.achievement-tab-btn.active {
+    color: white;
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+}
+
 /* アチーブメント一覧：グループはdetails/summaryで開閉式（デフォルト閉） */
 .achievement-group {
     margin-bottom: 10px;
@@ -440,17 +466,26 @@ details[open] > .achievement-group-header::after {
     color: #999;
 }
 
-.rarity-badge {
-    font-size: 0.65em;
-    padding: 1px 6px;
-    border-radius: 4px;
+.ach-set-btn {
+    flex-shrink: 0;
+    margin-left: 8px;
+    padding: 4px 10px;
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 11px;
+    font-weight: bold;
     color: white;
+    background-color: #6f42c1;
+    border: 1px solid #6f42c1;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
-.rarity-badge.rarity-bronze { background-color: #cd7f32; }
-.rarity-badge.rarity-silver { background-color: #8a96a3; }
-.rarity-badge.rarity-gold { background-color: #d4a800; }
-.rarity-badge.rarity-legend { background-color: #9b59b6; }
+.ach-set-btn.set {
+    color: #6f42c1;
+    background-color: white;
+}
+
+/* .rarity-badge / .rarity-bronze等の色定義は style_settings.css（全画面共通）に移動済み */
 
 .name-input-flex {
     width: auto;

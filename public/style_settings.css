@@ -278,3 +278,29 @@
   font-size: 0.75rem;
   color: #888888;
 }
+
+/* ===== レアリティバッジ（アチーブメント一覧・称号チップ共通。全画面で読み込まれるここに置く） ===== */
+.rarity-badge {
+  font-size: 0.65em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: white;
+}
+
+.rarity-badge.rarity-bronze { background-color: #cd7f32; }
+.rarity-badge.rarity-silver { background-color: #8a96a3; }
+.rarity-badge.rarity-gold   { background-color: #d4a800; }
+.rarity-badge.rarity-legend { background-color: #9b59b6; }
+
+/* ===== 称号チップ（バトル画面：プレイヤー名の下に表示） ===== */
+.player-titles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin: 2px 0;
+}
+
+.title-chip {
+  font-size: 0.6em;
+}

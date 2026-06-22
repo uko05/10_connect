@@ -1,9 +1,9 @@
-// playerInfo.js - プレイヤー情報画面（レート・アチーブメントの表示）
+// playerInfo.js - プレイヤー情報画面（レート・アチーブメント・称号の表示）
 import { authReady } from './firebaseConfig.js';
 import { APP_VERSION } from './version.js';
 import { ensureUserDoc, getUserRating, applyRatingDisplay, savePlayerName } from './eloRating.js';
 import { ACHIEVEMENT_GROUPS, DEBUG_ACHIEVEMENT } from './achievements.js';
-import { getAchievementViewModel } from './achievementManager.js';
+import { getAchievementViewModel, setEquippedTitle } from './achievementManager.js';
 import { showAchievementToast } from './achievementToast.js';
 
 document.getElementById('version').textContent = APP_VERSION;
@@ -13,6 +13,8 @@ document.getElementById('backToHubButton').addEventListener('click', () => {
 });
 
 let currentUid = null;
+let latestUserData = {};
+let currentSlot = 0; // 称号スロット（0=アチーブメント1, 1=アチーブメント2）。タブで切り替える
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -21,9 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         await ensureUserDoc(user.uid);
 
         const myRating = await getUserRating(user.uid);
+        latestUserData = myRating || {};
 
         const nameInput = document.getElementById('playerInfoNameInput');
-        if (nameInput) nameInput.value = myRating?.playerName || '';
+        if (nameInput) nameInput.value = latestUserData.playerName || '';
 
         applyRatingDisplay(
             document.getElementById('playerInfoRatingDisplay'),
@@ -32,20 +35,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('playerInfoRankName')
         );
 
-        renderAchievements(myRating || {});
+        renderAchievements();
     } catch (error) {
         console.error('[playerInfo] Auth initialization failed:', error);
     }
 });
 
-function renderAchievements(userData) {
+// 称号タブの切り替え（アチーブメント1/2は同じ内容。どちらの枠に「設定」するかだけが変わる）
+document.querySelectorAll('.achievement-tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        currentSlot = Number(btn.dataset.slot);
+        document.querySelectorAll('.achievement-tab-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        renderAchievements();
+    });
+});
+
+function renderAchievements() {
     const list = document.getElementById('achievementList');
     const summary = document.getElementById('achievementSummary');
     if (!list) return;
 
-    const items = getAchievementViewModel(userData);
+    // 開いているグループは再描画後も開いた状態を保つ（タブ切替・設定操作のたびに閉じてしまうと使いづらいため）
+    const openGroupIds = new Set(
+        [...list.querySelectorAll('details.achievement-group[open]')].map((d) => d.dataset.groupId)
+    );
+
+    const items = getAchievementViewModel(latestUserData);
     const unlockedCount = items.filter((a) => a.unlocked).length;
     if (summary) summary.textContent = `${unlockedCount} / ${items.length} 解放`;
+
+    const equippedInSlot = (latestUserData.equippedTitles || [])[currentSlot] || null;
 
     list.innerHTML = '';
 
@@ -56,6 +75,8 @@ function renderAchievements(userData) {
         // グループはdetails/summaryで開閉式にする（デフォルトは閉じた状態）
         const details = document.createElement('details');
         details.className = 'achievement-group';
+        details.dataset.groupId = group.id;
+        if (openGroupIds.has(group.id)) details.open = true;
 
         const summaryEl = document.createElement('summary');
         summaryEl.className = 'achievement-group-header';
@@ -73,12 +94,18 @@ function renderAchievements(userData) {
                 ? `<span class="achievement-progress">${Math.min(ach.progress.current, ach.progress.target)} / ${ach.progress.target}</span>`
                 : '';
 
+            const isSet = equippedInSlot === ach.id;
+            const setBtnHtml = ach.unlocked
+                ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? '設定済み' : '設定'}</button>`
+                : '';
+
             item.innerHTML =
                 `<div class="achievement-text">` +
                     `<span class="achievement-name">${ach.unlocked ? ach.name : '？？？'}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
                     `<span class="achievement-condition">${ach.condition}</span>` +
                     progressHtml +
-                `</div>`;
+                `</div>` +
+                setBtnHtml;
             itemsEl.appendChild(item);
         });
 
@@ -86,6 +113,25 @@ function renderAchievements(userData) {
         list.appendChild(details);
     });
 }
+
+// 「設定」/「設定済み」ボタンのクリック（イベント委任：一覧が再描画されても再バインド不要）
+document.getElementById('achievementList').addEventListener('click', async (event) => {
+    const btn = event.target.closest('.ach-set-btn');
+    if (!btn || !currentUid) return;
+
+    const achId = btn.dataset.id;
+    const isCurrentlySet = btn.classList.contains('set');
+
+    btn.disabled = true;
+    try {
+        const updated = await setEquippedTitle(currentUid, currentSlot, isCurrentlySet ? null : achId);
+        latestUserData = { ...latestUserData, equippedTitles: updated };
+        renderAchievements();
+    } catch (e) {
+        console.error('[playerInfo] 称号の設定に失敗:', e);
+        btn.disabled = false;
+    }
+});
 
 document.getElementById('savePlayerNameButton').addEventListener('click', async () => {
     const nameInput = document.getElementById('playerInfoNameInput');

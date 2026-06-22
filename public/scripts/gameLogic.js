@@ -38,7 +38,7 @@ import {
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity } from "./settingsManager.js";
-import { recordPvpMatchAchievements } from "./achievementManager.js";
+import { recordPvpMatchAchievements, applyTitleDisplay } from "./achievementManager.js";
 import { showAchievementToast } from "./achievementToast.js";
 
 
@@ -398,6 +398,8 @@ async function displayThumbnails() {
             applyRatingDisplay(document.getElementById('playerRating_1'), leftRating, document.getElementById('rankBadge_1'), document.getElementById('playerRankName_1')),
             applyRatingDisplay(document.getElementById('playerRating_2'), rightRating, document.getElementById('rankBadge_2'), document.getElementById('playerRankName_2'))
         ]);
+        applyTitleDisplay(document.getElementById('playerTitles_1'), leftRating);
+        applyTitleDisplay(document.getElementById('playerTitles_2'), rightRating);
     } catch (e) {
         console.warn("[Rating] レート表示取得失敗:", e);
     }

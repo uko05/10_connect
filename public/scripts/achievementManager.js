@@ -113,3 +113,39 @@ export function getAchievementViewModel(userData) {
         progress: ach.progress ? ach.progress(ctx) : null,
     }));
 }
+
+// 称号（称号スロットは2つ、0始まりのslotIndexで指定）。achIdにnullを渡すとそのスロットを解除する。
+// 同じアチーブメントが両スロットに重複しないよう、もう一方のスロットにも同じIDがあれば外す。
+// 戻り値は更新後のequippedTitles配列。
+export async function setEquippedTitle(uid, slotIndex, achId) {
+    const userRef = doc(db, "users", uid);
+    const snap = await getDoc(userRef);
+    const userData = snap.exists() ? snap.data() : {};
+    const current = Array.isArray(userData.equippedTitles) && userData.equippedTitles.length === 2
+        ? [...userData.equippedTitles]
+        : [null, null];
+
+    const otherSlot = 1 - slotIndex;
+    if (achId && current[otherSlot] === achId) {
+        current[otherSlot] = null;
+    }
+    current[slotIndex] = achId || null;
+
+    await updateDoc(userRef, { equippedTitles: current });
+    return current;
+}
+
+// バトル画面用：プレイヤーの設定済み称号をDOM要素に反映する（rarity色のチップ表示）
+export function applyTitleDisplay(element, userData) {
+    if (!element) return;
+    const ids = (userData && userData.equippedTitles) ? userData.equippedTitles.filter(Boolean) : [];
+    element.innerHTML = '';
+    ids.forEach((achId) => {
+        const ach = ALL_ACHIEVEMENTS.find((a) => a.id === achId);
+        if (!ach) return;
+        const chip = document.createElement('span');
+        chip.className = `title-chip rarity-badge rarity-${ach.rarity}`;
+        chip.textContent = ach.name;
+        element.appendChild(chip);
+    });
+}
