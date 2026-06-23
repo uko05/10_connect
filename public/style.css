@@ -614,7 +614,7 @@ details[open] > .achievement-group-header::after {
     margin-top: 10px;
     display: flex; /* 横並びにする */
     flex-wrap: wrap; /* 複数行に折り返す */
-    gap: 10px; /* サムネイル間のスペース */
+    gap: 5px; /* サムネイル間のスペース（隙間を半分に） */
 }
 
 .charalist {
@@ -626,15 +626,15 @@ details[open] > .achievement-group-header::after {
 }
 
 .thumbnail {
-    width: 147px; /* 幅（0.7倍） */
-    height: 147px; /* 高さ（0.7倍） */
+    width: 164px;
+    height: 164px;
     object-fit: cover; /* アスペクト比を維持しつつコンテナに合わせる */
     border-radius: 10px; /* 角を丸くする */
     border: 2px solid rgba(0, 0, 0, 0.3); /* 薄い黒のボーダーを追加 */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 影を追加 */
     cursor: pointer;
     transition: transform 0.2s;
-    margin: 4px; /* 画像同士の間隔を広げるためのマージンを追加 */
+    margin: 2px; /* 画像同士の間隔（隙間を半分に） */
 }
 
 /* 未実装の隠しキャラ用の「？」枠（クリック不可） */
