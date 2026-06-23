@@ -659,11 +659,11 @@ details[open] > .achievement-group-header::after {
 
 /* 解放条件（対応するアチーブメント名）のヒント表示 */
 .thumbnail-locked-hint {
-    margin-top: 4px;
-    font-size: 10px;
-    font-weight: normal;
-    line-height: 1.3;
-    color: rgba(255, 255, 255, 0.85);
+    margin-top: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* サムネイルと勝利数バッジをまとめるラッパー */

@@ -17,7 +17,6 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { characterData } from './characterData.js';
-import { ALL_ACHIEVEMENTS } from './achievements.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
 import { ensureUserDoc, getUserRating, applyRatingDisplay, savePlayerName } from './eloRating.js';
@@ -232,9 +231,11 @@ function displayThumbnails() {
     });
 
     //未実装の隠しキャラ用の「？」枠（4*4=16枠になるまで埋める。クリック不可）
-    //解放条件（対応するアチーブメントID）が決まっている枠だけヒントを表示する。未定の枠はnullのまま。
+    //解放条件が決まっている枠だけヒントを表示する。未定の枠はnullのまま。
     const LOCKED_SLOT_TOTAL = 16;
-    const LOCKED_CHARACTER_HINTS = ['chara_win10_006'];
+    const LOCKED_CHARACTER_HINTS = [
+        ['キャラ別勝利', '「マダム・ヘルタ', 'の導き」を解放'],
+    ];
     for (let i = characterData.length; i < LOCKED_SLOT_TOTAL; i++) {
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
@@ -247,12 +248,11 @@ function displayThumbnails() {
         mark.textContent = '？';
         lockedSlot.appendChild(mark);
 
-        const hintAchId = LOCKED_CHARACTER_HINTS[i - characterData.length];
-        const hintAch = hintAchId ? ALL_ACHIEVEMENTS.find((a) => a.id === hintAchId) : null;
-        if (hintAch) {
+        const hintLines = LOCKED_CHARACTER_HINTS[i - characterData.length];
+        if (hintLines) {
             const hint = document.createElement('div');
             hint.className = 'thumbnail-locked-hint';
-            hint.innerHTML = `キャラ別勝利<br>「${hintAch.name}」を取得`;
+            hint.innerHTML = hintLines.join('<br>');
             lockedSlot.appendChild(hint);
         }
 
