@@ -626,15 +626,15 @@ details[open] > .achievement-group-header::after {
 }
 
 .thumbnail {
-    width: 210px; /* 幅 */
-    height: 210px; /* 高さ */
+    width: 147px; /* 幅（0.7倍） */
+    height: 147px; /* 高さ（0.7倍） */
     object-fit: cover; /* アスペクト比を維持しつつコンテナに合わせる */
     border-radius: 10px; /* 角を丸くする */
     border: 2px solid rgba(0, 0, 0, 0.3); /* 薄い黒のボーダーを追加 */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 影を追加 */
     cursor: pointer;
     transition: transform 0.2s;
-    margin: 5px; /* 画像同士の間隔を広げるためのマージンを追加 */
+    margin: 4px; /* 画像同士の間隔を広げるためのマージンを追加 */
 }
 
 /* サムネイルと勝利数バッジをまとめるラッパー */
@@ -643,17 +643,17 @@ details[open] > .achievement-group-header::after {
     display: inline-block;
 }
 
-/* キャラ別個人勝利数バッジ（サムネイル右下） */
+/* キャラ別個人勝利数バッジ（サムネイル右下、0.7倍に合わせて縮小） */
 .chara-win-badge {
     position: absolute;
-    bottom: 16px;
-    right: 9px;
+    bottom: 11px;
+    right: 6px;
     background: rgba(0, 0, 0, 0.7);
     color: #fff;
-    font-size: 16px;
+    font-size: 11px;
     font-weight: bold;
-    padding: 3px 8px;
-    border-radius: 8px;
+    padding: 2px 6px;
+    border-radius: 6px;
     pointer-events: none;
     white-space: nowrap;
 }
@@ -822,6 +822,16 @@ details[open] > .achievement-group-header::after {
     min-width: 0;
 }
 
+/* キャラ選択画面のロビーカードだけ：バッジを下段に移し、名前入力欄に横幅を回す（プレイヤー情報画面のカードには影響しない） */
+.container .lobby-player-info {
+    flex-direction: column;
+}
+
+.container .rank-badge {
+    align-self: center;
+    margin-top: 4px;
+}
+
 .rank-badge {
     height: 90px;          /* ← 3行分固定 */
     width: auto;
@@ -844,9 +854,13 @@ details[open] > .achievement-group-header::after {
 .info-row-no-bg {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+}
+
+/* プレイヤー情報画面の名前行だけ：ランク表示を追加した分、狭い画面では折り返しを許可する */
+.player-info-sticky-header .info-row-no-bg {
+    flex-wrap: wrap;
     row-gap: 6px;
 }
 

@@ -115,7 +115,7 @@ export function getAchievementViewModel(userData) {
 }
 
 // 称号（称号スロットは2つ、0始まりのslotIndexで指定）。achIdにnullを渡すとそのスロットを解除する。
-// 同じアチーブメントが両スロットに重複しないよう、もう一方のスロットにも同じIDがあれば外す。
+// 両スロットに同じアチーブメントを設定することも可能。
 // 戻り値は更新後のequippedTitles配列。
 export async function setEquippedTitle(uid, slotIndex, achId) {
     const userRef = doc(db, "users", uid);
@@ -125,10 +125,6 @@ export async function setEquippedTitle(uid, slotIndex, achId) {
         ? [...userData.equippedTitles]
         : [null, null];
 
-    const otherSlot = 1 - slotIndex;
-    if (achId && current[otherSlot] === achId) {
-        current[otherSlot] = null;
-    }
     current[slotIndex] = achId || null;
 
     await updateDoc(userRef, { equippedTitles: current });
