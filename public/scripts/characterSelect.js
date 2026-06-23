@@ -225,6 +225,20 @@ function displayThumbnails() {
         wrapper.appendChild(winBadge);
         container.appendChild(wrapper); //コンテナにラッパーを追加
     });
+
+    //未実装の隠しキャラ用の「？」枠（4*4=16枠になるまで埋める。クリック不可）
+    const LOCKED_SLOT_TOTAL = 16;
+    for (let i = characterData.length; i < LOCKED_SLOT_TOTAL; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'thumbnail-wrapper';
+
+        const lockedSlot = document.createElement('div');
+        lockedSlot.className = 'thumbnail thumbnail-locked';
+        lockedSlot.textContent = '？';
+
+        wrapper.appendChild(lockedSlot);
+        container.appendChild(wrapper);
+    }
 }
 
 //キャラクターの情報を表示する関数
@@ -421,7 +435,6 @@ async function removePlayerFromRoom(generatedId) {
 
     const roomSnapshot = await getDocs(roomRef);
 
-    document.getElementById('generatedId').innerText = "";
     document.getElementById('statusMessage').innerText = "";
 
     //Firestoreのバッチを作成
@@ -502,7 +515,6 @@ function startWaitingExpireTimer(roomDocRef) {
 
           document.getElementById('statusMessage').innerText =
             `${WAITING_EXPIRE_MS / 60000}分経過したのでキャンセルしました。`;
-          document.getElementById('generatedId').innerText = "";
 
           playerDocRef = null;
           waitingExpireTimerId = null;
@@ -618,8 +630,6 @@ document.getElementById('matchButton').addEventListener('click', async () => {
                 //roomDocRefを初期化
                 roomDocRef = matchingRooms[0].ref; //最初のマッチングルームの参照を取得
 
-                document.getElementById('generatedId').innerText = playerUUID;
-
                 //更新に対する処理を記述
                 listenForMatches();
 
@@ -682,8 +692,6 @@ document.getElementById('matchButton').addEventListener('click', async () => {
             });
             startWaitingExpireTimer(playerDocRef);
             startWaitingHeartbeat(playerDocRef);
-
-            document.getElementById('generatedId').innerText = playerUUID;
 
             listenForMatches();
             NowMatching = true;
