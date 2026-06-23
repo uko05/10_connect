@@ -139,7 +139,7 @@ function renderAchievements() {
 
             item.innerHTML =
                 `<div class="achievement-text">` +
-                    `<span class="achievement-name">${ach.unlocked ? ach.name : '？？？'}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
+                    `<span class="achievement-name">${ach.name}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
                     `<span class="achievement-condition">${ach.condition}</span>` +
                     progressHtml +
                 `</div>` +

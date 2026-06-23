@@ -60,7 +60,7 @@ export const ACHIEVEMENT_GROUPS = [
             {
                 id: `chara_win10_${c.charaID}`,
                 rarity: 'bronze',
-                name: `${c.name}：駆け出し`,
+                name: `${c.name}の導き`,
                 condition: `「${c.name}」で通常対戦10勝する`,
                 check: (ctx) => (ctx.charaWins?.[c.charaID] || 0) >= 10,
                 progress: (ctx) => ({ current: Math.min(ctx.charaWins?.[c.charaID] || 0, 10), target: 10 }),
@@ -68,7 +68,7 @@ export const ACHIEVEMENT_GROUPS = [
             {
                 id: `chara_win50_${c.charaID}`,
                 rarity: 'silver',
-                name: `${c.name}：歴戦`,
+                name: `${c.name}の絆`,
                 condition: `「${c.name}」で通常対戦50勝する`,
                 check: (ctx) => (ctx.charaWins?.[c.charaID] || 0) >= 50,
                 progress: (ctx) => ({ current: Math.min(ctx.charaWins?.[c.charaID] || 0, 50), target: 50 }),

@@ -640,13 +640,30 @@ details[open] > .achievement-group-header::after {
 /* 未実装の隠しキャラ用の「？」枠（クリック不可） */
 .thumbnail-locked {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
     color: rgba(255, 255, 255, 0.7);
-    font-size: 56px;
-    font-weight: bold;
     cursor: default;
+    text-align: center;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.thumbnail-locked-mark {
+    font-size: 48px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* 解放条件（対応するアチーブメント名）のヒント表示 */
+.thumbnail-locked-hint {
+    margin-top: 4px;
+    font-size: 10px;
+    font-weight: normal;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 /* サムネイルと勝利数バッジをまとめるラッパー */
