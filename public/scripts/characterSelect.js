@@ -13,7 +13,8 @@ import {
     getDocs,
     getDoc,
     runTransaction,
-    updateDoc
+    updateDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
@@ -125,6 +126,40 @@ const nextButton = document.querySelector(".next-btn");
 let currentSlide = 0;
 
 const WAITING_EXPIRE_MS = 15 * 60 * 1000; // 5分
+
+// 部屋離脱検知用ハートビート：waiting中はP1が自分の生存時刻を定期的に書き込み、
+// 他のクライアントはこれが古い（既定で30秒超）場合に「不在」と判定する
+const HEARTBEAT_INTERVAL_MS = 10 * 1000;
+const STALE_THRESHOLD_MS = 30 * 1000;
+let heartbeatIntervalId = null;
+
+function stopHeartbeat() {
+    if (heartbeatIntervalId) {
+        clearInterval(heartbeatIntervalId);
+        heartbeatIntervalId = null;
+    }
+}
+
+// waiting中のみ呼ぶ。タブが非表示の間は送信を止め、表示に戻った瞬間に即時送信する
+function startWaitingHeartbeat(docRef) {
+    stopHeartbeat();
+    const beat = () => {
+        if (document.visibilityState !== 'visible') return;
+        updateDoc(docRef, { player1_LastActive: serverTimestamp() }).catch((e) => {
+            console.error("[heartbeat] failed:", e);
+        });
+    };
+    beat();
+    heartbeatIntervalId = setInterval(beat, HEARTBEAT_INTERVAL_MS);
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && heartbeatIntervalId && playerDocRef) {
+        updateDoc(playerDocRef, { player1_LastActive: serverTimestamp() }).catch((e) => {
+            console.error("[heartbeat] resume failed:", e);
+        });
+    }
+});
 
 //------------------------------------------------------------------------------------------------
 //サムネイルを表示する関数
@@ -322,32 +357,24 @@ nextButton.addEventListener("click", () => {
 updateSlides();
 //------------------------------------------------------------------------------------------------
 
-//ページを離れるときに自分のドキュメントと該当するroomsドキュメントを削除
-window.addEventListener('beforeunload', async (event) => {
-    if (playerDocRef && !isNavigatingToBattle) { //フラグを確認
-        event.preventDefault(); //これを追加
-        try {
-            //自分の待機ドキュメントを削除
-            await deleteDoc(playerDocRef);
-            playerDocRef = null; //ドキュメント参照をリセット
+//ページを離れるとき（タブを閉じる／ナビゲート）に自分の待機中ドキュメントを削除するベストエフォート処理。
+//beforeunload内の非同期処理は完了が保証されない（特にモバイル）ため、本来の安全網はハートビート＋
+//生存時刻の鮮度チェック側（startWaitingHeartbeat / 他クライアントの不在部屋削除）にある。
+function cleanupOwnRoomOnExit(event) {
+    if (!playerDocRef || isNavigatingToBattle) return;
+    if (event && event.cancelable) event.preventDefault();
 
-            //条件に合致するroomsドキュメントを削除
-            const roomQuery = query(
-                roomsRef,
-                where("player2_ID", "==", null),
-                where("status", "==", "waiting")
-            );
-            const roomQuerySnapshot = await getDocs(roomQuery);
+    stopHeartbeat();
+    const ref = playerDocRef;
+    playerDocRef = null;
+    deleteDoc(ref).catch((error) => {
+        console.error("Error deleting own room on exit:", error);
+    });
+}
 
-            roomQuerySnapshot.forEach(async (roomDoc) => {
-                await deleteDoc(roomDoc.ref); //roomsドキュメントの削除
-            });
-
-        } catch (error) {
-            console.error("Error deleting documents before unload:", error);
-        }
-    }
-});
+window.addEventListener('beforeunload', cleanupOwnRoomOnExit);
+// pagehideはモバイルでbeforeunloadが発火しないケースのフォールバック
+window.addEventListener('pagehide', cleanupOwnRoomOnExit);
 
 //------------------------------------------------------------------------------------------------
 
@@ -465,6 +492,7 @@ function startWaitingExpireTimer(roomDocRef) {
           await deleteDoc(roomDocRef);
           console.log("[expire] deleted room doc");
 
+          stopHeartbeat();
           NowMatching = false;
           toggleInputs(false);
 
@@ -547,7 +575,28 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         where("roomMatching", "==", roomMatching)
     );
     const querySnapshot = await getDocs(myroom);
-    const matchingRooms = querySnapshot.docs;
+    let matchingRooms = querySnapshot.docs;
+
+    // ハートビートが途絶えている（作成者が不在の可能性が高い）部屋は除外し、可能であれば削除して自浄する
+    const liveRooms = [];
+    for (const docSnap of matchingRooms) {
+        const data = docSnap.data();
+        const lastActiveMs = data.player1_LastActive?.toMillis
+            ? data.player1_LastActive.toMillis()
+            : (data.createdAt?.toDate ? data.createdAt.toDate().getTime() : new Date(data.createdAt).getTime());
+
+        if (!Number.isFinite(lastActiveMs) || (Date.now() - lastActiveMs) > STALE_THRESHOLD_MS) {
+            console.log("[stale] abandoned room detected, deleting:", docSnap.id);
+            try {
+                await deleteDoc(docSnap.ref);
+            } catch (e) {
+                console.error("[stale] delete failed:", e);
+            }
+            continue;
+        }
+        liveRooms.push(docSnap);
+    }
+    matchingRooms = liveRooms;
 
     if (matchingRooms.length > 0) {
         //ルームドキュメントの参照を初期化
@@ -556,6 +605,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         if (NowMatching) {
             //マッチング解除
             removePlayerFromRoom(playerUUID);
+            stopHeartbeat();
 
             NowMatching = false; //解除時にfalseに設定
 
@@ -578,7 +628,8 @@ document.getElementById('matchButton').addEventListener('click', async () => {
                     player2_ID: playerUUID, //修正: player2_IDにUUIDを設定
                     player2_CharaID: charaID,
                     player2_Name: playerName,
-                    status: "in_progress"
+                    status: "in_progress",
+                    player2_LastActive: serverTimestamp()
                 });
 
                 NowMatching = true;
@@ -626,9 +677,11 @@ document.getElementById('matchButton').addEventListener('click', async () => {
                 startP: startP,
                 turn: startP,
                 turnCount: 1,
-                changeStone: 0
+                changeStone: 0,
+                player1_LastActive: serverTimestamp()
             });
             startWaitingExpireTimer(playerDocRef);
+            startWaitingHeartbeat(playerDocRef);
 
             document.getElementById('generatedId').innerText = playerUUID;
 
@@ -709,6 +762,7 @@ function listenForMatches() {
             //statusが"in_progress"かつroomMatchingが一致する部屋のみを処理
             if (roomData.status === "in_progress" && roomData.roomMatching === roomMatching && roomData.player1_ID === playerUUID) {
 
+                stopHeartbeat(); // 相手が参加し対局開始。waiting用ハートビートは不要
                 document.getElementById('statusMessage').innerText = "マッチングしました！！";
                 isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
 

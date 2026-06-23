@@ -23,10 +23,16 @@ service cloud.firestore {
         && resource.data.status == "waiting"
         && resource.data.player2_ID == null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-          ['player2_ID', 'player2_CharaID', 'player2_Name', 'status']
+          ['player2_ID', 'player2_CharaID', 'player2_Name', 'status', 'player2_LastActive']
         )
         && request.resource.data.player2_ID == request.auth.uid
         && request.resource.data.player1_ID == resource.data.player1_ID;
+
+      // waiting中のハートビート：P1が自分の生存時刻だけを更新できる（離脱検知用）
+      allow update: if request.auth != null
+        && resource.data.status == "waiting"
+        && resource.data.player1_ID == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['player1_LastActive']);
 
       // 対局中の更新：参加者(P1/P2)のみ、許可フィールドのみ、値の範囲・変化量チェック
       allow update: if request.auth != null
@@ -36,6 +42,7 @@ service cloud.firestore {
           'player1_UltCount', 'player2_UltCount',
           'player1_TimeLimit', 'player2_TimeLimit',
           'player1_TimeoutCount', 'player2_TimeoutCount',
+          'player1_LastActive', 'player2_LastActive',
           'red_Win', 'yellow_Win',
           'status', 'turn', 'turnCount', 'changeStone', 'stones', 'startP',
           'winnerUid', 'resultType', 'p1CharaId', 'p2CharaId',
@@ -92,9 +99,16 @@ service cloud.firestore {
           || resource.data.rated == request.resource.data.rated
         );
 
-      // 削除はP1（rooms作成者）のみ許可
+      // 削除はP1（rooms作成者）、または30秒以上ハートビートが無いwaiting中の不在部屋なら誰でも許可（自浄用）
       allow delete: if request.auth != null
-        && resource.data.player1_ID == request.auth.uid;
+        && (
+          resource.data.player1_ID == request.auth.uid
+          || (
+            resource.data.status == "waiting"
+            && "player1_LastActive" in resource.data
+            && request.time > resource.data.player1_LastActive + duration.value(30, 's')
+          )
+        );
     }
 
     // usersコレクション（レーティング用）
