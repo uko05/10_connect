@@ -52,6 +52,30 @@ export const ACHIEVEMENT_GROUPS = [
         ],
     },
     {
+        id: 'chara_mastery', name: 'キャラ別勝利',
+        // キャラ別の通常対戦（ランクマッチ）勝利数アチーブメント。characterDataから自動生成。
+        // charaWinsはレーティングのTransaction（eloRating.js）でのみ更新される値をそのまま参照するだけで、
+        // ここから書き込みは行わない（rating/charaWinsの更新経路をachievement側に増やさない）。
+        items: characterData.flatMap((c) => [
+            {
+                id: `chara_win10_${c.charaID}`,
+                rarity: 'bronze',
+                name: `${c.name}：駆け出し`,
+                condition: `「${c.name}」で通常対戦10勝する`,
+                check: (ctx) => (ctx.charaWins?.[c.charaID] || 0) >= 10,
+                progress: (ctx) => ({ current: Math.min(ctx.charaWins?.[c.charaID] || 0, 10), target: 10 }),
+            },
+            {
+                id: `chara_win50_${c.charaID}`,
+                rarity: 'silver',
+                name: `${c.name}：歴戦`,
+                condition: `「${c.name}」で通常対戦50勝する`,
+                check: (ctx) => (ctx.charaWins?.[c.charaID] || 0) >= 50,
+                progress: (ctx) => ({ current: Math.min(ctx.charaWins?.[c.charaID] || 0, 50), target: 50 }),
+            },
+        ]),
+    },
+    {
         id: 'ultimate', name: '必殺技',
         items: [
             { id: 'ult_first_use', rarity: 'bronze', name: '初めての必殺技', condition: '必殺技を初めて発動する', check: (ctx) => ctx.ultUsedTotal >= 1 },

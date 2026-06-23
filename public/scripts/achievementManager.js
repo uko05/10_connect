@@ -29,6 +29,8 @@ function loadAchStats(achStats) {
 function buildContext(userData) {
     return {
         winCount: userData.winCount || 0,
+        // charaWinsはeloRating.jsのTransactionで更新される値をそのまま読むだけ（ここからは書き込まない）
+        charaWins: userData.charaWins || {},
         ...loadAchStats(userData.achStats),
     };
 }
@@ -54,7 +56,7 @@ async function applyAchStatsPatch(uid, patchFn) {
         soloBakatareWins: { ...currentStats.soloBakatareWins, ...(statsPatch.soloBakatareWins || {}) },
     };
 
-    const ctx = { winCount: userData.winCount || 0, ...mergedStats };
+    const ctx = { winCount: userData.winCount || 0, charaWins: userData.charaWins || {}, ...mergedStats };
     const newlyUnlocked = findNewlyUnlocked(ctx, userData.achievements);
     const updatedAchievements = [...(userData.achievements || []), ...newlyUnlocked];
 

@@ -216,13 +216,17 @@ function displayThumbnails() {
             charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
         });
 
-        //キャラ別勝利数バッジ（右下）
-        const winBadge = document.createElement('span');
-        winBadge.className = 'chara-win-badge';
-        winBadge.textContent = `勝利数：${myCharaWins[character.charaID] || 0}`;
-
         wrapper.appendChild(img);
-        wrapper.appendChild(winBadge);
+
+        //キャラ別勝利数バッジ（右下）。ソロモードでは表示しない（charaWinsはランクマッチのみ加算されるため、
+        //ソロでの表示は「ソロで勝っても増えない」という誤解を招く）
+        if (requestedMode !== 'cpu') {
+            const winBadge = document.createElement('span');
+            winBadge.className = 'chara-win-badge';
+            winBadge.textContent = `勝利数：${myCharaWins[character.charaID] || 0}`;
+            wrapper.appendChild(winBadge);
+        }
+
         container.appendChild(wrapper); //コンテナにラッパーを追加
     });
 
