@@ -234,7 +234,7 @@ function displayThumbnails() {
     //解放条件が決まっている枠だけヒントを表示する。未定の枠はnullのまま。
     const LOCKED_SLOT_TOTAL = 16;
     const LOCKED_CHARACTER_HINTS = [
-        ['キャラ別勝利', '「マダム・ヘルタ', 'の導き」を解放'],
+        ['解放条件', '下記アチーブメントを解放', '「マダム・ヘルタの導き」'],
     ];
     for (let i = characterData.length; i < LOCKED_SLOT_TOTAL; i++) {
         const wrapper = document.createElement('div');
