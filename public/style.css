@@ -351,6 +351,17 @@ header {
     background: rgba(0, 0, 0, 0.08);
 }
 
+/* プレイヤー情報画面：戻るボタン・見出し・名前/ランク/アチーブ枠カードを画面上部に固定し、下のアチーブメント一覧だけがスクロールするようにする */
+.player-info-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 /* ===== プレイヤー情報画面 ===== */
 .player-info-wrap {
     max-width: 700px;
@@ -378,14 +389,19 @@ header {
     font-size: 0.7em;
     color: #777;
     margin-bottom: 2px;
+    text-align: center;
 }
 
 .title-slot-banner {
-    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 8px;
     border-radius: 5px;
-    font-size: 0.78em;
+    font-size: 1.1em;
     font-weight: bold;
     color: white;
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -562,7 +578,7 @@ details[open] > .achievement-group-header::after {
 /* .rarity-badge / .rarity-bronze等の色定義は style_settings.css（全画面共通）に移動済み */
 
 .value-yoko.name-input-short {
-    width: 110px;
+    width: 165px;
     flex: 0 0 auto;
 }
 
@@ -832,8 +848,10 @@ details[open] > .achievement-group-header::after {
 .info-row-no-bg {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+    row-gap: 6px;
 }
 
 .label {
@@ -1096,6 +1114,27 @@ footer.legal-footer {
   /* 縦持ち時の「横画面にしてください」ラベル — 横画面ではCSS非表示 */
   #orientationLabel {
     display: none !important;
+  }
+}
+
+/* プレイヤー情報画面など：スマホの横持ち（landscape）時に縦持ちを促すバナー（通常スクロールページのみで使用、ゲーム画面の横画面強制とは無関係） */
+.portrait-hint {
+  display: none;
+}
+
+@media (max-width: 1024px) and (orientation: landscape) and (max-height: 500px) {
+  .portrait-hint {
+    display: block;
+    margin: 0 auto 8px;
+    max-width: 700px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    border-radius: 6px;
+    box-sizing: border-box;
   }
 }
 

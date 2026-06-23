@@ -19,35 +19,38 @@
 </head>
 <body class="simple-page">
     <main>
+        <div id="portraitHint" class="portrait-hint">📱 この画面は端末を縦持ちにすると見やすくなります</div>
         <div id="playerInfoWrap" class="player-info-wrap">
-            <button id="backToHubButton" class="back-btn">← モード選択に戻る</button>
+            <div class="player-info-sticky-header">
+                <button id="backToHubButton" class="back-btn">← モード選択に戻る</button>
 
-            <h2 class="hub-title">プレイヤー情報</h2>
+                <h2 class="hub-title">プレイヤー情報</h2>
 
-            <div class="info-item-yoko lobby-player-info">
-                <div class="lobby-player-left">
-                    <div class="info-row-no-bg" style="border:none; padding:0; gap:8px;">
-                        <div class="label label-even">名前</div>
-                        <input id="playerInfoNameInput" class="value-yoko name-input-short" type="text" placeholder="名前" />
-                        <button id="savePlayerNameButton" class="save-name-btn">保存</button>
-                    </div>
-                    <div id="saveNameFeedback" class="save-name-feedback"></div>
-
-                    <div class="title-slots-row">
-                        <div class="title-slot">
-                            <div class="title-slot-label">アチーブメント1</div>
-                            <div id="titleSlotBanner0" class="title-slot-banner empty">未設定</div>
+                <div class="info-item-yoko lobby-player-info">
+                    <div class="lobby-player-left">
+                        <div class="info-row-no-bg" style="border:none; padding:0; gap:8px;">
+                            <div class="label label-even">名前</div>
+                            <input id="playerInfoNameInput" class="value-yoko name-input-short" type="text" placeholder="名前" />
+                            <button id="savePlayerNameButton" class="save-name-btn">保存</button>
+                            <div id="playerInfoRankName" class="player-rating" style="margin:0;">---</div>
                         </div>
-                        <div class="title-slot">
-                            <div class="title-slot-label">アチーブメント2</div>
-                            <div id="titleSlotBanner1" class="title-slot-banner empty">未設定</div>
-                        </div>
-                    </div>
+                        <div id="saveNameFeedback" class="save-name-feedback"></div>
 
-                    <div id="playerInfoRankName" class="player-rating" style="text-align:left; margin:2px 0;">---</div>
-                    <div id="playerInfoRatingDisplay" class="player-rating-detail" style="text-align:left; margin:2px 0;">---</div>
+                        <div class="title-slots-row">
+                            <div class="title-slot">
+                                <div class="title-slot-label">アチーブメント1</div>
+                                <div id="titleSlotBanner0" class="title-slot-banner empty">未設定</div>
+                            </div>
+                            <div class="title-slot">
+                                <div class="title-slot-label">アチーブメント2</div>
+                                <div id="titleSlotBanner1" class="title-slot-banner empty">未設定</div>
+                            </div>
+                        </div>
+
+                        <div id="playerInfoRatingDisplay" class="player-rating-detail" style="text-align:left; margin:2px 0;">---</div>
+                    </div>
+                    <img id="playerInfoRankBadge" class="rank-badge rank-badge-large" src="" alt="">
                 </div>
-                <img id="playerInfoRankBadge" class="rank-badge rank-badge-large" src="" alt="">
             </div>
 
             <div class="info-box top15">▼アチーブメント▼</div>
