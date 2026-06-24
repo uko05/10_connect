@@ -496,7 +496,7 @@ async function executeAbility(side, charaID) {
 
             if (checkWinLocal()) return; // 変換で勝利確定なら Phase2 をスキップ
 
-            await wait(700);
+            await wait(1000);
 
             // Phase 2: 自分の石をランダムに6個選んで破壊（重力落下あり）
             const myKeys = Object.keys(stones).filter(k => stones[k] === myColor);
