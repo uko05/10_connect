@@ -18,8 +18,32 @@
     <link rel="icon" sizes="512x512" href="public/scripts/favicon_io/android-chrome-512x512.png">
 </head>
 <body>
+    <!-- ヘルプボタン -->
+    <button id="helpButton" class="help-btn">（？）あそびかた</button>
+
     <!-- 設定ボタン -->
     <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="slider">
+          <button class="slider-btn prev-btn">&lt;</button>
+          <div class="slider-images">
+            <img src="public/font/rule1.png" alt="説明1" class="slide active">
+            <img src="public/font/rule2.png" alt="説明2" class="slide">
+            <img src="public/font/rule3.png" alt="説明3" class="slide">
+            <img src="public/font/rule4.png" alt="説明4" class="slide">
+            <img src="public/font/rule5.png" alt="説明5" class="slide">
+            <img src="public/font/rule6.png" alt="説明6" class="slide">
+            <img src="public/font/rule7.png" alt="説明7" class="slide">
+            <img src="public/font/rule8.png" alt="説明8" class="slide">
+          </div>
+          <button class="slider-btn next-btn">&gt;</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal">

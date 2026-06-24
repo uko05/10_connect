@@ -747,9 +747,10 @@ function updateSpecialMoveButtonVisibility() {
     if (!img) return;
 
     if (myTurnReady && abilityAvailable('player')) {
-        img.classList.add('glowing-effect');
+        img.classList.add('ult-effect'); // 虹色：チャージ準備完了の合図
     } else {
         // 条件を満たさなくなったら即座にボタンを隠してエフェクトもリセット
+        img.classList.remove('ult-effect');
         img.classList.remove('glowing-effect');
         img.classList.remove('selected');
         document.getElementById('specialMoveButtonContainer').style.display = 'none';
@@ -1187,10 +1188,16 @@ function setupInput() {
         const isShowing = btn.style.display === 'block';
 
         if (isShowing) {
+            // 選択解除：glowing → ult-effect（準備完了状態）に戻す
             btn.style.display = 'none';
+            img?.classList.remove('glowing-effect');
             img?.classList.remove('selected');
+            img?.classList.add('ult-effect');
         } else {
+            // 選択：ult-effect → glowing（選択中）に切り替え
             btn.style.display = 'block';
+            img?.classList.remove('ult-effect');
+            img?.classList.add('glowing-effect');
             img?.classList.add('selected');
             pendingDropCol = null; // 2クリックモードの列選択をリセット
             AbilityStandby.currentTime = 0;
@@ -1205,8 +1212,9 @@ function setupInput() {
         // 発動と同時にボタンとエフェクトをリセット
         document.getElementById('specialMoveButtonContainer').style.display = 'none';
         const img = document.querySelector('#thumbnailContainerP1 img');
-        img?.classList.remove('selected');
+        img?.classList.remove('ult-effect');
         img?.classList.remove('glowing-effect');
+        img?.classList.remove('selected');
 
         await useAbility('player');
         if (await checkGameEnd()) return;
@@ -1218,6 +1226,22 @@ function setupInput() {
 // 初期化
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ヘルプダイアログ（スライダー付き）
+    setupSettingsModal('helpButton', 'helpModal');
+    const helpSlides = document.querySelectorAll('#helpModal .slide');
+    let helpCurrentSlide = 0;
+    function updateHelpSlides() {
+        helpSlides.forEach((slide, i) => slide.classList.toggle('active', i === helpCurrentSlide));
+    }
+    document.querySelector('#helpModal .prev-btn')?.addEventListener('click', () => {
+        helpCurrentSlide = (helpCurrentSlide - 1 + helpSlides.length) % helpSlides.length;
+        updateHelpSlides();
+    });
+    document.querySelector('#helpModal .next-btn')?.addEventListener('click', () => {
+        helpCurrentSlide = (helpCurrentSlide + 1) % helpSlides.length;
+        updateHelpSlides();
+    });
+
     // 設定ダイアログ
     setupSettingsModal('settingsButton', 'settingsModal');
     bindSettingsUI(document.getElementById('settingsModal'), () => {
