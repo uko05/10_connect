@@ -251,7 +251,7 @@ function displayThumbnails() {
 
         const hint = document.createElement('div');
         hint.className = 'thumbnail-locked-hint';
-        hint.innerHTML = '解放条件<br>下記アチーブメントを解放<br>「' + (character.requiredAchievementLabel || character.requiredAchievementId) + '」';
+        hint.innerHTML = '解放条件<br>アチーブメント<br>' + (character.requiredAchievementLabel || character.requiredAchievementId) + '<br>を取得';
         lockedSlot.appendChild(hint);
 
         wrapper.appendChild(lockedSlot);
@@ -262,7 +262,7 @@ function displayThumbnails() {
     // 解放条件が決まっている枠だけヒントを表示する。未定の枠は null のまま。
     const LOCKED_SLOT_TOTAL = 16;
     const LOCKED_CHARACTER_HINTS = [
-        ['解放条件', '下記アチーブメントを解放', '「マダム・ヘルタの導き」'],
+        ['解放条件', 'アチーブメント', 'マダム・ヘルタの導き', 'を取得'],
     ];
     const unknownOffset = unlockedCharacters.length + lockedCharacters.length;
     for (let i = unknownOffset; i < LOCKED_SLOT_TOTAL; i++) {
