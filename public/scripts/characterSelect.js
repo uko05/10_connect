@@ -259,8 +259,13 @@ function displayThumbnails() {
     });
 
     // 残りを未定の「？」枠で埋める（合計16枠）
+    // 解放条件が決まっている枠だけヒントを表示する。未定の枠は null のまま。
     const LOCKED_SLOT_TOTAL = 16;
-    for (let i = unlockedCharacters.length + lockedCharacters.length; i < LOCKED_SLOT_TOTAL; i++) {
+    const LOCKED_CHARACTER_HINTS = [
+        ['解放条件', '下記アチーブメントを解放', '「マダム・ヘルタの導き」'],
+    ];
+    const unknownOffset = unlockedCharacters.length + lockedCharacters.length;
+    for (let i = unknownOffset; i < LOCKED_SLOT_TOTAL; i++) {
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
 
@@ -271,6 +276,14 @@ function displayThumbnails() {
         mark.className = 'thumbnail-locked-mark';
         mark.textContent = '？';
         lockedSlot.appendChild(mark);
+
+        const hintLines = LOCKED_CHARACTER_HINTS[i - unknownOffset];
+        if (hintLines) {
+            const hint = document.createElement('div');
+            hint.className = 'thumbnail-locked-hint';
+            hint.innerHTML = hintLines.join('<br>');
+            lockedSlot.appendChild(hint);
+        }
 
         wrapper.appendChild(lockedSlot);
         container.appendChild(wrapper);
