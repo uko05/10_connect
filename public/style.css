@@ -576,7 +576,8 @@ details[open] > .achievement-group-header::after {
     display: flex;
     flex-direction: row;
     gap: 4px;
-    margin-top: 4px;
+    margin-right: 6px;
+    flex-shrink: 0;
 }
 
 .debug-ach-btn {

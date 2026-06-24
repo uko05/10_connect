@@ -152,8 +152,8 @@ function renderAchievements() {
                     `<span class="achievement-name">${ach.name}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
                     `<span class="achievement-condition">${ach.condition}</span>` +
                     progressHtml +
-                    debugBtnsHtml +
                 `</div>` +
+                debugBtnsHtml +
                 setBtnHtml;
             itemsEl.appendChild(item);
         });
