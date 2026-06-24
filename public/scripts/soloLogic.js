@@ -43,6 +43,8 @@ let startingSide = 'player'; // 各ラウンドの先攻
 
 let playerChara = null;
 let cpuChara = null;
+let playerUltAudio = null;
+let cpuUltAudio = null;
 let currentUid = null; // アチーブメント記録用（認証は裏で進める。対局の進行はブロックしない）
 authReady.then((user) => { currentUid = user.uid; }).catch((e) => console.warn("[solo] 認証取得失敗:", e));
 let playerCharge = 0;
@@ -455,6 +457,13 @@ async function useAbility(side) {
 
     AbilityStandby.currentTime = 0;
     AbilityStandby.play().catch(() => {});
+
+    // ult音声を再生
+    const ultAudio = side === 'player' ? playerUltAudio : cpuUltAudio;
+    if (ultAudio) {
+        ultAudio.currentTime = 0;
+        ultAudio.play().catch(() => {});
+    }
 
     try {
         await showCutIn(chara);
@@ -941,6 +950,14 @@ function initCharacters() {
     displayCharaPanel('player', playerChara);
     displayCharaPanel('cpu', cpuChara);
     applyPaneColors();
+
+    // ult音声 Audio オブジェクトを生成
+    const voiceVol = parseFloat(document.getElementById('voicevolumeSlider')?.value ?? 0.2);
+    playerUltAudio = new Audio(playerChara.voice_ult);
+    playerUltAudio.volume = voiceVol;
+    cpuUltAudio = new Audio(cpuChara.voice_ult);
+    cpuUltAudio.volume = voiceVol;
+
     return true;
 }
 
@@ -1089,6 +1106,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const systemvolumeSlider = document.getElementById('systemvolumeSlider');
     setupSystemVolumeSlider(systemvolumeSlider);
+
+    const voicevolumeSlider = document.getElementById('voicevolumeSlider');
+    if (voicevolumeSlider) {
+        voicevolumeSlider.addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            if (playerUltAudio) playerUltAudio.volume = v;
+            if (cpuUltAudio) cpuUltAudio.volume = v;
+        });
+    }
 
     if (!initCharacters()) return; // キャラ未選択ならselect.htmlへリダイレクト済み
 

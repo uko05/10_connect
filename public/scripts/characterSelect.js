@@ -215,10 +215,14 @@ function displayThumbnails() {
             //キャラクター情報を表示
             displayCharacterInfo(character); //キャラクター情報を表示
 
-            //音声を再生
+            // ④: システム音（chara_select.wav）を再生
+            selectSound.currentTime = 0;
+            selectSound.play().catch(err => console.error('システム音の再生に失敗しました:', err));
+
+            // ③: ボイス音量はスライダーの現在値を参照（固定値0.2ではなく）
             charaSoundUrl = img.getAttribute('data-voice'); //音声URLを取得
             charaSound = new Audio(charaSoundUrl); //Audioオブジェクトを作成
-            charaSound.volume = 0.2;
+            charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : 0.2;
             charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
         });
 

@@ -107,6 +107,30 @@ function renderAchievements() {
 
     const equippedInSlot = (latestUserData.equippedTitles || [])[currentSlot] || null;
 
+    // ①: ロック中キャラのアチーブメント名・条件文をマスクするためのデータ
+    const unlockedAchSet = new Set(latestUserData.achievements || []);
+    const lockedCharaIds = new Set(
+        characterData
+            .filter(c => c.requiredAchievementId && !unlockedAchSet.has(c.requiredAchievementId))
+            .map(c => c.charaID)
+    );
+    const charaIdToName = Object.fromEntries(characterData.map(c => [c.charaID, c.name]));
+
+    // ②: 新キャラ解放に紐づくアチーブメントID一覧
+    const charUnlockAchIds = new Set(
+        characterData.filter(c => c.requiredAchievementId).map(c => c.requiredAchievementId)
+    );
+
+    // charaID系アチーブメント（chara_win10_XXX / solo_bakatare_XXX）がロックキャラに属するか判定し、名前をマスク
+    function maskCharaText(text, achId) {
+        const match = achId.match(/(?:chara_win\d+_|solo_bakatare_)(\d+)$/);
+        if (!match || !lockedCharaIds.has(match[1])) return text;
+        const realName = charaIdToName[match[1]];
+        if (!realName) return text;
+        const escaped = realName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return text.replace(new RegExp(escaped, 'g'), '？？？');
+    }
+
     list.innerHTML = '';
 
     ACHIEVEMENT_GROUPS.forEach((group) => {
@@ -131,17 +155,26 @@ function renderAchievements() {
             const item = document.createElement('div');
             item.className = `achievement-item rarity-${ach.rarity} ${ach.unlocked ? 'unlocked' : 'locked'}`;
 
+            const displayName = maskCharaText(ach.name, ach.id);
+            const displayCondition = maskCharaText(ach.condition, ach.id);
+
             const progressHtml = ach.progress
                 ? `<span class="achievement-progress">${Math.min(ach.progress.current, ach.progress.target)} / ${ach.progress.target}</span>`
                 : '';
 
             const isSet = equippedInSlot === ach.id;
+            const isCharUnlock = charUnlockAchIds.has(ach.id);
+            const charUnlockBadge = `<span class="new-char-badge">新キャラ解放！</span>`;
+
+            // ②: 未所持かつ新キャラ解放アチーブメントの場合、未所持ボタン左にバッジを表示
             const setBtnHtml = ach.unlocked
                 ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? '設定済み' : '設定'}</button>`
-                : `<button type="button" class="ach-set-btn" disabled>未所持</button>`;
+                : (isCharUnlock ? charUnlockBadge : '') + `<button type="button" class="ach-set-btn" disabled>未所持</button>`;
 
+            // ②: debugユーザーは解放ボタン左にバッジを表示（解放済みでも常時表示）
             const debugBtnsHtml = isDebugUser
                 ? `<span class="debug-ach-btns">` +
+                  (isCharUnlock ? charUnlockBadge : '') +
                   `<button type="button" class="debug-ach-btn debug-unlock-btn" data-id="${ach.id}">解放</button>` +
                   `<button type="button" class="debug-ach-btn debug-reset-btn" data-id="${ach.id}">リセット</button>` +
                   `</span>`
@@ -149,8 +182,8 @@ function renderAchievements() {
 
             item.innerHTML =
                 `<div class="achievement-text">` +
-                    `<span class="achievement-name">${ach.name}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
-                    `<span class="achievement-condition">${ach.condition}</span>` +
+                    `<span class="achievement-name">${displayName}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
+                    `<span class="achievement-condition">${displayCondition}</span>` +
                     progressHtml +
                 `</div>` +
                 debugBtnsHtml +

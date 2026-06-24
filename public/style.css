@@ -606,6 +606,21 @@ details[open] > .achievement-group-header::after {
     cursor: not-allowed;
 }
 
+/* 新キャラ解放アチーブメントに付くバッジ */
+.new-char-badge {
+    flex-shrink: 0;
+    align-self: center;
+    font-size: 0.65em;
+    font-weight: bold;
+    color: #6b4400;
+    background: linear-gradient(135deg, #ffe082, #ffcc02);
+    border: 1px solid #e6a800;
+    border-radius: 4px;
+    padding: 2px 5px;
+    white-space: nowrap;
+    margin-right: 4px;
+}
+
 /* .rarity-badge / .rarity-bronze等の色定義は style_settings.css（全画面共通）に移動済み */
 
 .value-yoko.name-input-short {
