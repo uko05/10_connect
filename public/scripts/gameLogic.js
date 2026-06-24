@@ -40,7 +40,7 @@ import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity } from "./settingsManager.js";
 import { recordPvpMatchAchievements, applyTitleDisplay } from "./achievementManager.js";
-import { showAchievementToast } from "./achievementToast.js";
+import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
 
 // バージョン表示
@@ -1082,7 +1082,11 @@ function checkAndToastNewAchievements(myRating) {
     const newlyUnlocked = currentAchievements.filter((id) => !myPreAchievements.has(id));
     if (newlyUnlocked.length > 0) {
         achievementToastShownForMatch = true;
-        newlyUnlocked.forEach((id) => showAchievementToast(id));
+        newlyUnlocked.forEach((id) => {
+            showAchievementToast(id);
+            const unlocked = characterData.find(c => c.requiredAchievementId === id);
+            if (unlocked) showCharacterUnlockModal(unlocked);
+        });
     }
 }
 
@@ -2659,7 +2663,11 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
                     ]);
                     // playerLeft = P1 = 自分。自分の新規解放分のみトースト表示する（P2は別途rated検知で表示）
                     achievementToastShownForMatch = true;
-                    p1Newly.forEach((id) => showAchievementToast(id));
+                    p1Newly.forEach((id) => {
+                        showAchievementToast(id);
+                        const unlocked = characterData.find(c => c.requiredAchievementId === id);
+                        if (unlocked) showCharacterUnlockModal(unlocked);
+                    });
                 } catch (achError) {
                     console.error("[Achievement] PvP実績更新失敗:", achError);
                 }

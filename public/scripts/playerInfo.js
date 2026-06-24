@@ -5,7 +5,8 @@ import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './elo
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement } from './achievementManager.js';
-import { showAchievementToast } from './achievementToast.js';
+import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
+import { characterData } from './characterData.js';
 
 document.getElementById('version').textContent = APP_VERSION;
 
@@ -188,11 +189,14 @@ document.getElementById('achievementList').addEventListener('click', async (even
     const unlockBtn = event.target.closest('.debug-unlock-btn');
     if (unlockBtn && !unlockBtn.disabled) {
         unlockBtn.disabled = true;
+        const achId = unlockBtn.dataset.id;
         try {
-            await debugForceUnlockAchievement(currentUid, unlockBtn.dataset.id);
+            await debugForceUnlockAchievement(currentUid, achId);
             latestUserData = (await getUserRating(currentUid)) || {};
             renderTitleSlots(latestUserData);
             renderAchievements();
+            const unlocked = characterData.find(c => c.requiredAchievementId === achId);
+            if (unlocked) showCharacterUnlockModal(unlocked);
         } catch (e) {
             console.error('[playerInfo] デバッグ解放に失敗:', e);
         }
