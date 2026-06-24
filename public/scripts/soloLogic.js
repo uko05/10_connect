@@ -741,12 +741,19 @@ function setBoardInteractive(enabled) {
 
 function updateSpecialMoveButtonVisibility() {
     const myTurnReady = turn === 'player' && !gameOver && !abilityInProgress && !playerMoveInProgress;
-    const show = myTurnReady && abilityAvailable('player');
-    // ★ボタンはabsolute配置でtopCanvasの上に重ねるだけにする。
-    //   topCanvas自体をdisplay:noneにすると、boardWrap(flex)の高さがその分縮んで
-    //   再センタリングが起こり、盤面がずれてしまうため、表示状態は変更しない。
-    document.getElementById('specialMoveButtonContainer').style.display = show ? 'block' : 'none';
     setBoardInteractive(myTurnReady);
+
+    const img = document.querySelector('#thumbnailContainerP1 img');
+    if (!img) return;
+
+    if (myTurnReady && abilityAvailable('player')) {
+        img.classList.add('glowing-effect');
+    } else {
+        // 条件を満たさなくなったら即座にボタンを隠してエフェクトもリセット
+        img.classList.remove('glowing-effect');
+        img.classList.remove('selected');
+        document.getElementById('specialMoveButtonContainer').style.display = 'none';
+    }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -1170,9 +1177,37 @@ function setupInput() {
         });
     });
 
+    // キャラアイコンをクリックで必殺技ボタンを表示/非表示（チャージ150以上のときのみ）
+    document.getElementById('thumbnailContainerP1').addEventListener('click', () => {
+        if (turn !== 'player' || gameOver || abilityInProgress || playerMoveInProgress) return;
+        if (!abilityAvailable('player')) return;
+
+        const img = document.querySelector('#thumbnailContainerP1 img');
+        const btn = document.getElementById('specialMoveButtonContainer');
+        const isShowing = btn.style.display === 'block';
+
+        if (isShowing) {
+            btn.style.display = 'none';
+            img?.classList.remove('selected');
+        } else {
+            btn.style.display = 'block';
+            img?.classList.add('selected');
+            pendingDropCol = null; // 2クリックモードの列選択をリセット
+            AbilityStandby.currentTime = 0;
+            AbilityStandby.play().catch(() => {});
+        }
+    });
+
     document.getElementById('specialMoveButton').addEventListener('click', async () => {
         if (turn !== 'player' || gameOver || abilityInProgress || playerMoveInProgress) return;
         if (!abilityAvailable('player')) return;
+
+        // 発動と同時にボタンとエフェクトをリセット
+        document.getElementById('specialMoveButtonContainer').style.display = 'none';
+        const img = document.querySelector('#thumbnailContainerP1 img');
+        img?.classList.remove('selected');
+        img?.classList.remove('glowing-effect');
+
         await useAbility('player');
         if (await checkGameEnd()) return;
         dispTopStone();
