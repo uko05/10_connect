@@ -122,18 +122,35 @@ export const characterData = [
         process: 'ult_downThinkingTime' // 関数名を文字列として保持
     },
     {
-        src: 'public/chara/hotaru.png', 
-        charaID: '009', 
-        name: 'ホタル', 
-        charge: 16, 
+        src: 'public/chara/hotaru.png',
+        charaID: '009',
+        name: 'ホタル',
+        charge: 16,
         chargeMax: 200,
-        Ability: 'ファイアフライ-Ⅳ-完全燃焼', 
-        AbilityDetail: '【連続攻撃】ランダムな縦1列を選択する。その列に自分の石を投下する。(5ターン目から発動可能)', 
-        AbilityUseTurn: 5,  
-        AbilityCutImage: 'public/chara/ult_hotaru.png', 
+        Ability: 'ファイアフライ-Ⅳ-完全燃焼',
+        AbilityDetail: '【連続攻撃】ランダムな縦1列を選択する。その列に自分の石を投下する。(5ターン目から発動可能)',
+        AbilityUseTurn: 5,
+        AbilityCutImage: 'public/chara/ult_hotaru.png',
         voice_select: 'public/scripts/sound/hotaru_select.mp3',
         voice_attack: 'public/scripts/sound/hotaru_attack.mp3',
         voice_ult: 'public/scripts/sound/hotaru_ult.mp3',
         process: 'ult_randomVertical1Drop'
+    },
+    {
+        src: 'public/chara/ruanmama.png',
+        charaID: '010',
+        name: 'ルアン・メェイ',
+        charge: 17,
+        chargeMax: 200,
+        Ability: '花に濡れても雫は払わず',
+        AbilityDetail: '【変換/破壊】相手の石をランダムに３個選択し自分の石に変換する。その後、自分の石をランダムに６個選択し破壊する。(13ターン目から発動可能)',
+        AbilityUseTurn: 13,
+        AbilityCutImage: 'public/chara/ult_ruanmama.png',
+        voice_select: 'public/scripts/sound/ruan_select.mp3',
+        voice_attack: 'public/scripts/sound/ruan_attack.mp3',
+        voice_ult: 'public/scripts/sound/ruan_ult.mp3',
+        requiredAchievementId: 'chara_win10_006',
+        requiredAchievementLabel: 'マダム・ヘルタの導き',
+        process: 'ult_ruanMei'
     }
 ];
