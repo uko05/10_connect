@@ -5,8 +5,8 @@
 import { drawPiece as _drawPiece, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
-import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty } from "./settingsManager.js";
-import { getRandomTwoNumbers, getRandomThreeNumbers } from "./abilities.js";
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty, getClickMode } from "./settingsManager.js";
+import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -34,6 +34,7 @@ let gameOver = false;
 let nowCol = 3;
 let droppingKey = null; // アニメ中のセル（静的描画から除外する）
 let highlightedColumn = null;
+let pendingDropCol = null; // 2クリックモード：1回目のクリックで選択した列
 let boardScale = 1;
 let turnCount = 1;
 let changeStone = 0; // 花火の色反転効果の残りターン
@@ -350,6 +351,29 @@ function getTopRowsAllColumnsLocal() {
     return keys;
 }
 
+async function highlightStonesLocal(keys, duration) {
+    const validKeys = [...new Set(keys)].filter(k => stones[k]);
+    if (validKeys.length === 0) return;
+    const canvasRect = canvas.getBoundingClientRect();
+    const cellW = canvasRect.width / cols;
+    const cellH = canvasRect.height / rows;
+    const cells = validKeys.map(key => {
+        const [c, r] = key.split('_').map(Number);
+        const cell = document.createElement('div');
+        cell.classList.add('cell', 'selected');
+        cell.style.position = 'fixed';
+        cell.style.width = `${cellW}px`;
+        cell.style.height = `${cellH}px`;
+        cell.style.left = `${canvasRect.left + c * cellW}px`;
+        cell.style.top = `${canvasRect.top + r * cellH}px`;
+        cell.style.pointerEvents = 'none';
+        document.body.appendChild(cell);
+        return cell;
+    });
+    await wait(duration);
+    cells.forEach(cell => cell.remove());
+}
+
 async function deleteStonesLocal(keys) {
     const validKeys = [...new Set(keys)].filter(k => stones[k]);
     if (validKeys.length === 0) return;
@@ -380,6 +404,23 @@ async function deleteStonesLocal(keys) {
     cells.forEach(cell => cell.remove());
     validKeys.forEach(key => delete stones[key]);
     drawBoard();
+}
+
+function applyGravityLocal(deletedKeys) {
+    const affectedCols = new Set(deletedKeys.map(k => k.split('_')[0]));
+    for (const col of affectedCols) {
+        const colStones = [];
+        for (let r = rows - 1; r >= 0; r--) {
+            const key = `${col}_${r}`;
+            if (stones[key]) {
+                colStones.push(stones[key]);
+                delete stones[key];
+            }
+        }
+        for (let i = 0; i < colStones.length; i++) {
+            stones[`${col}_${rows - 1 - i}`] = colStones[i];
+        }
+    }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -435,6 +476,35 @@ async function executeAbility(side, charaID) {
                 const col = validCols[Math.floor(Math.random() * validCols.length)];
                 const role = side === 'player' ? PLAYER_COLOR : CPU_COLOR;
                 await dropAt(col, applyColorSwap(role));
+            }
+            break;
+        }
+        case '010': { // ルアン・メェイ：相手3個変換→自分6個破壊(重力あり)
+            const myColor = applyColorSwap(side === 'player' ? PLAYER_COLOR : CPU_COLOR);
+            const opponentColor = applyColorSwap(side === 'player' ? CPU_COLOR : PLAYER_COLOR);
+
+            // Phase 1: 相手の石をランダムに3個選んで自分の色に変換
+            const opponentKeys = Object.keys(stones).filter(k => stones[k] === opponentColor);
+            const keysToConvert = getRandomElements(opponentKeys, Math.min(3, opponentKeys.length));
+            if (keysToConvert.length > 0) {
+                await highlightStonesLocal(keysToConvert, 450);
+                for (const key of keysToConvert) {
+                    stones[key] = myColor;
+                }
+                drawBoard();
+            }
+
+            if (checkWinLocal()) return; // 変換で勝利確定なら Phase2 をスキップ
+
+            await wait(700);
+
+            // Phase 2: 自分の石をランダムに6個選んで破壊（重力落下あり）
+            const myKeys = Object.keys(stones).filter(k => stones[k] === myColor);
+            const keysToDelete = getRandomElements(myKeys, Math.min(6, myKeys.length));
+            if (keysToDelete.length > 0) {
+                await deleteStonesLocal(keysToDelete);
+                applyGravityLocal(keysToDelete);
+                drawBoard();
             }
             break;
         }
@@ -1047,16 +1117,33 @@ function setupInput() {
         dispTopStone();
     }
 
+    function handleSoloTap(col) {
+        if (getClickMode() === 'single') {
+            handlePlayerDrop(col);
+            return;
+        }
+        // 2クリックモード：同じ列を2回クリックで投下
+        if (pendingDropCol === col) {
+            pendingDropCol = null;
+            handlePlayerDrop(col);
+        } else {
+            pendingDropCol = col;
+            nowCol = col;
+            highlightColumn(col);
+            dispTopStone();
+        }
+    }
+
     topCanvas.addEventListener('mousemove', updateHover);
     topCanvas.addEventListener('click', (event) => {
         const col = getColumnFromEvent(event);
-        handlePlayerDrop(col);
+        handleSoloTap(col);
     });
 
     canvas.addEventListener('mousemove', updateHover);
     canvas.addEventListener('click', (event) => {
         const col = getColumnFromEvent(event);
-        handlePlayerDrop(col);
+        handleSoloTap(col);
     });
 
     [topCanvas, canvas].forEach(el => {
@@ -1078,7 +1165,7 @@ function setupInput() {
             const dy = Math.abs(touch.clientY - touchStartY);
             if (dx < TAP_THRESHOLD && dy < TAP_THRESHOLD) {
                 const col = getColumnFromEvent(event);
-                handlePlayerDrop(col);
+                handleSoloTap(col);
             }
         });
     });
