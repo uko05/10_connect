@@ -574,10 +574,9 @@ details[open] > .achievement-group-header::after {
 /* デバッグ専用ボタン（@debugユーザーのアチーブメント一覧にのみ表示） */
 .debug-ach-btns {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 4px;
-    margin-left: 6px;
-    flex-shrink: 0;
+    margin-top: 4px;
 }
 
 .debug-ach-btn {
