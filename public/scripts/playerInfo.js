@@ -4,7 +4,7 @@ import { APP_VERSION } from './version.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
-import { getAchievementViewModel, setEquippedTitle } from './achievementManager.js';
+import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement } from './achievementManager.js';
 import { showAchievementToast } from './achievementToast.js';
 
 document.getElementById('version').textContent = APP_VERSION;
@@ -16,6 +16,7 @@ document.getElementById('backToHubButton').addEventListener('click', () => {
 let currentUid = null;
 let latestUserData = {};
 let currentSlot = 0; // 称号スロット（0=アチーブメント1, 1=アチーブメント2）。タブで切り替える
+let isDebugUser = false; // playerName が @debug で終わる場合だけ true
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const myRating = await getUserRating(user.uid);
         latestUserData = myRating || {};
+        isDebugUser = (latestUserData.playerName || '').endsWith('@debug');
 
         const nameInput = document.getElementById('playerInfoNameInput');
         if (nameInput) nameInput.value = latestUserData.playerName || '';
@@ -137,13 +139,21 @@ function renderAchievements() {
                 ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? '設定済み' : '設定'}</button>`
                 : `<button type="button" class="ach-set-btn" disabled>未所持</button>`;
 
+            const debugBtnsHtml = isDebugUser
+                ? `<span class="debug-ach-btns">` +
+                  `<button type="button" class="debug-ach-btn debug-unlock-btn" data-id="${ach.id}">解放</button>` +
+                  `<button type="button" class="debug-ach-btn debug-reset-btn" data-id="${ach.id}">リセット</button>` +
+                  `</span>`
+                : '';
+
             item.innerHTML =
                 `<div class="achievement-text">` +
                     `<span class="achievement-name">${ach.name}<span class="rarity-badge rarity-${ach.rarity}">${ach.rarity}</span></span>` +
                     `<span class="achievement-condition">${ach.condition}</span>` +
                     progressHtml +
                 `</div>` +
-                setBtnHtml;
+                setBtnHtml +
+                debugBtnsHtml;
             itemsEl.appendChild(item);
         });
 
@@ -152,23 +162,56 @@ function renderAchievements() {
     });
 }
 
-// 「設定」/「設定済み」ボタンのクリック（イベント委任：一覧が再描画されても再バインド不要）
+// アチーブメント一覧のクリックをイベント委任で一括処理（再描画後もバインド不要）
 document.getElementById('achievementList').addEventListener('click', async (event) => {
-    const btn = event.target.closest('.ach-set-btn');
-    if (!btn || !currentUid || btn.disabled) return;
+    if (!currentUid) return;
 
-    const achId = btn.dataset.id;
-    const isCurrentlySet = btn.classList.contains('set');
+    // 称号設定ボタン
+    const setBtn = event.target.closest('.ach-set-btn');
+    if (setBtn && !setBtn.disabled) {
+        const achId = setBtn.dataset.id;
+        const isCurrentlySet = setBtn.classList.contains('set');
+        setBtn.disabled = true;
+        try {
+            const updated = await setEquippedTitle(currentUid, currentSlot, isCurrentlySet ? null : achId);
+            latestUserData = { ...latestUserData, equippedTitles: updated };
+            renderTitleSlots(latestUserData);
+            renderAchievements();
+        } catch (e) {
+            console.error('[playerInfo] 称号の設定に失敗:', e);
+            setBtn.disabled = false;
+        }
+        return;
+    }
 
-    btn.disabled = true;
-    try {
-        const updated = await setEquippedTitle(currentUid, currentSlot, isCurrentlySet ? null : achId);
-        latestUserData = { ...latestUserData, equippedTitles: updated };
-        renderTitleSlots(latestUserData);
-        renderAchievements();
-    } catch (e) {
-        console.error('[playerInfo] 称号の設定に失敗:', e);
-        btn.disabled = false;
+    // デバッグ：解放ボタン
+    const unlockBtn = event.target.closest('.debug-unlock-btn');
+    if (unlockBtn && !unlockBtn.disabled) {
+        unlockBtn.disabled = true;
+        try {
+            await debugForceUnlockAchievement(currentUid, unlockBtn.dataset.id);
+            latestUserData = (await getUserRating(currentUid)) || {};
+            renderTitleSlots(latestUserData);
+            renderAchievements();
+        } catch (e) {
+            console.error('[playerInfo] デバッグ解放に失敗:', e);
+        }
+        return;
+    }
+
+    // デバッグ：リセットボタン
+    const resetBtn = event.target.closest('.debug-reset-btn');
+    if (resetBtn && !resetBtn.disabled) {
+        resetBtn.disabled = true;
+        try {
+            await debugForceResetAchievement(currentUid, resetBtn.dataset.id);
+            latestUserData = (await getUserRating(currentUid)) || {};
+            renderTitleSlots(latestUserData);
+            renderAchievements();
+        } catch (e) {
+            console.error('[playerInfo] デバッグリセットに失敗:', e);
+        }
+        return;
     }
 });
 

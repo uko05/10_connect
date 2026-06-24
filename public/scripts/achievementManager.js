@@ -133,6 +133,29 @@ export async function setEquippedTitle(uid, slotIndex, achId) {
     return current;
 }
 
+// ── デバッグ専用 ──────────────────────────────────────────────────────────────
+// 条件チェックを一切行わず、指定したアチーブメントIDを直接 Firestore に書き込む。
+// @debug ユーザーの playerInfo 画面からのみ呼ばれる想定。
+
+export async function debugForceUnlockAchievement(uid, achId) {
+    const userRef = doc(db, "users", uid);
+    const snap = await getDoc(userRef);
+    const userData = snap.exists() ? snap.data() : {};
+    const current = userData.achievements || [];
+    if (current.includes(achId)) return;
+    const updated = [...current, achId];
+    await updateDoc(userRef, { achievements: updated, achievementCount: updated.length });
+}
+
+export async function debugForceResetAchievement(uid, achId) {
+    const userRef = doc(db, "users", uid);
+    const snap = await getDoc(userRef);
+    const userData = snap.exists() ? snap.data() : {};
+    const updated = (userData.achievements || []).filter(id => id !== achId);
+    await updateDoc(userRef, { achievements: updated, achievementCount: updated.length });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // バトル画面用：プレイヤーの設定済み称号をDOM要素に反映する（rarity色のチップ表示）
 export function applyTitleDisplay(element, userData) {
     if (!element) return;

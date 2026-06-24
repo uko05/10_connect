@@ -110,6 +110,8 @@ let charaSound = null;
 
 // キャラ別個人勝利数（users/{uid}.charaWins）。ログイン後に取得して反映する
 let myCharaWins = {};
+// 解放済みアチーブメント（requiredAchievementId でキャラをロック制御するために使用）
+let myAchievements = new Set();
 
 // プレイヤー名保存用に、認証済みUIDを保持する
 let currentUid = null;
@@ -173,11 +175,15 @@ function displayThumbnails() {
     console.log("システム音量スライダー:", systemvolumeSlider);
     console.log("ボイス音量スライダー:", voicevolumeSlider);
 
-    //キャラデータ分だけループする
-    //対象の画像にCSSとか属性とか音声とかを設定する。
-    //addEventListenerでクリックイベントを設定する
-    //イベント内で実際に画面に表示する関数を実行する
-    characterData.forEach((character, index) => {
+    // requiredAchievementId を持つキャラは、該当アチーブメント未所持の場合はロック扱い
+    const unlockedCharacters = characterData.filter(
+        c => !c.requiredAchievementId || myAchievements.has(c.requiredAchievementId)
+    );
+    const lockedCharacters = characterData.filter(
+        c => c.requiredAchievementId && !myAchievements.has(c.requiredAchievementId)
+    );
+
+    unlockedCharacters.forEach((character, index) => {
         //サムネイル画像と勝利数バッジをまとめるラッパー
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
@@ -230,13 +236,8 @@ function displayThumbnails() {
         container.appendChild(wrapper); //コンテナにラッパーを追加
     });
 
-    //未実装の隠しキャラ用の「？」枠（4*4=16枠になるまで埋める。クリック不可）
-    //解放条件が決まっている枠だけヒントを表示する。未定の枠はnullのまま。
-    const LOCKED_SLOT_TOTAL = 16;
-    const LOCKED_CHARACTER_HINTS = [
-        ['解放条件', '下記アチーブメントを解放', '「マダム・ヘルタの導き」'],
-    ];
-    for (let i = characterData.length; i < LOCKED_SLOT_TOTAL; i++) {
+    // アチーブメント未解放でロックされているキャラを「？」枠として表示（ヒント付き）
+    lockedCharacters.forEach((character) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
 
@@ -248,13 +249,28 @@ function displayThumbnails() {
         mark.textContent = '？';
         lockedSlot.appendChild(mark);
 
-        const hintLines = LOCKED_CHARACTER_HINTS[i - characterData.length];
-        if (hintLines) {
-            const hint = document.createElement('div');
-            hint.className = 'thumbnail-locked-hint';
-            hint.innerHTML = hintLines.join('<br>');
-            lockedSlot.appendChild(hint);
-        }
+        const hint = document.createElement('div');
+        hint.className = 'thumbnail-locked-hint';
+        hint.innerHTML = '解放条件<br>下記アチーブメントを解放<br>「' + (character.requiredAchievementLabel || character.requiredAchievementId) + '」';
+        lockedSlot.appendChild(hint);
+
+        wrapper.appendChild(lockedSlot);
+        container.appendChild(wrapper);
+    });
+
+    // 残りを未定の「？」枠で埋める（合計16枠）
+    const LOCKED_SLOT_TOTAL = 16;
+    for (let i = unlockedCharacters.length + lockedCharacters.length; i < LOCKED_SLOT_TOTAL; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'thumbnail-wrapper';
+
+        const lockedSlot = document.createElement('div');
+        lockedSlot.className = 'thumbnail thumbnail-locked';
+
+        const mark = document.createElement('span');
+        mark.className = 'thumbnail-locked-mark';
+        mark.textContent = '？';
+        lockedSlot.appendChild(mark);
 
         wrapper.appendChild(lockedSlot);
         container.appendChild(wrapper);
@@ -290,6 +306,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // キャラ別個人勝利数（サムネイルのバッジ表示用）
         myCharaWins = myRating?.charaWins || {};
+        // 解放済みアチーブメント（キャラロック判定用）
+        myAchievements = new Set(myRating?.achievements || []);
 
         // 前回保存したプレイヤー名があれば自動入力
         const playerNameInput = document.getElementById('playerName');
