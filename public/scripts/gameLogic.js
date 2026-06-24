@@ -1286,15 +1286,23 @@ async function watchRoomUpdates() {
                 winningflg = 1;
                 
                 if (result.red && result.yellow) {
-                
+
                     console.log("◆判定:引き分け");
-                    
-                    // ◆引き分け                        
+
+                    // ◆引き分け
                     await Promise.all([
                         highlightWinningCells(result.red),
                         highlightWinningCells(result.yellow)
                     ]);
-                    
+
+                    red_Win += 1;
+                    yellow_Win += 1;
+                    if (playerLeft_Color === 'red') {
+                        updateWinLabels(red_Win, yellow_Win);
+                    } else {
+                        updateWinLabels(yellow_Win, red_Win);
+                    }
+
                     // DRAWの場合はランダムで先行後攻を決める
                     startP = (crypto.getRandomValues(new Uint8Array(1))[0] % 2) === 0 ? 'P1' : 'P2';
                     
@@ -1358,6 +1366,17 @@ async function watchRoomUpdates() {
 
                 console.log("◆◆◆◆◆◆◆◆◆◆◆");
                 console.log("勝利判定②（BO3確定）");
+
+                // 引き分けで両者同時に3点到達（マッチドロー）
+                if (red_Win === 3 && yellow_Win === 3) {
+                    console.log("◆判定:マッチドロー（3-3）");
+                    resetTimeLimit();
+                    await handleBO3MatchDraw();
+                    displayMatchDraw();
+                    console.log("◆◆◆◆◆◆◆◆◆◆◆");
+                    return;
+                }
+
                 const winningColor = red_Win === 3 ? "red" : "yellow";
                 const isStraightWin = winningColor === "red" ? yellow_Win === 0 : red_Win === 0;
                 const isComebackWin = winningColor === "red" ? redComebackFromDown02 : yellowComebackFromDown02;
@@ -2531,6 +2550,47 @@ async function getRandomEmptyColumn() {
 }
 
 //------------------------------------------------------------------------------------------------
+
+// マッチドロー（3-3同時到達）：レート変動なし、rooms削除のみ（P1のみ実行）
+async function handleBO3MatchDraw() {
+    if (player_info !== "P1") {
+        console.log("[Rating] P2: マッチドロー後処理はP1に委任");
+        return;
+    }
+    if (!firestoreRoomDocRef) {
+        console.warn("[Rating] firestoreRoomDocRef is null, skipping match draw cleanup");
+        return;
+    }
+    try {
+        await deleteRoomAfterRating(firestoreRoomDocRef);
+        console.log("[Rating] マッチドロー：rooms削除完了");
+    } catch (error) {
+        console.error("[Rating] マッチドロー rooms削除失敗:", error);
+    }
+}
+
+function displayMatchDraw() {
+    stopHeartbeats();
+
+    const victoryModal = document.getElementById("victoryModal");
+    const victoryImage = document.getElementById("victoryImage");
+    const victoryMessage = document.getElementById("victoryMessage");
+    const ratingChangeEl = document.getElementById("ratingChange");
+
+    document.getElementById('leaveButtonContainer').style.display = 'none';
+
+    victoryImage.src = playerLeft_Image;
+    victoryMessage.textContent = "DRAW!! (3-3)";
+
+    fxFlash('rgba(200, 200, 200, 0.3)', 200);
+
+    victoryModal.style.display = "block";
+    ratingChangeEl.style.display = "none";
+
+    setTimeout(() => {
+        window.location.href = "select.html?mode=match";
+    }, 8000);
+}
 
 // BO3確定時のレーティング更新処理
 // winningColor: 勝者の色 ("red" | "yellow")
