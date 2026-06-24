@@ -3643,14 +3643,16 @@ async function ult_ruanMei() {
             player2_ChargeNow: p2_chargeNow,
             stones: localStones
         });
-        // handleRoomUpdateがモジュールレベルのstonesDataを更新するのを待ってから再描画
-        await wait(700);
+        // モジュールレベルのstonesDataを直接更新してから再描画（handleRoomUpdateを待たない）
+        stonesData = localStones;
         init_drawBoard(true);
 
         if (winAfterConvert.red || winAfterConvert.yellow) {
             // 変換で勝利確定 → handleRoomUpdateが両側で勝利処理を行う
             return;
         }
+
+        await wait(700); // 変換後の盤面を見せる間
 
         // Phase 2: 自分の石をランダムに6個選び破壊（重力落下あり）
         const myKeys = Object.keys(localStones).filter(k => localStones[k]?.color === myColor);
@@ -3668,8 +3670,8 @@ async function ult_ruanMei() {
         applyGravity(localStones, keysToDelete);
 
         await updateDoc(roomDocRef, { stones: localStones });
-
-        await wait(700);
+        // モジュールレベルのstonesDataを直接更新してから再描画
+        stonesData = localStones;
         init_drawBoard(true);
 
     } catch (error) {
