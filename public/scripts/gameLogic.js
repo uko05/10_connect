@@ -38,7 +38,7 @@ import {
 } from "./abilities.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
-import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity } from "./settingsManager.js";
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getClickMode } from "./settingsManager.js";
 import { recordPvpMatchAchievements, applyTitleDisplay } from "./achievementManager.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
@@ -796,17 +796,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dx = Math.abs(touch.clientX - touchStartX);
             const dy = Math.abs(touch.clientY - touchStartY);
             if (dx < TAP_THRESHOLD && dy < TAP_THRESHOLD) {
-                // ① タップ判定 → 2タップ制で石投下
-                handleTouchTap(event);
+                if (getClickMode() === 'single') {
+                    if (winningflg == 0) handleStoneDrop(event);
+                } else {
+                    handleTouchTap(event);
+                }
             }
         }
         isMoving = false;
     });
 
-    // --- topCanvas: クリック（single click → 列移動） ---
+    // --- topCanvas: クリック（モードに応じて即投下 or 列選択） ---
     topCanvas.addEventListener("click", (event) => {
         if (!selectedCharacter) {
-            handleMoveColumn(event);
+            if (getClickMode() === 'single') {
+                if (winningflg == 0) handleStoneDrop(event);
+            } else {
+                handleTouchTap(event);
+            }
         }
     });
 
@@ -855,17 +862,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dx = Math.abs(touch.clientX - touchStartX);
             const dy = Math.abs(touch.clientY - touchStartY);
             if (dx < TAP_THRESHOLD && dy < TAP_THRESHOLD) {
-                // ① タップ判定 → 2タップ制で石投下
-                handleTouchTap(event);
+                if (getClickMode() === 'single') {
+                    if (winningflg == 0) handleStoneDrop(event);
+                } else {
+                    handleTouchTap(event);
+                }
             }
         }
         isMoving = false;
     });
 
-    // --- canvas: クリック（single click → 列移動） ---
+    // --- canvas: クリック（モードに応じて即投下 or 列選択） ---
     canvas.addEventListener("click", (event) => {
         if (!selectedCharacter) {
-            handleMoveColumn(event);
+            if (getClickMode() === 'single') {
+                if (winningflg == 0) handleStoneDrop(event);
+            } else {
+                handleTouchTap(event);
+            }
         }
     });
 
@@ -3599,27 +3613,27 @@ async function ult_ruanMei() {
 
         const roomDoc = querySnapshot.docs[0];
         const roomData = roomDoc.data();
-        const stonesData = Object.assign({}, roomData.stones || {});
-        for (const key in stonesData) {
-            stonesData[key] = Object.assign({}, stonesData[key]);
+        const localStones = Object.assign({}, roomData.stones || {});
+        for (const key in localStones) {
+            localStones[key] = Object.assign({}, localStones[key]);
         }
 
         const myColor = playerLeft_Color;
         const opponentColor = myColor === 'red' ? 'yellow' : 'red';
 
         // Phase 1: 相手の石をランダムに3個選び自分の色に変換
-        const opponentKeys = Object.keys(stonesData).filter(k => stonesData[k]?.color === opponentColor);
+        const opponentKeys = Object.keys(localStones).filter(k => localStones[k]?.color === opponentColor);
         const keysToConvert = getRandomElements(opponentKeys, Math.min(3, opponentKeys.length));
 
         if (keysToConvert.length > 0) {
             await highlightStones(keysToConvert, 400);
             for (const key of keysToConvert) {
-                stonesData[key] = Object.assign({}, stonesData[key], { color: myColor });
+                localStones[key] = Object.assign({}, localStones[key], { color: myColor });
             }
         }
 
         // 変換後の勝利判定（Phase 2 実行前に確認）
-        const winAfterConvert = checkWin(stonesData);
+        const winAfterConvert = checkWin(localStones);
 
         // Phase 1 をFirestoreへ書き込み（チャージ消費もここで処理）
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
@@ -3627,8 +3641,10 @@ async function ult_ruanMei() {
         await updateDoc(roomDocRef, {
             player1_ChargeNow: p1_chargeNow,
             player2_ChargeNow: p2_chargeNow,
-            stones: stonesData
+            stones: localStones
         });
+        // handleRoomUpdateがモジュールレベルのstonesDataを更新するのを待ってから再描画
+        await wait(700);
         init_drawBoard(true);
 
         if (winAfterConvert.red || winAfterConvert.yellow) {
@@ -3636,10 +3652,8 @@ async function ult_ruanMei() {
             return;
         }
 
-        await wait(700);
-
         // Phase 2: 自分の石をランダムに6個選び破壊（重力落下あり）
-        const myKeys = Object.keys(stonesData).filter(k => stonesData[k]?.color === myColor);
+        const myKeys = Object.keys(localStones).filter(k => localStones[k]?.color === myColor);
         const keysToDelete = getRandomElements(myKeys, Math.min(6, myKeys.length));
 
         if (keysToDelete.length === 0) return;
@@ -3647,13 +3661,13 @@ async function ult_ruanMei() {
         await highlightStones(keysToDelete, 400);
 
         for (const key of keysToDelete) {
-            delete stonesData[key];
+            delete localStones[key];
         }
 
         // 削除後、影響を受けた列の石を重力で下に詰める
-        applyGravity(stonesData, keysToDelete);
+        applyGravity(localStones, keysToDelete);
 
-        await updateDoc(roomDocRef, { stones: stonesData });
+        await updateDoc(roomDocRef, { stones: localStones });
 
         await wait(700);
         init_drawBoard(true);

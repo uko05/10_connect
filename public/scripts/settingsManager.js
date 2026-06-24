@@ -23,10 +23,16 @@ export const CPU_DIFFICULTY_LEVELS = [
     { id: "bakatare", label: "BAKATARE", depth: 10 },
 ];
 
+export const CLICK_MODE_OPTIONS = [
+    { id: "single", label: "1クリックで石を落とす" },
+    { id: "double", label: "2クリックで石を落とす（列選択→確定）" },
+];
+
 const DEFAULT_SETTINGS = {
     stoneColorPreset: "classic",
     ultIntensity: "strong",
     cpuDifficulty: "normal",
+    clickMode: "single",
 };
 
 function loadSettings() {
@@ -102,6 +108,16 @@ export function getUltIntensity() {
     return currentSettings.ultIntensity;
 }
 
+export function setClickMode(id) {
+    if (!CLICK_MODE_OPTIONS.some(o => o.id === id)) return;
+    currentSettings.clickMode = id;
+    persist();
+}
+
+export function getClickMode() {
+    return currentSettings.clickMode;
+}
+
 /**
  * 設定モーダル内のUI(色スウォッチ・演出強度ラジオ)を現在の設定値で初期化し、
  * クリック/変更イベントをバインドする。
@@ -127,6 +143,15 @@ export function bindSettingsUI(root, onColorChange) {
         radio.checked = radio.value === currentSettings.ultIntensity;
         radio.addEventListener("change", () => {
             if (radio.checked) setUltIntensity(radio.value);
+        });
+    });
+
+    // クリック操作モード
+    const clickModeRadios = root.querySelectorAll('input[name="clickMode"]');
+    clickModeRadios.forEach(radio => {
+        radio.checked = radio.value === currentSettings.clickMode;
+        radio.addEventListener("change", () => {
+            if (radio.checked) setClickMode(radio.value);
         });
     });
 }
