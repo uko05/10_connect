@@ -178,6 +178,10 @@ function displayThumbnails() {
     // charaID順にすべてのキャラを描画（解放状態にかかわらず）
     characterData.forEach((character) => {
         const isLocked = character.requiredAchievementId && !myAchievements.has(character.requiredAchievementId);
+
+        // ソロモードでは未解放キャラを完全に非表示
+        if (requestedMode === 'cpu' && isLocked) return;
+
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
 

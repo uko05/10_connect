@@ -10,7 +10,7 @@ import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from ".
 import { characterData } from "./characterData.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
-import { recordSoloWin } from "./achievementManager.js";
+import { recordSoloWin, applyTitleDisplay } from "./achievementManager.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
 document.getElementById('version').textContent = APP_VERSION;
@@ -1243,6 +1243,10 @@ function initCharacters() {
     const playerName = (sessionStorage.getItem('soloPlayerName') || 'プレイヤー')
         .replace(/^ばかたれ@/, '').replace(/@debug$/, '');
     document.getElementById('playerName_1').innerText = playerName;
+
+    // ソロモードは称号データなし（両側「未設定」表示）
+    applyTitleDisplay(document.getElementById('playerTitles_1'), null);
+    applyTitleDisplay(document.getElementById('playerTitles_2'), null);
 
     cpuChara = pickCpuCharacter();
     displayCharaPanel('player', playerChara);

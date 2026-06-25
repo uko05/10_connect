@@ -182,14 +182,21 @@ export async function debugForceResetAchievement(uid, achId) {
 // バトル画面用：プレイヤーの設定済み称号をDOM要素に反映する（rarity色のチップ表示）
 export function applyTitleDisplay(element, userData) {
     if (!element) return;
-    const ids = (userData && userData.equippedTitles) ? userData.equippedTitles.filter(Boolean) : [];
+    const equipped = (userData && Array.isArray(userData.equippedTitles))
+        ? userData.equippedTitles
+        : [null, null];
     element.innerHTML = '';
-    ids.forEach((achId) => {
-        const ach = ALL_ACHIEVEMENTS.find((a) => a.id === achId);
-        if (!ach) return;
+    for (let i = 0; i < 2; i++) {
+        const achId = equipped[i] || null;
+        const ach = achId ? ALL_ACHIEVEMENTS.find(a => a.id === achId) : null;
         const chip = document.createElement('span');
-        chip.className = `title-chip rarity-badge rarity-${ach.rarity}`;
-        chip.textContent = ach.name;
+        if (ach) {
+            chip.className = `title-chip rarity-badge rarity-${ach.rarity}`;
+            chip.textContent = ach.name;
+        } else {
+            chip.className = 'title-chip title-chip-empty';
+            chip.textContent = '未設定';
+        }
         element.appendChild(chip);
-    });
+    }
 }
