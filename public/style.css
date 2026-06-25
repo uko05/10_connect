@@ -662,6 +662,7 @@ details[open] > .achievement-group-header::after {
 
 .thumbnail-container {
     margin-top: 10px;
+    margin-bottom: 10px;
     display: flex; /* 横並びにする */
     flex-wrap: wrap; /* 複数行に折り返す */
     gap: 5px; /* サムネイル間のスペース（隙間を半分に） */
