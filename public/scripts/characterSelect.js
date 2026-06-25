@@ -19,7 +19,9 @@ import {
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
-import { ensureUserDoc, getUserRating, applyRatingDisplay, savePlayerName } from './eloRating.js';
+import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './eloRating.js';
+import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
+import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty } from './settingsManager.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
@@ -250,6 +252,42 @@ function displayCharacterInfo(character) {
     document.getElementById('charaID').value = character.charaID; //キャラIDをhiddenフィールドに設定
 }
 
+// ロビーのプレイヤー情報エリアを更新する（5行レイアウト）
+async function applyLobbyDisplay(userData) {
+    const rankAndRateEl = document.getElementById('lobbyRankAndRate');
+    const rankingEl     = document.getElementById('lobbyRanking');
+    const badgeEl       = document.getElementById('lobbyRankBadge');
+    const titlesEl      = document.getElementById('lobbyTitles');
+
+    if (!userData) {
+        if (rankAndRateEl) rankAndRateEl.textContent = '---';
+        if (badgeEl) badgeEl.style.display = 'none';
+        return;
+    }
+
+    const rating = userData.rating ?? 1500;
+    const tier   = getRankTier(rating);
+    const css    = getRankCssClass(rating);
+
+    if (rankAndRateEl) {
+        rankAndRateEl.textContent = `${tier}　/　Rate：${rating}`;
+        rankAndRateEl.className = `player-rating ${css}`;
+        rankAndRateEl.style.cssText = 'text-align:left; margin:2px 0;';
+    }
+    if (badgeEl) {
+        badgeEl.src = getRankBadgePath(rating);
+        badgeEl.alt = tier;
+        badgeEl.style.display = 'block';
+    }
+    if (titlesEl) applyTitleDisplay(titlesEl, userData);
+
+    // Ranking は非同期で後から更新
+    const rankInfo = await getUserRank(rating);
+    if (rankInfo && rankingEl) {
+        rankingEl.textContent = `Ranking: #${rankInfo.rank}`;
+    }
+}
+
 //ページが読み込まれたらサムネイルを表示し、スライダーイベントを設定
 //DOMContentLoaded・・・HTMLが全部読み込まれたとき動く
 //Load・・・CSSとかJS含む全て（ページ全体）が読み込まれたときに動く
@@ -261,12 +299,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await ensureUserDoc(user.uid);
         console.log("[characterSelect] Auth ready, uid:", user.uid);
 
-        // ロビーにレート表示
+        // ロビーにレート・称号表示
         const myRating = await getUserRating(user.uid);
-        const ratingEl = document.getElementById('lobbyRatingDisplay');
-        const badgeEl = document.getElementById('lobbyRankBadge');
-        const rankNameEl = document.getElementById('lobbyRankName');
-        applyRatingDisplay(ratingEl, myRating, badgeEl, rankNameEl);
+        applyLobbyDisplay(myRating);
 
         // キャラ別個人勝利数（サムネイルのバッジ表示用）
         myCharaWins = myRating?.charaWins || {};
