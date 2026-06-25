@@ -53,6 +53,12 @@ const canvas = document.getElementById('connect4Canvas');
 let isInitialLoad = true; // 初期ロードかどうかを管理するフラグ
 
 // プレイヤー情報格納
+// テストプレイヤー識別子をバトル画面上で非表示にするためのサニタイズ関数
+function sanitizeDisplayName(name) {
+    if (!name) return name;
+    return name.replace(/^ばかたれ@/, '').replace(/@debug$/, '');
+}
+
 let playerLeft_ID = null;
 let playerLeft_CharaID = null;
 let playerLeft_ChargeNow = 0;
@@ -301,7 +307,7 @@ async function displayThumbnails() {
             playerLeft_ID = data.player1_ID;
             playerLeft_CharaID = data.player1_CharaID;
             playerLeft_ChargeNow = data.player1_ChargeNow;
-            playerLeft_Name = data.player1_Name;
+            playerLeft_Name = sanitizeDisplayName(data.player1_Name);
             playerLeft_Color = data.player1_Color;
             playerLeft_TimeLimit = data.player1_TimeLimit;
             playerLeft_UltCount = data.player1_UltCount;
@@ -309,7 +315,7 @@ async function displayThumbnails() {
             playerRight_ID = data.player2_ID;
             playerRight_CharaID = data.player2_CharaID;
             playerRight_ChargeNow = data.player2_ChargeNow;
-            playerRight_Name = data.player2_Name;
+            playerRight_Name = sanitizeDisplayName(data.player2_Name);
             playerRight_Color = data.player2_Color;
             playerRight_TimeLimit = data.player2_TimeLimit;
             playerRight_UltCount = data.player2_UltCount;
@@ -341,7 +347,7 @@ async function displayThumbnails() {
             playerLeft_ID = data.player2_ID;
             playerLeft_CharaID = data.player2_CharaID;
             playerLeft_ChargeNow = data.player2_ChargeNow;
-            playerLeft_Name = data.player2_Name;
+            playerLeft_Name = sanitizeDisplayName(data.player2_Name);
             playerLeft_Color = data.player2_Color;
             playerLeft_TimeLimit = data.player2_TimeLimit;
             playerLeft_UltCount = data.player2_UltCount;
@@ -349,7 +355,7 @@ async function displayThumbnails() {
             playerRight_ID = data.player1_ID;
             playerRight_CharaID = data.player1_CharaID;
             playerRight_ChargeNow = data.player1_ChargeNow;
-            playerRight_Name = data.player1_Name;
+            playerRight_Name = sanitizeDisplayName(data.player1_Name);
             playerRight_Color = data.player1_Color;
             playerRight_TimeLimit = data.player1_TimeLimit;
             playerRight_UltCount = data.player1_UltCount;
