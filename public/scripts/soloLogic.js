@@ -1229,7 +1229,10 @@ function displayCharaPanel(side, chara) {
 }
 
 function pickCpuCharacter() {
-    return characterData[Math.floor(Math.random() * characterData.length)];
+    const unlocked = new Set(JSON.parse(sessionStorage.getItem('soloUnlockedAchievements') || '[]'));
+    const pool = characterData.filter(c => !c.requiredAchievementId || unlocked.has(c.requiredAchievementId));
+    const candidates = pool.length > 0 ? pool : characterData;
+    return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 function initCharacters() {

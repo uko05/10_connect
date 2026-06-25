@@ -74,6 +74,8 @@ document.getElementById('soloModeButton').addEventListener('click', () => {
     const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
     sessionStorage.setItem('soloPlayerCharaID', charaID);
     sessionStorage.setItem('soloPlayerName', playerName);
+    // CPUランダム選択で未解放キャラを除くために解放済みアチーブメントを渡す
+    sessionStorage.setItem('soloUnlockedAchievements', JSON.stringify([...myAchievements]));
     window.location.href = 'solo.html';
 });
 
@@ -178,10 +180,6 @@ function displayThumbnails() {
     // charaID順にすべてのキャラを描画（解放状態にかかわらず）
     characterData.forEach((character) => {
         const isLocked = character.requiredAchievementId && !myAchievements.has(character.requiredAchievementId);
-
-        // ソロモードでは未解放キャラを完全に非表示
-        if (requestedMode === 'cpu' && isLocked) return;
-
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
 
