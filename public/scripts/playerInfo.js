@@ -17,7 +17,8 @@ document.getElementById('backToHubButton').addEventListener('click', () => {
 let currentUid = null;
 let latestUserData = {};
 let currentSlot = 0; // 称号スロット（0=アチーブメント1, 1=アチーブメント2）。タブで切り替える
-let isDebugUser = false; // playerName が @debug で終わる場合だけ true
+let isDebugUser = false;    // playerName が @debug で終わる場合だけ true
+let isBakatareUser = false; // playerName が ばかたれ@ で始まる場合だけ true（新キャラ解放アチーブのみデバッグ可）
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const myRating = await getUserRating(user.uid);
         latestUserData = myRating || {};
         isDebugUser = (latestUserData.playerName || '').endsWith('@debug');
+        isBakatareUser = (latestUserData.playerName || '').startsWith('ばかたれ@');
 
         const nameInput = document.getElementById('playerInfoNameInput');
         if (nameInput) nameInput.value = latestUserData.playerName || '';
@@ -176,7 +178,8 @@ function renderAchievements() {
                 ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? '設定済み' : '設定'}</button>`
                 : (isCharUnlock ? charUnlockBadge : '') + `<button type="button" class="ach-set-btn" disabled>未所持</button>`;
 
-            const debugBtnsHtml = isDebugUser
+            const showDebugBtns = isDebugUser || (isBakatareUser && isCharUnlock);
+            const debugBtnsHtml = showDebugBtns
                 ? `<span class="debug-ach-btns">` +
                   `<button type="button" class="debug-ach-btn debug-unlock-btn" data-id="${ach.id}">解放</button>` +
                   `<button type="button" class="debug-ach-btn debug-reset-btn" data-id="${ach.id}">リセット</button>` +
@@ -273,8 +276,19 @@ document.getElementById('savePlayerNameButton').addEventListener('click', async 
         setTimeout(() => { feedback.textContent = ''; }, 2000);
     }
 
-    // デバッグ専用：名前の末尾が「@debug」の場合、アチーブを解放してトーストを表示する
+    // ばかたれ@先頭：ばかたれテスターアチーブを解放
+    if (nameInput.value.trim().startsWith('ばかたれ@')) {
+        isBakatareUser = true;
+        await debugForceUnlockAchievement(currentUid, 'bakatare_tester');
+        latestUserData = (await getUserRating(currentUid)) || {};
+        renderTitleSlots(latestUserData);
+        renderAchievements();
+        showAchievementToast('bakatare_tester');
+    }
+
+    // @debug末尾：フルデバッグアチーブを解放
     if (nameInput.value.trim().endsWith('@debug')) {
+        isDebugUser = true;
         await debugForceUnlockAchievement(currentUid, DEBUG_ACHIEVEMENT.id);
         latestUserData = (await getUserRating(currentUid)) || {};
         renderTitleSlots(latestUserData);
