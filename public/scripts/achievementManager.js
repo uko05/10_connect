@@ -11,6 +11,8 @@ const ACH_STATS_DEFAULTS = {
     ultUsedTotal: 0,
     hadSealWin: false,
     hadDoubleUltWin: false,
+    hadFiveUltWin: false,
+    hadCeryluaUlt5Win: false,
     hadStraightWin: false,
     hadCleanWin: false,
     hadComebackWin: false,
@@ -88,6 +90,7 @@ export async function recordPvpMatchAchievements(uid, {
     isStraightWin = false,
     isCleanWin = false,
     isComebackWin = false,
+    myCharaId = null,
 } = {}) {
     return applyAchStatsPatch(uid, (currentStats) => {
         const patch = {
@@ -97,6 +100,8 @@ export async function recordPvpMatchAchievements(uid, {
         if (isWinner) {
             if (ultCountThisMatch === 0) patch.hadSealWin = true;
             if (ultCountThisMatch >= 2) patch.hadDoubleUltWin = true;
+            if (ultCountThisMatch >= 5) patch.hadFiveUltWin = true;
+            if (ultCountThisMatch >= 5 && myCharaId === '015') patch.hadCeryluaUlt5Win = true;
             if (isStraightWin) patch.hadStraightWin = true;
             if (isCleanWin) patch.hadCleanWin = true;
             if (isComebackWin) patch.hadComebackWin = true;

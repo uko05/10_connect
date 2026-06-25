@@ -198,6 +198,8 @@ export const characterData = [
         voice_select: 'public/scripts/sound/saferu_select.mp3',
         voice_attack: 'public/scripts/sound/saferu_attack.mp3',
         voice_ult: 'public/scripts/sound/saferu_ult.mp3',
+        requiredAchievementId: 'chara_win10_007',
+        requiredAchievementLabel: 'キャストリスの導き',
         process: 'ult_saphel'
     },
     {
@@ -228,6 +230,8 @@ export const characterData = [
         voice_select: 'public/scripts/sound/Keryu_select.mp3',
         voice_attack: 'public/scripts/sound/Keryu_attack.mp3',
         voice_ult: 'public/scripts/sound/Keryu_ult.mp3',
+        requiredAchievementId: 'ult_five_win',
+        requiredAchievementLabel: '法の皇帝であり、盤上の支配者',
         process: 'ult_cerylua'
     },
     {

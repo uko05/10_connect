@@ -2735,12 +2735,14 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
                             ultCountThisMatch: playerLeft_UltCount,
                             isWinner: winnerUid === p1Uid,
                             isStraightWin, isCleanWin, isComebackWin,
+                            myCharaId: playerLeft_CharaID,
                         }),
                         recordPvpMatchAchievements(p2Uid, {
                             newRating: ratingFor(p2Uid),
                             ultCountThisMatch: playerRight_UltCount,
                             isWinner: winnerUid === p2Uid,
                             isStraightWin, isCleanWin, isComebackWin,
+                            myCharaId: playerRight_CharaID,
                         }),
                     ]);
                     // playerLeft = P1 = 自分。自分の新規解放分のみトースト表示する（P2は別途rated検知で表示）

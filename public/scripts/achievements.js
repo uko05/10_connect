@@ -81,6 +81,7 @@ export const ACHIEVEMENT_GROUPS = [
             { id: 'ult_first_use', rarity: 'bronze', name: '初めての必殺技', condition: '必殺技を初めて発動する', check: (ctx) => ctx.ultUsedTotal >= 1 },
             { id: 'ult_seal_win', rarity: 'silver', name: '実力で示す', condition: '必殺技を一度も使わずに通常対戦に勝利する', check: (ctx) => !!ctx.hadSealWin },
             { id: 'ult_double_win', rarity: 'silver', name: '必殺技連発', condition: '1試合中に必殺技を2回以上発動して勝利する', check: (ctx) => !!ctx.hadDoubleUltWin },
+            { id: 'ult_five_win', rarity: 'gold', name: '法の皇帝であり、盤上の支配者', condition: '1試合中に必殺技を5回以上発動して勝利する', check: (ctx) => !!ctx.hadFiveUltWin },
         ],
     },
     {
@@ -94,6 +95,7 @@ export const ACHIEVEMENT_GROUPS = [
     {
         id: 'bakatare_challenge', name: 'ばかたれチャレンジ',
         items: [
+            { id: 'cerylua_ult5_win', rarity: 'gold', name: 'ケリュドラの使者', condition: 'ケリュドラの必殺技を1試合中に5回使用して勝利する', check: (ctx) => !!ctx.hadCeryluaUlt5Win },
         ],
     },
 ];
