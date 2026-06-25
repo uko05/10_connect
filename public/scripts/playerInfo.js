@@ -121,11 +121,12 @@ function renderAchievements() {
         characterData.filter(c => c.requiredAchievementId).map(c => c.requiredAchievementId)
     );
 
-    // charaID系アチーブメント（chara_win10_XXX / solo_bakatare_XXX）がロックキャラに属するか判定し、名前をマスク
-    function maskCharaText(text, achId) {
-        const match = achId.match(/(?:chara_win\d+_|solo_bakatare_)(\d+)$/);
-        if (!match || !lockedCharaIds.has(match[1])) return text;
-        const realName = charaIdToName[match[1]];
+    // ロックキャラに関連するアチーブメントのキャラ名をマスク
+    function maskCharaText(text, ach) {
+        const match = ach.id.match(/(?:chara_win\d+_|solo_bakatare_)(\d+)$/);
+        const charaId = match?.[1] ?? ach.hiddenCharaId ?? null;
+        if (!charaId || !lockedCharaIds.has(charaId)) return text;
+        const realName = charaIdToName[charaId];
         if (!realName) return text;
         const escaped = realName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         return text.replace(new RegExp(escaped, 'g'), '？？？');
@@ -157,8 +158,8 @@ function renderAchievements() {
             const item = document.createElement('div');
             item.className = `achievement-item rarity-${ach.rarity} ${ach.unlocked ? 'unlocked' : 'locked'}`;
 
-            const displayName = maskCharaText(ach.name, ach.id);
-            const displayCondition = maskCharaText(ach.condition, ach.id);
+            const displayName = maskCharaText(ach.name, ach);
+            const displayCondition = maskCharaText(ach.condition, ach);
 
             const progressHtml = ach.progress
                 ? `<span class="achievement-progress">${Math.min(ach.progress.current, ach.progress.target)} / ${ach.progress.target}</span>`
