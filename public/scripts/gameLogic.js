@@ -3759,11 +3759,10 @@ async function ult_ruanMei() {
         init_drawBoard(true);
         await wait(400);
 
-        // 削除後、影響を受けた列の石を重力で下に詰める
-        applyGravity(localStones, keysToDelete);
+        // 削除後、影響を受けた列の石を重力でアニメーション落下
+        await animateGravitySmooth(localStones, keysToDelete);
 
         await updateDoc(roomDocRef, { stones: localStones });
-        // モジュールレベルのstonesDataを直接更新してから再描画
         stonesData = localStones;
         init_drawBoard(true);
 
@@ -3773,22 +3772,75 @@ async function ult_ruanMei() {
 }
 
 // 指定キーの列について、石を重力で下に詰め直す
-function applyGravity(stonesData, deletedKeys) {
+function applyGravity(stonesRef, deletedKeys) {
     const affectedCols = new Set(deletedKeys.map(k => k.split('_')[0]));
     for (const col of affectedCols) {
         const colStones = [];
         for (let r = rows - 1; r >= 0; r--) {
             const key = `${col}_${r}`;
-            if (stonesData[key]) {
-                colStones.push(stonesData[key]);
-                delete stonesData[key];
+            if (stonesRef[key]) {
+                colStones.push(stonesRef[key]);
+                delete stonesRef[key];
             }
         }
-        // 下から詰め直す（colStonesは下→上の順）
         for (let i = 0; i < colStones.length; i++) {
-            stonesData[`${col}_${rows - 1 - i}`] = colStones[i];
+            stonesRef[`${col}_${rows - 1 - i}`] = colStones[i];
         }
     }
+}
+
+function animateGravitySmooth(stonesRef, deletedKeys) {
+    return new Promise(resolve => {
+        const affectedCols = new Set(deletedKeys.map(k => k.split('_')[0]));
+        const movingStones = [];
+
+        for (const col of affectedCols) {
+            const colEntries = [];
+            for (let r = rows - 1; r >= 0; r--) {
+                const key = `${col}_${r}`;
+                if (stonesRef[key]) {
+                    colEntries.push({ r, data: stonesRef[key] });
+                    delete stonesRef[key];
+                }
+            }
+            for (let i = 0; i < colEntries.length; i++) {
+                const targetRow = rows - 1 - i;
+                const fromRow = colEntries[i].r;
+                if (fromRow !== targetRow) {
+                    movingStones.push({
+                        col: parseInt(col),
+                        data: colEntries[i].data,
+                        currentY: fromRow * cellSize,
+                        targetY: targetRow * cellSize,
+                    });
+                } else {
+                    stonesRef[`${col}_${fromRow}`] = colEntries[i].data;
+                }
+            }
+        }
+
+        stonesData = stonesRef;
+
+        if (movingStones.length === 0) { init_drawBoard(true); resolve(); return; }
+
+        const interval = setInterval(() => {
+            for (const s of movingStones) {
+                if (s.currentY < s.targetY) s.currentY = Math.min(s.currentY + 10, s.targetY);
+            }
+            init_drawBoard(true);
+            for (const s of movingStones) drawPiece(s.col, s.currentY, s.data.color);
+
+            if (movingStones.every(s => s.currentY >= s.targetY)) {
+                clearInterval(interval);
+                for (const s of movingStones) {
+                    stonesRef[`${s.col}_${s.targetY / cellSize}`] = s.data;
+                }
+                stonesData = stonesRef;
+                init_drawBoard(true);
+                resolve();
+            }
+        }, 10);
+    });
 }
 
 //------------------------------------------------------------------------------------------------
@@ -3860,7 +3912,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                     stonesData = localStones;
                     init_drawBoard(true);
                     await wait(400);
-                    applyGravity(localStones, toDelete);
+                    await animateGravitySmooth(localStones, toDelete);
                 }
                 await updateDoc(doc(db, "rooms", roomDoc.id), {
                     stones: localStones,
@@ -3976,7 +4028,7 @@ async function ult_lowen() {
         stonesData = localStones;
         init_drawBoard(true);
         await wait(400);
-        applyGravity(localStones, keysToDelete);
+        await animateGravitySmooth(localStones, keysToDelete);
 
         const roomDocRef = doc(db, "rooms", roomDoc.id);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
@@ -4055,7 +4107,7 @@ async function ult_durin() {
             stonesData = localStones;
             init_drawBoard(true);
             await wait(400);
-            applyGravity(localStones, toDelete);
+            await animateGravitySmooth(localStones, toDelete);
         }
 
         const roomDocRef = doc(db, "rooms", roomDoc.id);

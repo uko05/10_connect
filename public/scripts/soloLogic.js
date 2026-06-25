@@ -11,6 +11,7 @@ import { characterData } from "./characterData.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
 import { recordSoloWin, applyTitleDisplay } from "./achievementManager.js";
+import { getUserRating } from "./eloRating.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
 document.getElementById('version').textContent = APP_VERSION;
@@ -61,7 +62,15 @@ let cpuChara = null;
 let playerUltAudio = null;
 let cpuUltAudio = null;
 let currentUid = null; // アチーブメント記録用（認証は裏で進める。対局の進行はブロックしない）
-authReady.then((user) => { currentUid = user.uid; }).catch((e) => console.warn("[solo] 認証取得失敗:", e));
+authReady.then(async (user) => {
+    currentUid = user.uid;
+    try {
+        const userData = await getUserRating(currentUid);
+        applyTitleDisplay(document.getElementById('playerTitles_1'), userData);
+    } catch (e) {
+        console.warn("[solo] ユーザーデータ取得失敗:", e);
+    }
+}).catch((e) => console.warn("[solo] 認証取得失敗:", e));
 let playerCharge = 0;
 let cpuCharge = 0;
 let playerUltCount = 0;
@@ -494,8 +503,7 @@ async function durinPreTurnEffect(side) {
     if (toDelete.length === 0) return;
     await highlightStonesLocal(toDelete, 450);
     await deleteStonesLocal(toDelete);
-    applyGravityLocal(toDelete);
-    drawBoard();
+    await animateGravitySmoothLocal(toDelete);
 }
 
 function applyGravityLocal(deletedKeys) {
@@ -513,6 +521,57 @@ function applyGravityLocal(deletedKeys) {
             stones[`${col}_${rows - 1 - i}`] = colStones[i];
         }
     }
+}
+
+function animateGravitySmoothLocal(deletedKeys) {
+    return new Promise(resolve => {
+        const affectedCols = new Set(deletedKeys.map(k => k.split('_')[0]));
+        const movingStones = [];
+
+        for (const col of affectedCols) {
+            const colEntries = [];
+            for (let r = rows - 1; r >= 0; r--) {
+                const key = `${col}_${r}`;
+                if (stones[key]) {
+                    colEntries.push({ r, color: stones[key] });
+                    delete stones[key];
+                }
+            }
+            for (let i = 0; i < colEntries.length; i++) {
+                const targetRow = rows - 1 - i;
+                const fromRow = colEntries[i].r;
+                if (fromRow !== targetRow) {
+                    movingStones.push({
+                        col: parseInt(col),
+                        color: colEntries[i].color,
+                        currentY: fromRow * cellSize,
+                        targetY: targetRow * cellSize,
+                    });
+                } else {
+                    stones[`${col}_${fromRow}`] = colEntries[i].color;
+                }
+            }
+        }
+
+        if (movingStones.length === 0) { drawBoard(); resolve(); return; }
+
+        const interval = setInterval(() => {
+            for (const s of movingStones) {
+                if (s.currentY < s.targetY) s.currentY = Math.min(s.currentY + 10, s.targetY);
+            }
+            drawBoard();
+            for (const s of movingStones) drawPiece(s.col, s.currentY, s.color);
+
+            if (movingStones.every(s => s.currentY >= s.targetY)) {
+                clearInterval(interval);
+                for (const s of movingStones) {
+                    stones[`${s.col}_${s.targetY / cellSize}`] = s.color;
+                }
+                drawBoard();
+                resolve();
+            }
+        }, 10);
+    });
 }
 
 //------------------------------------------------------------------------------------------------
@@ -576,8 +635,7 @@ async function executeAbility(side, charaID) {
             if (keysToDelete.length > 0) {
                 await highlightStonesLocal(keysToDelete, 450);
                 await deleteStonesLocal(keysToDelete);
-                applyGravityLocal(keysToDelete);
-                drawBoard();
+                await animateGravitySmoothLocal(keysToDelete);
             }
             break;
         }
@@ -603,8 +661,7 @@ async function executeAbility(side, charaID) {
             if (toDeleteD.length > 0) {
                 await highlightStonesLocal(toDeleteD, 450);
                 await deleteStonesLocal(toDeleteD);
-                applyGravityLocal(toDeleteD);
-                drawBoard();
+                await animateGravitySmoothLocal(toDeleteD);
             }
             durinAutoDeletePending = true;
             durinCasterSide = side;
@@ -671,8 +728,7 @@ async function executeAbility(side, charaID) {
             const keysToDelete = getRandomElements(myKeys, Math.min(6, myKeys.length));
             if (keysToDelete.length > 0) {
                 await deleteStonesLocal(keysToDelete);
-                applyGravityLocal(keysToDelete);
-                drawBoard();
+                await animateGravitySmoothLocal(keysToDelete);
             }
             break;
         }
