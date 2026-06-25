@@ -137,3 +137,80 @@ export function disp_DeleteStone(ctx, canvas) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     console.log("・disp_DeleteStone");
 }
+
+/**
+ * 石が砕けて飛び散るシャード演出（Canvas overlay）
+ * @param {{cx: number, cy: number, color: string}[]} stones - viewport固定座標と色('red'/'yellow')の配列
+ */
+export function spawnStoneShatter(stones) {
+    if (!stones || stones.length === 0) return;
+
+    const cvs = document.createElement('canvas');
+    cvs.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:9997';
+    cvs.width = window.innerWidth;
+    cvs.height = window.innerHeight;
+    document.body.appendChild(cvs);
+    const ctx2d = cvs.getContext('2d');
+
+    const PALETTES = {
+        red:    ['#cc1100', '#e83000', '#ff5500', '#8b2000', '#ff7744', '#dd3311'],
+        yellow: ['#c08800', '#e0aa00', '#ffcc00', '#a07000', '#ffe055', '#ddaa11'],
+    };
+    const DEFAULT_PALETTE = ['#cc7700', '#ee9900', '#ffcc44', '#aa5500', '#ffaa00'];
+
+    const shards = [];
+    for (const { cx, cy, color } of stones) {
+        const palette = PALETTES[color] || DEFAULT_PALETTE;
+        const count = 6 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.7;
+            const speed = 3 + Math.random() * 5;
+            const size = 8 + Math.random() * 14;
+            const verts = Array.from({ length: 4 }, (_, j) => {
+                const a = (Math.PI * 2 / 4) * j + (Math.random() - 0.5) * 1.0;
+                const r = size * (0.4 + Math.random() * 0.6);
+                return [Math.cos(a) * r, Math.sin(a) * r];
+            });
+            shards.push({
+                x: cx, y: cy,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 2.5,
+                rot: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.22,
+                verts,
+                color: palette[Math.floor(Math.random() * palette.length)],
+                alpha: 1,
+            });
+        }
+    }
+
+    const duration = 500;
+    const start = performance.now();
+
+    function animate(now) {
+        const t = Math.min((now - start) / duration, 1);
+        ctx2d.clearRect(0, 0, cvs.width, cvs.height);
+        for (const s of shards) {
+            s.x += s.vx;
+            s.y += s.vy;
+            s.vy += 0.45;
+            s.rot += s.rotSpeed;
+            s.alpha = (1 - t) * (1 - t);
+            ctx2d.save();
+            ctx2d.globalAlpha = s.alpha;
+            ctx2d.translate(s.x, s.y);
+            ctx2d.rotate(s.rot);
+            ctx2d.fillStyle = s.color;
+            ctx2d.beginPath();
+            ctx2d.moveTo(s.verts[0][0], s.verts[0][1]);
+            for (let vi = 1; vi < s.verts.length; vi++) ctx2d.lineTo(s.verts[vi][0], s.verts[vi][1]);
+            ctx2d.closePath();
+            ctx2d.fill();
+            ctx2d.restore();
+        }
+        if (t < 1) requestAnimationFrame(animate);
+        else cvs.remove();
+    }
+
+    requestAnimationFrame(animate);
+}

@@ -20,7 +20,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 import { characterData } from "./characterData.js";
-import { drawPiece as _drawPiece, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
+import { drawPiece as _drawPiece, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
 import { APP_VERSION } from "./version.js";
 import {
     chargeSound, moveSound, highlightSound, AbilityStandby,
@@ -172,6 +172,12 @@ function fxParticles(x, y, colors = ['#ff7a00', '#ffd400', '#fff6cc'], count = 1
     if (level === 'off') return;
     const n = level === 'weak' ? Math.max(1, Math.round(count * 0.5)) : count;
     _spawnParticleBurst(x, y, colors, n);
+}
+
+function fxShatter(stones) {
+    const level = getUltIntensity();
+    if (level === 'off') return;
+    _spawnStoneShatter(stones);
 }
 
 // 石の色
@@ -3331,6 +3337,7 @@ async function highlightStones(stonesToDelete, wt = 500) {
 
     // 全セットを同時に光らせる（以前は1個ずつ順番に光って消える直列処理で地味だった）
     const highlightedCells = [];
+    const shatterTargets = [];
     for (const stoneKey of stonesToDelete) {
         const [col, row] = stoneKey.split('_').map(Number);
 
@@ -3359,7 +3366,11 @@ async function highlightStones(stonesToDelete, wt = 500) {
 
         // 破壊される石の位置から弾けるパーティクル
         fxParticles(centerX, centerY);
+        shatterTargets.push({ cx: centerX, cy: centerY, color: stonesData[stoneKey]?.color || 'red' });
     }
+
+    // 石砕けシャード演出（renderer.jsのspawnStoneShatter。削除する場合はこの1行とfxShatterのimport/定義を消す）
+    fxShatter(shatterTargets);
 
     // 衝撃フラッシュ + 盤面シェイク（破壊数が多いほど少し強めに）
     fxFlash('rgba(255, 140, 0, 0.35)', 180);
