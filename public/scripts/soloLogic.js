@@ -42,6 +42,20 @@ let playerRoundWins = 0;
 let cpuRoundWins = 0;
 let startingSide = 'player'; // 各ラウンドの先攻
 
+// 鍾離：列封鎖のクロスターン状態
+let zhongliBlockedCols = [];
+let zhongliReblockPending = false;
+let zhongliCasterSide = null;
+let zhongliBlockOverlays = [];
+
+// ドゥリン：次の自分ターン自動破壊
+let durinAutoDeletePending = false;
+let durinCasterSide = null;
+
+// ケリュドラ：次の相手ターン追加投下
+let cerluaActive = false;
+let cerluaCasterSide = null;
+
 let playerChara = null;
 let cpuChara = null;
 let playerUltAudio = null;
@@ -292,8 +306,13 @@ function pickAiColumn() {
     const board = boardFromStones();
     const depth = getCpuSearchDepth();
     const result = minimax(board, depth, -Infinity, Infinity, true);
-    if (result.column !== undefined && getDropRow(result.column) >= 0) return result.column;
-    return getValidColumns()[0]; // 理論上不要だが、念のためのフォールバック
+    // 鍾離の封鎖列を考慮：AIがブロック列を選んだ場合は次善の列を選ぶ
+    const validNonBlocked = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+    if (validNonBlocked.length === 0) return getValidColumns()[0]; // 全列封鎖（理論上ありえない）
+    if (result.column !== undefined && !zhongliBlockedCols.includes(result.column) && getDropRow(result.column) >= 0) {
+        return result.column;
+    }
+    return validNonBlocked[0];
 }
 
 // CPUが「不利」と判断する条件：相手に即勝ち筋がある、またはチャージで大きく差をつけられている
@@ -406,6 +425,79 @@ async function deleteStonesLocal(keys) {
     drawBoard();
 }
 
+// 鍾離：封鎖列のビジュアルオーバーレイ（×マーク表示）
+function showZhongliBlockOverlay() {
+    removeZhongliBlockOverlay();
+    if (zhongliBlockedCols.length === 0) return;
+    const boardWrap = document.getElementById('boardWrap');
+    const wrapRect = boardWrap.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const colWidth = wrapRect.width / cols;
+    for (const col of zhongliBlockedCols) {
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.width = `${colWidth}px`;
+        overlay.style.height = `${canvasRect.height}px`;
+        overlay.style.left = `${wrapRect.left + col * colWidth}px`;
+        overlay.style.top = `${canvasRect.top}px`;
+        overlay.style.pointerEvents = 'none';
+        overlay.style.backgroundColor = 'rgba(80, 80, 80, 0.38)';
+        overlay.style.border = '2px dashed rgba(255,255,255,0.7)';
+        overlay.style.boxSizing = 'border-box';
+        overlay.style.zIndex = '50';
+        const lockLabel = document.createElement('div');
+        lockLabel.style.cssText = 'text-align:center;color:white;font-size:24px;margin-top:6px;text-shadow:0 0 6px #000;font-weight:bold;';
+        lockLabel.textContent = '×';
+        overlay.appendChild(lockLabel);
+        document.body.appendChild(overlay);
+        zhongliBlockOverlays.push(overlay);
+    }
+}
+
+function removeZhongliBlockOverlay() {
+    zhongliBlockOverlays.forEach(el => el.remove());
+    zhongliBlockOverlays = [];
+}
+
+// 鍾離：自分のターン開始時に自動再封鎖を確認する
+function zhongliPreTurnCheck(side) {
+    if (!zhongliReblockPending || zhongliCasterSide !== side) return;
+    zhongliReblockPending = false;
+    const validCols = getValidColumns();
+    const picked = getRandomElements(validCols, Math.min(2, validCols.length));
+    zhongliBlockedCols = picked;
+    showZhongliBlockOverlay();
+}
+
+// 鍾離：相手がターンを終えたあとの封鎖解除・継続を判定する
+function zhongliPostOpponentDrop() {
+    if (zhongliBlockedCols.length === 0 && !zhongliReblockPending) return;
+    if (zhongliReblockPending) {
+        // 相手1回目ターン終了→ブロック一時解除（次の自分ターンで再封鎖）
+        zhongliBlockedCols = [];
+        removeZhongliBlockOverlay();
+    } else {
+        // 相手2回目ターン終了（再封鎖後）→ 完全解除
+        zhongliBlockedCols = [];
+        zhongliCasterSide = null;
+        removeZhongliBlockOverlay();
+    }
+}
+
+// ドゥリン：ターン開始時の自動破壊（awaitが必要なため async）
+async function durinPreTurnEffect(side) {
+    if (!durinAutoDeletePending || durinCasterSide !== side) return;
+    durinAutoDeletePending = false;
+    durinCasterSide = null;
+    const allKeys = Object.keys(stones);
+    const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
+    if (toDelete.length === 0) return;
+    await highlightStonesLocal(toDelete, 450);
+    await deleteStonesLocal(toDelete);
+    applyGravityLocal(toDelete);
+    drawBoard();
+}
+
 function applyGravityLocal(deletedKeys) {
     const affectedCols = new Set(deletedKeys.map(k => k.split('_')[0]));
     for (const col of affectedCols) {
@@ -476,6 +568,82 @@ async function executeAbility(side, charaID) {
                 const col = validCols[Math.floor(Math.random() * validCols.length)];
                 const role = side === 'player' ? PLAYER_COLOR : CPU_COLOR;
                 await dropAt(col, applyColorSwap(role));
+            }
+            break;
+        }
+        case '011': { // ローエン：下から2段目（row 4）の石を全て破壊
+            const keysToDelete = Object.keys(stones).filter(k => k.endsWith('_4'));
+            if (keysToDelete.length > 0) {
+                await highlightStonesLocal(keysToDelete, 450);
+                await deleteStonesLocal(keysToDelete);
+                applyGravityLocal(keysToDelete);
+                drawBoard();
+            }
+            break;
+        }
+        case '012': { // 鍾離：ランダム2列を封鎖
+            const validColsZ = getValidColumns();
+            const picked = getRandomElements(validColsZ, Math.min(2, validColsZ.length));
+            zhongliBlockedCols = picked;
+            zhongliReblockPending = true;
+            zhongliCasterSide = side;
+            showZhongliBlockOverlay();
+            await wait(600);
+            break;
+        }
+        case '013': { // サフェル：相手の能力をコピー
+            const opponentChara = side === 'player' ? cpuChara : playerChara;
+            if (!opponentChara || opponentChara.charaID === '013') break; // 不発
+            await executeAbility(side, opponentChara.charaID);
+            break;
+        }
+        case '014': { // ドゥリン：今すぐ2個破壊＋次の自分ターンに2個自動破壊
+            const allKeysD = Object.keys(stones);
+            const toDeleteD = getRandomElements(allKeysD, Math.min(2, allKeysD.length));
+            if (toDeleteD.length > 0) {
+                await highlightStonesLocal(toDeleteD, 450);
+                await deleteStonesLocal(toDeleteD);
+                applyGravityLocal(toDeleteD);
+                drawBoard();
+            }
+            durinAutoDeletePending = true;
+            durinCasterSide = side;
+            break;
+        }
+        case '015': { // ケリュドラ：次の相手ターンに追加投下
+            cerluaActive = true;
+            cerluaCasterSide = side;
+            await wait(400);
+            break;
+        }
+        case '016': { // 銀狼LV.999：自分の勝利数+1（3勝で即試合終了）
+            if (side === 'player') {
+                playerRoundWins++;
+            } else {
+                cpuRoundWins++;
+            }
+            updateWinIndicators();
+
+            if (playerRoundWins >= 3 || cpuRoundWins >= 3) {
+                gameOver = true;
+                updateSpecialMoveButtonVisibility();
+                if (side === 'player' && currentUid) {
+                    try {
+                        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                        newlyUnlocked.forEach((id) => {
+                            showAchievementToast(id);
+                            const unlocked = characterData.find(c => c.requiredAchievementId === id);
+                            if (unlocked) showCharacterUnlockModal(unlocked);
+                        });
+                    } catch (e) {
+                        console.error("[Achievement] ソロ勝利の記録に失敗:", e);
+                    }
+                }
+                await showFinalResult(side === 'player' ? 'win' : 'lose');
+            } else {
+                startingSide = side === 'player' ? 'cpu' : 'player';
+                await showRoundResult(side === 'player' ? 'win' : 'lose');
+                await startNextRound();
             }
             break;
         }
@@ -789,6 +957,7 @@ function updateWinIndicators() {
 }
 
 async function checkGameEnd() {
+    if (gameOver) return true; // 銀狼など盤外終了の場合
     const winResult = checkWinLocal();
     if (winResult) {
         gameOver = true;
@@ -903,6 +1072,16 @@ async function startNextRound() {
     droppingKey = null;
     turn = startingSide;
 
+    // クロスターンエフェクトをリセット
+    zhongliBlockedCols = [];
+    zhongliReblockPending = false;
+    zhongliCasterSide = null;
+    removeZhongliBlockOverlay();
+    durinAutoDeletePending = false;
+    durinCasterSide = null;
+    cerluaActive = false;
+    cerluaCasterSide = null;
+
     if (highlightedColumn) {
         highlightedColumn.remove();
         highlightedColumn = null;
@@ -926,6 +1105,7 @@ async function handlePlayerDrop(column) {
     if (gameOver || turn !== 'player' || abilityInProgress || playerMoveInProgress) return;
     if (column < 0 || column >= cols) return;
     if (getDropRow(column) < 0) return; // 満杯の列は無視
+    if (zhongliBlockedCols.includes(column)) return; // 鍾離：封鎖中の列には投下不可
 
     playerMoveInProgress = true;
     setBoardInteractive(false); // ロックと同時に盤面のクリックイベント自体を止める（キューイング防止）
@@ -935,13 +1115,26 @@ async function handlePlayerDrop(column) {
             highlightedColumn = null;
         }
 
-        const ok = await dropAt(column, applyColorSwap(PLAYER_COLOR));
+        const droppedColor = applyColorSwap(PLAYER_COLOR);
+        const ok = await dropAt(column, droppedColor);
         if (!ok) return;
+
+        // ケリュドラ：CPUが発動した場合、プレイヤーの投下後に追加投下
+        if (cerluaActive && cerluaCasterSide === 'cpu') {
+            cerluaActive = false;
+            cerluaCasterSide = null;
+            const extraCol = getDropRow(column) >= 0 ? column
+                : getValidColumns().find(c => !zhongliBlockedCols.includes(c)) ?? -1;
+            if (extraCol >= 0) await dropAt(extraCol, droppedColor);
+        }
 
         playerCharge = Math.min(200, playerCharge + playerChara.charge);
         if (changeStone > 0) changeStone--;
         turnCount++;
         updateGaugeUI();
+
+        // 鍾離：プレイヤーが投下した後（相手の1ターン目終了）
+        if (zhongliCasterSide === 'cpu') zhongliPostOpponentDrop();
 
         if (await checkGameEnd()) return;
         await cpuTurn();
@@ -956,6 +1149,12 @@ async function handlePlayerDrop(column) {
 
 async function cpuTurn() {
     turn = 'cpu';
+
+    // CPUターン開始時のプレターンエフェクト
+    zhongliPreTurnCheck('cpu');
+    await durinPreTurnEffect('cpu');
+    if (await checkGameEnd()) return;
+
     showTurnLabel('CPUの番');
     updateSpecialMoveButtonVisibility();
     dispTopStone();
@@ -969,12 +1168,32 @@ async function cpuTurn() {
     }
 
     const col = pickAiColumn();
-    await dropAt(col, applyColorSwap(CPU_COLOR));
+    const droppedColor = applyColorSwap(CPU_COLOR);
+    await dropAt(col, droppedColor);
     cpuCharge = Math.min(200, cpuCharge + cpuChara.charge);
+
+    // ケリュドラ：プレイヤーが発動した場合、CPUの投下後に追加投下
+    if (cerluaActive && cerluaCasterSide === 'player') {
+        cerluaActive = false;
+        cerluaCasterSide = null;
+        const extraCol = getDropRow(col) >= 0 ? col
+            : getValidColumns().find(c => !zhongliBlockedCols.includes(c)) ?? -1;
+        if (extraCol >= 0) await dropAt(extraCol, droppedColor);
+    }
+
     if (changeStone > 0) changeStone--;
     turnCount++;
+
+    // 鍾離：CPUが投下した後（相手の1ターン目終了）
+    if (zhongliCasterSide === 'player') zhongliPostOpponentDrop();
+
     updateGaugeUI();
 
+    if (await checkGameEnd()) return;
+
+    // プレイヤーターン開始前のプレターンエフェクト
+    zhongliPreTurnCheck('player');
+    await durinPreTurnEffect('player');
     if (await checkGameEnd()) return;
 
     turn = 'player';
@@ -1073,6 +1292,16 @@ async function resetGame() {
     abilityInProgress = false;
     playerMoveInProgress = false;
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
+
+    // クロスターンエフェクトをリセット
+    zhongliBlockedCols = [];
+    zhongliReblockPending = false;
+    zhongliCasterSide = null;
+    removeZhongliBlockOverlay();
+    durinAutoDeletePending = false;
+    durinCasterSide = null;
+    cerluaActive = false;
+    cerluaCasterSide = null;
 
     cpuChara = pickCpuCharacter();
     displayCharaPanel('cpu', cpuChara);

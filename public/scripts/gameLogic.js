@@ -97,6 +97,17 @@ let redComebackFromDown02 = false; // redが0-2の劣勢から逆転したか（
 let yellowComebackFromDown02 = false;
 let changeStone = 0;
 let matchType = "ranked"; // "ranked" | "private"
+
+// PvP クロスターンエフェクト状態
+let pvpZhongliBlocked = null;   // 鍾離：封鎖列 [col, col] | null
+let pvpZhongliTurnsLeft = 0;    // 残りターン数（2=phase1, 1=phase2）
+let pvpZhongliCasterColor = null;
+let pvpZhongliOverlays = [];
+let pvpDurinPending = false;    // ドゥリン：次の自分ターン自動破壊
+let pvpDurinCasterColor = null;
+let pvpCerluaActive = false;    // ケリュドラ：次の相手ターン追加投下
+let pvpCerluaCasterColor = null;
+let pvpPrevTurn = null;         // ターン変化検知用
 let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
 let isMatchFinalized = false; // BO3確定済みフラグ（二重発火防止）
 let myPreRating = null; // レート変動表示用：試合前の自分のレート
@@ -127,7 +138,13 @@ const abilities = {
     ult_madness,
     ult_downThinkingTime,
     ult_randomVertical1Drop,
-    ult_ruanMei
+    ult_ruanMei,
+    ult_lowen,
+    ult_zhongli,
+    ult_saphel,
+    ult_durin,
+    ult_cerylua,
+    ult_silverwolf
 };
 
 // 設定の必殺技演出強度に応じて、画面フラッシュ・シェイク・パーティクルの強さを調整するラッパー
@@ -1195,6 +1212,16 @@ async function watchRoomUpdates() {
               return;
             }
 
+            // 銀狼LV.999 必殺技による試合終了（非発動者クライアントが検知）
+            if (data.silverwolfMatchWinner && !isMatchFinalized) {
+              isMatchFinalized = true;
+              const winnerColor = data.silverwolfMatchWinner;
+              const isStraightWin = winnerColor === 'red' ? yellow_Win === 0 : red_Win === 0;
+              await handleBO3Final(winnerColor, "normal", { isStraightWin, isComebackWin: false });
+              displayVictory(winnerColor);
+              return;
+            }
+
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
 
@@ -1246,6 +1273,19 @@ async function watchRoomUpdates() {
             }
             playerRight_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
             
+            // ターン変化検知（クロスターンエフェクト用）
+            const turnJustChangedToMe = (pvpPrevTurn !== data.turn && data.turn === player_info);
+            pvpPrevTurn = data.turn;
+
+            // クロスターンエフェクト状態をFirestoreから同期
+            pvpZhongliBlocked = data.zhongliBlocked || null;
+            pvpZhongliTurnsLeft = data.zhongliTurnsLeft || 0;
+            pvpZhongliCasterColor = data.zhongliCasterColor || null;
+            pvpDurinPending = data.durinPending || false;
+            pvpDurinCasterColor = data.durinCasterColor || null;
+            pvpCerluaActive = data.cerluaActive || false;
+            pvpCerluaCasterColor = data.cerluaCasterColor || null;
+
             turnCount = data.turnCount;
             stonesData = data.stones || {};
             turn = data.turn;
@@ -1430,10 +1470,16 @@ async function watchRoomUpdates() {
                 console.log("〇〇〇〇〇〇〇〇〇〇〇");
                 
             } else {
+                // クロスターンエフェクトを処理（勝利なしのターン切替時）
+                await processPvpCrossTurnEffects(turnJustChangedToMe);
+
+                // 鍾離封鎖列のオーバーレイ表示を更新
+                updateZhongliBlockOverlays();
+
                 showTurnLabel();
                 disp_TopStone(turn, nowCol);
             }
-            
+
             // 初期化処理
             if (!ultAfter) loadTimeRemaining(); // ページ読み込み時に保存されている残り時間を取得
             createMemoryMarks();  // メモリ線を作成
@@ -1446,6 +1492,17 @@ async function watchRoomUpdates() {
 }
 
 async function deleteStonesAndUpdate() {
+    // ラウンドリセット時にクロスターンエフェクトもクリアする
+    pvpZhongliBlocked = null;
+    pvpZhongliTurnsLeft = 0;
+    pvpZhongliCasterColor = null;
+    pvpZhongliOverlays.forEach(el => el.remove());
+    pvpZhongliOverlays = [];
+    pvpDurinPending = false;
+    pvpDurinCasterColor = null;
+    pvpCerluaActive = false;
+    pvpCerluaCasterColor = null;
+
     const roomsRef = collection(db, "rooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
     const updates = {
@@ -1455,7 +1512,14 @@ async function deleteStonesAndUpdate() {
         turn: startP,
         red_Win: red_Win,        // 赤プレイヤー勝利数
         yellow_Win: yellow_Win,         // 黄プレイヤー勝利数
-        changeStone: 0
+        changeStone: 0,
+        zhongliBlocked: null,
+        zhongliTurnsLeft: 0,
+        zhongliCasterColor: null,
+        durinPending: false,
+        durinCasterColor: null,
+        cerluaActive: false,
+        cerluaCasterColor: null
     };
 
     try {
@@ -1632,6 +1696,9 @@ function findAvailableRow(column, stonesData) {
 
 // attackType: 1=通常, 2=必殺技等, 3=時間切れ
 async function dropStone(column, attackType = 1) {
+
+  // 鍾離封鎖中の列には投下不可
+  if (pvpZhongliBlocked && pvpZhongliBlocked.includes(column)) return;
 
   let color = playerLeft_Color;
   if (changeStone > 0) {
@@ -3695,6 +3762,331 @@ function applyGravity(stonesData, deletedKeys) {
         for (let i = 0; i < colStones.length; i++) {
             stonesData[`${col}_${rows - 1 - i}`] = colStones[i];
         }
+    }
+}
+
+//------------------------------------------------------------------------------------------------
+// 鍾離：封鎖列のビジュアルオーバーレイ管理
+function updateZhongliBlockOverlays() {
+    pvpZhongliOverlays.forEach(el => el.remove());
+    pvpZhongliOverlays = [];
+    if (!pvpZhongliBlocked || pvpZhongliBlocked.length === 0) return;
+
+    const boardWrap = document.getElementById('boardWrap');
+    if (!boardWrap) return;
+    const wrapRect = boardWrap.getBoundingClientRect();
+    const canvas = document.getElementById('connect4Canvas');
+    const canvasRect = canvas.getBoundingClientRect();
+    const colWidth = wrapRect.width / cols;
+
+    for (const col of pvpZhongliBlocked) {
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.width = `${colWidth}px`;
+        overlay.style.height = `${canvasRect.height}px`;
+        overlay.style.left = `${wrapRect.left + col * colWidth}px`;
+        overlay.style.top = `${canvasRect.top}px`;
+        overlay.style.pointerEvents = 'none';
+        overlay.style.backgroundColor = 'rgba(80, 80, 80, 0.38)';
+        overlay.style.border = '2px dashed rgba(255,255,255,0.7)';
+        overlay.style.boxSizing = 'border-box';
+        overlay.style.zIndex = '50';
+        const lockLabel = document.createElement('div');
+        lockLabel.style.cssText = 'text-align:center;color:white;font-size:24px;margin-top:6px;text-shadow:0 0 6px #000;font-weight:bold;';
+        lockLabel.textContent = '×';
+        overlay.appendChild(lockLabel);
+        document.body.appendChild(overlay);
+        pvpZhongliOverlays.push(overlay);
+    }
+}
+
+// PvP用非満杯列をランダムに選ぶヘルパー
+function pvpGetNonFullCols(count) {
+    const nonFull = [];
+    for (let c = 0; c < cols; c++) {
+        if (findAvailableRow(c, stonesData) >= 0) nonFull.push(c);
+    }
+    return getRandomElements(nonFull, Math.min(count, nonFull.length));
+}
+
+//------------------------------------------------------------------------------------------------
+// PvP クロスターンエフェクト処理
+// handleRoomUpdate の「勝利なし」ブランチから呼び出される
+async function processPvpCrossTurnEffects(turnJustChangedToMe) {
+    if (!turnJustChangedToMe || !isTurnPlayer()) return;
+
+    try {
+        // ① ドゥリン：自分のターン開始時に自動破壊
+        if (pvpDurinPending && playerLeft_Color === pvpDurinCasterColor) {
+            const roomsRef = collection(db, "rooms");
+            const q = query(roomsRef, where("roomID", "==", roomID));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const roomDoc = querySnapshot.docs[0];
+                const localStones = Object.assign({}, roomDoc.data().stones || {});
+                for (const k in localStones) localStones[k] = Object.assign({}, localStones[k]);
+
+                const allKeys = Object.keys(localStones);
+                const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
+                if (toDelete.length > 0) {
+                    await highlightStones(toDelete, 400);
+                    for (const key of toDelete) delete localStones[key];
+                }
+                await updateDoc(doc(db, "rooms", roomDoc.id), {
+                    stones: localStones,
+                    durinPending: false,
+                    durinCasterColor: null
+                });
+                stonesData = localStones;
+                init_drawBoard(true);
+                pvpDurinPending = false;
+            }
+        }
+
+        // ② 鍾離：ターン開始時の封鎖処理
+        if (pvpZhongliBlocked !== null && playerLeft_Color === pvpZhongliCasterColor) {
+            if (pvpZhongliTurnsLeft === 2) {
+                // 相手1回目終了 → 自動再封鎖（2列再抽選）
+                const newCols = pvpGetNonFullCols(2);
+                pvpZhongliBlocked = newCols;
+                pvpZhongliTurnsLeft = 1;
+                await updateDoc(firestoreRoomDocRef, {
+                    zhongliBlocked: newCols,
+                    zhongliTurnsLeft: 1
+                });
+                updateZhongliBlockOverlays();
+            } else if (pvpZhongliTurnsLeft === 1) {
+                // 相手2回目終了 → 封鎖解除
+                pvpZhongliBlocked = null;
+                pvpZhongliTurnsLeft = 0;
+                pvpZhongliCasterColor = null;
+                await updateDoc(firestoreRoomDocRef, {
+                    zhongliBlocked: null,
+                    zhongliTurnsLeft: 0,
+                    zhongliCasterColor: null
+                });
+                updateZhongliBlockOverlays();
+            }
+        }
+
+        // ③ ケリュドラ：相手ターン後、自分(発動者)のターン開始時に追加投下
+        if (pvpCerluaActive && playerLeft_Color === pvpCerluaCasterColor) {
+            const victimColor = playerLeft_Color === 'red' ? 'yellow' : 'red';
+            // 相手の最後の投下列を特定（turnCountが直前のもの）
+            let lastVictimCol = -1;
+            let maxTC = -1;
+            for (const key in stonesData) {
+                if (stonesData[key].color === victimColor && (stonesData[key].turnCount ?? 0) > maxTC) {
+                    maxTC = stonesData[key].turnCount ?? 0;
+                    lastVictimCol = parseInt(key.split('_')[0]);
+                }
+            }
+
+            const roomsRef = collection(db, "rooms");
+            const q = query(roomsRef, where("roomID", "==", roomID));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty && lastVictimCol >= 0) {
+                const roomDoc = querySnapshot.docs[0];
+                const localStones = Object.assign({}, roomDoc.data().stones || {});
+                for (const k in localStones) localStones[k] = Object.assign({}, localStones[k]);
+
+                const extraCol = findAvailableRow(lastVictimCol, localStones) >= 0
+                    ? lastVictimCol
+                    : pvpGetNonFullCols(1)[0] ?? -1;
+
+                if (extraCol >= 0) {
+                    const extraRow = findAvailableRow(extraCol, localStones);
+                    if (extraRow >= 0) {
+                        localStones[`${extraCol}_${extraRow}`] = { color: victimColor, turnCount: turnCount - 1 };
+                        await updateDoc(doc(db, "rooms", roomDoc.id), {
+                            stones: localStones,
+                            cerluaActive: false,
+                            cerluaCasterColor: null
+                        });
+                        stonesData = localStones;
+                        init_drawBoard(true);
+                        pvpCerluaActive = false;
+                    }
+                } else {
+                    // 全列満杯：追加投下なしでフラグのみクリア
+                    await updateDoc(firestoreRoomDocRef, { cerluaActive: false, cerluaCasterColor: null });
+                    pvpCerluaActive = false;
+                }
+            }
+        }
+    } catch (e) {
+        console.error("[CrossTurn] エフェクト処理中にエラー:", e);
+    }
+}
+
+//------------------------------------------------------------------------------------------------
+// 新キャラクター必殺技
+
+async function ult_lowen() {
+    console.log("ローエンの必殺技発動！");
+    try {
+        const roomsRef = collection(db, "rooms");
+        const q = query(roomsRef, where("roomID", "==", roomID));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const localStones = Object.assign({}, roomData.stones || {});
+        for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
+
+        // 下から2段目（row 4）の石を全て削除
+        const keysToDelete = Object.keys(localStones).filter(k => k.endsWith('_4'));
+        if (keysToDelete.length === 0) return;
+
+        await highlightStones(keysToDelete, 400);
+        for (const key of keysToDelete) delete localStones[key];
+        applyGravity(localStones, keysToDelete);
+
+        const roomDocRef = doc(db, "rooms", roomDoc.id);
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        await updateDoc(roomDocRef, {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+            stones: localStones
+        });
+        stonesData = localStones;
+        init_drawBoard(true);
+    } catch (error) {
+        console.error("ローエンの必殺技処理中にエラーが発生しました:", error);
+    }
+}
+
+async function ult_zhongli() {
+    console.log("鍾離の必殺技発動！");
+    try {
+        // 非満杯列からランダムに2列選択して封鎖
+        const nonFullCols = pvpGetNonFullCols(2);
+        pvpZhongliBlocked = nonFullCols;
+        pvpZhongliTurnsLeft = 2; // 相手1ターン（phase1）+相手2ターン（phase2）
+        pvpZhongliCasterColor = playerLeft_Color;
+
+        await updateDoc(firestoreRoomDocRef, {
+            zhongliBlocked: nonFullCols,
+            zhongliTurnsLeft: 2,
+            zhongliCasterColor: playerLeft_Color
+        });
+        updateZhongliBlockOverlays();
+        await wait(600);
+    } catch (error) {
+        console.error("鍾離の必殺技処理中にエラーが発生しました:", error);
+    }
+}
+
+async function ult_saphel() {
+    console.log("サフェルの必殺技発動！");
+    try {
+        // 相手のキャラIDを取得
+        const opponentCharaID = playerRight_CharaID;
+        const opponentData = getCharacterDataByID(opponentCharaID);
+        if (!opponentData || opponentData.charaID === '013') {
+            console.log("サフェル：不発（相手もサフェル、またはキャラ未定義）");
+            return;
+        }
+        const fn = abilities[opponentData.process];
+        if (fn) {
+            console.log(`サフェル：相手の必殺技「${opponentData.Ability}」をコピー`);
+            await fn();
+        }
+    } catch (error) {
+        console.error("サフェルの必殺技処理中にエラーが発生しました:", error);
+    }
+}
+
+async function ult_durin() {
+    console.log("ドゥリンの必殺技発動！");
+    try {
+        const roomsRef = collection(db, "rooms");
+        const q = query(roomsRef, where("roomID", "==", roomID));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const localStones = Object.assign({}, roomData.stones || {});
+        for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
+
+        // 即時2個破壊
+        const allKeys = Object.keys(localStones);
+        const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
+        if (toDelete.length > 0) {
+            await highlightStones(toDelete, 400);
+            for (const key of toDelete) delete localStones[key];
+        }
+
+        const roomDocRef = doc(db, "rooms", roomDoc.id);
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        await updateDoc(roomDocRef, {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+            stones: localStones,
+            durinPending: true,
+            durinCasterColor: playerLeft_Color
+        });
+        stonesData = localStones;
+        init_drawBoard(true);
+        pvpDurinPending = true;
+        pvpDurinCasterColor = playerLeft_Color;
+    } catch (error) {
+        console.error("ドゥリンの必殺技処理中にエラーが発生しました:", error);
+    }
+}
+
+async function ult_cerylua() {
+    console.log("ケリュドラの必殺技発動！");
+    try {
+        pvpCerluaActive = true;
+        pvpCerluaCasterColor = playerLeft_Color;
+        await updateDoc(firestoreRoomDocRef, {
+            cerluaActive: true,
+            cerluaCasterColor: playerLeft_Color
+        });
+        await wait(400);
+    } catch (error) {
+        console.error("ケリュドラの必殺技処理中にエラーが発生しました:", error);
+    }
+}
+
+async function ult_silverwolf() {
+    console.log("銀狼LV.999の必殺技発動！");
+    try {
+        if (playerLeft_Color === 'red') {
+            red_Win++;
+            updateWinLabels(red_Win, yellow_Win);
+        } else {
+            yellow_Win++;
+            updateWinLabels(yellow_Win, red_Win);
+        }
+
+        await wait(800);
+
+        if (red_Win >= 3 || yellow_Win >= 3) {
+            // 即座に試合終了：Firestoreにフラグを書き込み、相手にも通知する
+            if (isMatchFinalized) return;
+            isMatchFinalized = true;
+            const winningColor = red_Win >= 3 ? 'red' : 'yellow';
+            const isStraightWin = winningColor === 'red' ? yellow_Win === 0 : red_Win === 0;
+
+            await updateDoc(firestoreRoomDocRef, {
+                red_Win: red_Win,
+                yellow_Win: yellow_Win,
+                silverwolfMatchWinner: winningColor
+            });
+
+            await handleBO3Final(winningColor, "normal", { isStraightWin, isComebackWin: false });
+            displayVictory(winningColor);
+        } else {
+            // ラウンド+1として次ラウンドへ（発動者がボードリセットを担当）
+            startP = player_info === 'P1' ? 'P2' : 'P1'; // 負けた側（相手）が次ラウンド先攻
+            await deleteStonesAndUpdate(); // 内部でred_Win, yellow_Winを書き込む
+        }
+    } catch (error) {
+        console.error("銀狼LV.999の必殺技処理中にエラーが発生しました:", error);
     }
 }
 
