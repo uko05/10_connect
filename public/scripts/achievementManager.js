@@ -191,10 +191,10 @@ export function applyTitleDisplay(element, userData) {
         const ach = achId ? ALL_ACHIEVEMENTS.find(a => a.id === achId) : null;
         const chip = document.createElement('span');
         if (ach) {
-            chip.className = `title-chip rarity-badge rarity-${ach.rarity}`;
+            chip.className = `battle-title-banner rarity-${ach.rarity}`;
             chip.textContent = ach.name;
         } else {
-            chip.className = 'title-chip title-chip-empty';
+            chip.className = 'battle-title-banner empty';
             chip.textContent = '未設定';
         }
         element.appendChild(chip);
