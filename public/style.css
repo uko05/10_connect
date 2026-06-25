@@ -686,6 +686,7 @@ details[open] > .achievement-group-header::after {
     cursor: pointer;
     transition: transform 0.2s;
     margin: 2px; /* 画像同士の間隔（隙間を半分に） */
+    vertical-align: top; /* ベースライン余白を除去 */
 }
 
 /* 未実装の隠しキャラ用の「？」枠（クリック不可） */
@@ -723,7 +724,6 @@ details[open] > .achievement-group-header::after {
 .thumbnail-wrapper {
     position: relative;
     display: inline-block;
-    line-height: 0;
 }
 
 /* キャラ別個人勝利数バッジ（サムネイル右下） */
