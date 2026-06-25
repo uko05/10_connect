@@ -723,6 +723,7 @@ details[open] > .achievement-group-header::after {
 .thumbnail-wrapper {
     position: relative;
     display: inline-block;
+    line-height: 0;
 }
 
 /* キャラ別個人勝利数バッジ（サムネイル右下） */
