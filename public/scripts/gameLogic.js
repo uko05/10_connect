@@ -3844,6 +3844,10 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 if (toDelete.length > 0) {
                     await highlightStones(toDelete, 400);
                     for (const key of toDelete) delete localStones[key];
+                    stonesData = localStones;
+                    init_drawBoard(true);
+                    await wait(400);
+                    applyGravity(localStones, toDelete);
                 }
                 await updateDoc(doc(db, "rooms", roomDoc.id), {
                     stones: localStones,
@@ -4035,6 +4039,10 @@ async function ult_durin() {
         if (toDelete.length > 0) {
             await highlightStones(toDelete, 400);
             for (const key of toDelete) delete localStones[key];
+            stonesData = localStones;
+            init_drawBoard(true);
+            await wait(400);
+            applyGravity(localStones, toDelete);
         }
 
         const roomDocRef = doc(db, "rooms", roomDoc.id);
