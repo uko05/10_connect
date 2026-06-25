@@ -271,8 +271,12 @@ document.getElementById('savePlayerNameButton').addEventListener('click', async 
         setTimeout(() => { feedback.textContent = ''; }, 2000);
     }
 
-    // デバッグ専用：名前の末尾が「@debug」の場合、何度でもトーストを確認できる（一覧には出さず、解放記録もしない）
+    // デバッグ専用：名前の末尾が「@debug」の場合、アチーブを解放してトーストを表示する
     if (nameInput.value.trim().endsWith('@debug')) {
+        await debugForceUnlockAchievement(currentUid, DEBUG_ACHIEVEMENT.id);
+        latestUserData = (await getUserRating(currentUid)) || {};
+        renderTitleSlots(latestUserData);
+        renderAchievements();
         showAchievementToast(DEBUG_ACHIEVEMENT.id);
     }
 });
