@@ -173,10 +173,8 @@ function renderAchievements() {
                 ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? '設定済み' : '設定'}</button>`
                 : (isCharUnlock ? charUnlockBadge : '') + `<button type="button" class="ach-set-btn" disabled>未所持</button>`;
 
-            // ②: debugユーザーは解放ボタン左にバッジを表示（解放済みでも常時表示）
             const debugBtnsHtml = isDebugUser
                 ? `<span class="debug-ach-btns">` +
-                  (isCharUnlock ? charUnlockBadge : '') +
                   `<button type="button" class="debug-ach-btn debug-unlock-btn" data-id="${ach.id}">解放</button>` +
                   `<button type="button" class="debug-ach-btn debug-reset-btn" data-id="${ach.id}">リセット</button>` +
                   `</span>`
