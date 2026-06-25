@@ -135,7 +135,9 @@ function renderAchievements() {
     list.innerHTML = '';
 
     ACHIEVEMENT_GROUPS.forEach((group) => {
-        const groupItems = items.filter((a) => a.groupId === group.id);
+        const allGroupItems = items.filter((a) => a.groupId === group.id);
+        // hidden: true かつ未解放のアチーブは存在を隠す（解放済みなら表示）
+        const groupItems = allGroupItems.filter((a) => !a.hidden || a.unlocked);
         const groupUnlocked = groupItems.filter((a) => a.unlocked).length;
 
         // グループはdetails/summaryで開閉式にする（デフォルトは閉じた状態）
