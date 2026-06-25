@@ -22,7 +22,7 @@ export const ACHIEVEMENT_GROUPS = [
             })),
             {
                 id: 'solo_bakatare_all', rarity: 'legend', name: 'チート？使ってないよ？',
-                condition: 'いずれかのキャラクターでBAKATARE難易度に9体分勝利する（隠しキャラも可）',
+                condition: '合計9キャラでBAKATARE難易度のCPUに勝利する',
                 check: (ctx) => Object.values(ctx.soloBakatareWins || {}).filter(Boolean).length >= 9,
                 progress: (ctx) => ({
                     current: Math.min(Object.values(ctx.soloBakatareWins || {}).filter(Boolean).length, 9),
