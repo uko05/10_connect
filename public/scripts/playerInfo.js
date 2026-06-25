@@ -228,6 +228,7 @@ document.getElementById('achievementList').addEventListener('click', async (even
             latestUserData = (await getUserRating(currentUid)) || {};
             renderTitleSlots(latestUserData);
             renderAchievements();
+            showAchievementToast(achId);
             const unlocked = characterData.find(c => c.requiredAchievementId === achId);
             if (unlocked) showCharacterUnlockModal(unlocked);
         } catch (e) {
