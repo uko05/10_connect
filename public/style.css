@@ -481,6 +481,8 @@ header {
     color: #888;
     font-weight: normal;
     font-size: 0.85em;
+    min-width: 4.5em;
+    text-align: right;
 }
 
 .achievement-group-header::-webkit-details-marker {
