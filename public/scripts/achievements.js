@@ -96,6 +96,7 @@ export const ACHIEVEMENT_GROUPS = [
         id: 'bakatare_challenge', name: 'ばかたれチャレンジ',
         items: [
             { id: 'cerylua_ult5_win', rarity: 'gold', name: '支配者の風格', condition: 'ケリュドラの必殺技を1試合中に5回使用して勝利する', hiddenCharaId: '015', check: (ctx) => !!ctx.hadCeryluaUlt5Win },
+            { id: 'bakatare_tester', rarity: 'gold', name: 'ばかたれの同志', condition: 'プレイヤー情報画面で名前の先頭に「ばかたれ@」をつけて保存する', hidden: true, check: () => false },
             { id: 'debug_test', rarity: 'legend', name: 'デバッグテスト@debug', condition: 'プレイヤー情報画面で名前の末尾に「@debug」をつけて保存する', hidden: true, check: () => false },
         ],
     },
