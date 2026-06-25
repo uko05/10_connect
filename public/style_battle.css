@@ -809,7 +809,7 @@ html, body {
 }
 
 .abilityDetail {
-    height: 200px; /* 高さ */
+    height: 225px; /* 高さ */
     font-size: 18px;
 }
 
@@ -971,7 +971,7 @@ html, body {
     }
 
     .abilityDetail {
-        height: 230px; /* 高さ */
+        height: 255px; /* 高さ */
         font-size: 18px;
     }
     
@@ -1065,7 +1065,7 @@ html, body {
     }
 
     .abilityDetail {
-        height: 150px; /* 高さ */
+        height: 175px; /* 高さ */
         font-size: 16px;
     }
     
@@ -1167,14 +1167,14 @@ html, body {
     }
 
     .abilityDetail {
-        height: 110px; /* 高さ */
+        height: 128px; /* 高さ */
         font-size: 12px;
     }
-    
+
     #AbilityDetail_1 #AbilityDetail_2{
         flex-direction: column; /* 縦に並べる */
     }
-    
+
     #playerName_1 #playerName_2 {
         height: 30px; /* 高さ */
         font-size: 12px;
@@ -1262,7 +1262,7 @@ html, body {
     }
 
     .abilityDetail {
-        height: 110px; /* 高さ */
+        height: 128px; /* 高さ */
         font-size: 12px;
     }
 

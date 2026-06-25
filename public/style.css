@@ -621,6 +621,11 @@ details[open] > .achievement-group-header::after {
     margin-right: 6px;
 }
 
+/* グループヘッダー内のバッジは○/○との間隔を広げる */
+.achievement-group-header .new-char-badge {
+    margin-right: 1cm;
+}
+
 /* .rarity-badge / .rarity-bronze等の色定義は style_settings.css（全画面共通）に移動済み */
 
 .value-yoko.name-input-short {
@@ -995,7 +1000,7 @@ details[open] > .achievement-group-header::after {
 }
 
 .abilityDetail {
-    height: 110px; /* 高さ */
+    height: 130px; /* 高さ */
 }
 
 .top15 {

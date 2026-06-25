@@ -88,7 +88,7 @@ export const ACHIEVEMENT_GROUPS = [
         items: [
             { id: 'straight_win', rarity: 'bronze', name: '圧勝', condition: '通常対戦をストレート(3-0)で勝利する', check: (ctx) => !!ctx.hadStraightWin },
             { id: 'clean_win', rarity: 'bronze', name: '正々堂々', condition: '離脱・タイムアウトのない試合で勝利する', check: (ctx) => !!ctx.hadCleanWin },
-            { id: 'comeback_win', rarity: 'gold', name: '大逆転', condition: '0-2の劣勢から3-2で逆転勝利する', check: (ctx) => !!ctx.hadComebackWin },
+            { id: 'comeback_win', rarity: 'gold', name: '掟破りの奇兵', condition: '0-2の劣勢から3-2で逆転勝利する', check: (ctx) => !!ctx.hadComebackWin },
         ],
     },
     {
