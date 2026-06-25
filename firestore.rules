@@ -117,7 +117,7 @@ service cloud.firestore {
 
       // 新規作成：初期値固定（1500スタート・0戦0勝のみ許可。最初から高レートでの偽装作成を防止）
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt'])
+        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'achievements', 'achievementCount', 'achStats', 'equippedTitles', 'unlockedHiddenCharas', 'unlockedHiddenCharaCount'])
         && request.resource.data.rating == 1500
         && request.resource.data.matchCount == 0
         && request.resource.data.winCount == 0;
@@ -129,7 +129,7 @@ service cloud.firestore {
       // ※ matchCountはレート更新を伴わない単独更新（プレイヤー名保存等）もあるため、不変 or +1 を許可
       // ※ achievements/achievementCount/achStats/equippedTitlesもレート・勝利数とは別フィールドのため、簡易な型・サイズ制約のみ確認する
       allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'charaWins', 'playerName', 'achievements', 'achievementCount', 'achStats', 'equippedTitles'])
+        && request.resource.data.keys().hasOnly(['rating', 'matchCount', 'winCount', 'lastMatchAt', 'charaWins', 'playerName', 'achievements', 'achievementCount', 'achStats', 'equippedTitles', 'unlockedHiddenCharas', 'unlockedHiddenCharaCount'])
         && request.resource.data.rating is int
         && request.resource.data.rating >= 100
         && request.resource.data.rating <= resource.data.rating + 48
