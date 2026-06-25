@@ -424,8 +424,9 @@ async function displayThumbnails() {
     }
 
     // レート表示（バトル画面：両プレイヤー）
+    let leftRating = null, rightRating = null;
     try {
-        const [leftRating, rightRating] = await Promise.all([
+        [leftRating, rightRating] = await Promise.all([
             getUserRating(playerLeft_ID),
             getUserRating(playerRight_ID)
         ]);
@@ -437,11 +438,12 @@ async function displayThumbnails() {
             applyRatingDisplay(document.getElementById('playerRating_1'), leftRating, document.getElementById('rankBadge_1'), document.getElementById('playerRankName_1')),
             applyRatingDisplay(document.getElementById('playerRating_2'), rightRating, document.getElementById('rankBadge_2'), document.getElementById('playerRankName_2'))
         ]);
-        applyTitleDisplay(document.getElementById('playerTitles_1'), leftRating);
-        applyTitleDisplay(document.getElementById('playerTitles_2'), rightRating);
     } catch (e) {
         console.warn("[Rating] レート表示取得失敗:", e);
     }
+    // 称号は rating 取得失敗時も null で「未設定」表示になるよう try 外で呼ぶ
+    applyTitleDisplay(document.getElementById('playerTitles_1'), leftRating);
+    applyTitleDisplay(document.getElementById('playerTitles_2'), rightRating);
 
     playerColor = playerLeft_Color;
          

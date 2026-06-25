@@ -292,33 +292,36 @@
 .rarity-badge.rarity-gold   { background-color: #d4a800; }
 .rarity-badge.rarity-legend { background-color: #9b59b6; }
 
-/* ===== 称号バナー（バトル画面：ゲージ下・キャラ名上に縦並び表示） ===== */
+/* ===== 称号バナー（バトル・キャラ選択画面：縦並び表示） ===== */
 .player-titles {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin: 3px 0;
+  gap: 4px;
+  margin: 4px 0;
+  width: 100%;
 }
 
 .battle-title-banner {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3px 6px;
-  border-radius: 4px;
-  font-size: 0.72em;
+  padding: 8px 8px;
+  border-radius: 5px;
+  font-size: 1.0em;
   font-weight: bold;
   color: white;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .battle-title-banner.empty {
-  color: rgba(255, 255, 255, 0.38);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px dashed rgba(255, 255, 255, 0.18);
+  background: #efefef;
+  border: 1px dashed #bbb;
+  color: #999;
   font-weight: normal;
 }
 
