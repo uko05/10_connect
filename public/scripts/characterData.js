@@ -184,7 +184,7 @@ export const characterData = [
         voice_attack: 'public/scripts/sound/Shori_attack.wav',
         voice_ult: 'public/scripts/sound/Shori_ult.wav',
         requiredAchievementId: 'rank_gold',
-        requiredAchievementLabel: 'Goldランク到達',
+        requiredAchievementLabel: 'Gold',
         process: 'ult_zhongli'
     },
     {
