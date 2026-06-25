@@ -247,6 +247,8 @@ export const characterData = [
         voice_select: 'public/scripts/sound/Ginro999_select.mp3',
         voice_attack: 'public/scripts/sound/Ginro999_attack.mp3',
         voice_ult: 'public/scripts/sound/Ginro999_ult.mp3',
+        requiredAchievementId: 'solo_bakatare_all',
+        requiredAchievementLabel: 'チート？使ってないよ？',
         process: 'ult_silverwolf'
     }
 ];

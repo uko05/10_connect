@@ -21,12 +21,12 @@ export const ACHIEVEMENT_GROUPS = [
                 check: (ctx) => !!ctx.soloBakatareWins?.[c.charaID],
             })),
             {
-                id: 'solo_bakatare_all', rarity: 'legend', name: '全戦士、討伐完了',
-                condition: '全キャラクターでBAKATARE難易度に勝利する',
-                check: (ctx) => characterData.every((c) => ctx.soloBakatareWins?.[c.charaID]),
+                id: 'solo_bakatare_all', rarity: 'legend', name: 'チート？使ってないよ？',
+                condition: 'いずれかのキャラクターでBAKATARE難易度に9体分勝利する（隠しキャラも可）',
+                check: (ctx) => Object.values(ctx.soloBakatareWins || {}).filter(Boolean).length >= 9,
                 progress: (ctx) => ({
-                    current: characterData.filter((c) => ctx.soloBakatareWins?.[c.charaID]).length,
-                    target: characterData.length,
+                    current: Math.min(Object.values(ctx.soloBakatareWins || {}).filter(Boolean).length, 9),
+                    target: 9,
                 }),
             },
         ],
