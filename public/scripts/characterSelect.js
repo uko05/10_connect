@@ -175,121 +175,68 @@ function displayThumbnails() {
     console.log("システム音量スライダー:", systemvolumeSlider);
     console.log("ボイス音量スライダー:", voicevolumeSlider);
 
-    // requiredAchievementId を持つキャラは、該当アチーブメント未所持の場合はロック扱い
-    const unlockedCharacters = characterData.filter(
-        c => !c.requiredAchievementId || myAchievements.has(c.requiredAchievementId)
-    );
-    const lockedCharacters = characterData.filter(
-        c => c.requiredAchievementId && !myAchievements.has(c.requiredAchievementId)
-    );
-
-    unlockedCharacters.forEach((character, index) => {
-        //サムネイル画像と勝利数バッジをまとめるラッパー
+    // charaID順にすべてのキャラを描画（解放状態にかかわらず）
+    characterData.forEach((character) => {
+        const isLocked = character.requiredAchievementId && !myAchievements.has(character.requiredAchievementId);
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
 
-        const img = document.createElement('img');
-        img.src = character.src; //画像のソース
-        img.alt = character.name; //代替テキスト
-        img.className = 'thumbnail'; //CSSクラスを追加
+        if (isLocked) {
+            const lockedSlot = document.createElement('div');
+            lockedSlot.className = 'thumbnail thumbnail-locked';
 
-        //音声のURLをデータ属性として持たせる
-        img.setAttribute('data-voice', character.voice_select); //画像に音声のURLをセット
+            const mark = document.createElement('span');
+            mark.className = 'thumbnail-locked-mark';
+            mark.textContent = '？';
+            lockedSlot.appendChild(mark);
 
-        //クリックイベントを追加
-        img.addEventListener('click', () => {
-            //前のボイスが再生中なら停止してリセット
-            if (charaSound && !charaSound.paused) {
-                charaSound.pause();
-                charaSound.currentTime = 0;
-            }
-
-            //既に選択中のキャラクターがあれば枠を外す
-            if (selectedCharacter) {
-                selectedCharacter.classList.remove('selected');
-            }
-            //現在のキャラクターを選択
-            img.classList.add('selected');
-            selectedCharacter = img; //選択中のキャラクターを更新
-
-            //キャラクター情報を表示
-            displayCharacterInfo(character); //キャラクター情報を表示
-
-            // ④: システム音（chara_select.wav）を再生
-            selectSound.currentTime = 0;
-            selectSound.play().catch(err => console.error('システム音の再生に失敗しました:', err));
-
-            // ③: ボイス音量はスライダーの現在値を参照（固定値0.2ではなく）
-            charaSoundUrl = img.getAttribute('data-voice'); //音声URLを取得
-            charaSound = new Audio(charaSoundUrl); //Audioオブジェクトを作成
-            charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : 0.2;
-            charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
-        });
-
-        wrapper.appendChild(img);
-
-        //キャラ別勝利数バッジ（右下）。ソロモードでは表示しない（charaWinsはランクマッチのみ加算されるため、
-        //ソロでの表示は「ソロで勝っても増えない」という誤解を招く）
-        if (requestedMode !== 'cpu') {
-            const winBadge = document.createElement('span');
-            winBadge.className = 'chara-win-badge';
-            winBadge.textContent = `勝利数：${myCharaWins[character.charaID] || 0}`;
-            wrapper.appendChild(winBadge);
-        }
-
-        container.appendChild(wrapper); //コンテナにラッパーを追加
-    });
-
-    // アチーブメント未解放でロックされているキャラを「？」枠として表示（ヒント付き）
-    lockedCharacters.forEach((character) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'thumbnail-wrapper';
-
-        const lockedSlot = document.createElement('div');
-        lockedSlot.className = 'thumbnail thumbnail-locked';
-
-        const mark = document.createElement('span');
-        mark.className = 'thumbnail-locked-mark';
-        mark.textContent = '？';
-        lockedSlot.appendChild(mark);
-
-        const hint = document.createElement('div');
-        hint.className = 'thumbnail-locked-hint';
-        hint.innerHTML = '解放条件<br>アチーブメント<br>' + (character.requiredAchievementLabel || character.requiredAchievementId) + '<br>を取得';
-        lockedSlot.appendChild(hint);
-
-        wrapper.appendChild(lockedSlot);
-        container.appendChild(wrapper);
-    });
-
-    // 残りを未定の「？」枠で埋める（合計16枠）
-    // 解放条件が決まっている枠だけヒントを表示する。未定の枠は null のまま。
-    const LOCKED_SLOT_TOTAL = 16;
-    const LOCKED_CHARACTER_HINTS = [];
-    const unknownOffset = unlockedCharacters.length + lockedCharacters.length;
-    for (let i = unknownOffset; i < LOCKED_SLOT_TOTAL; i++) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'thumbnail-wrapper';
-
-        const lockedSlot = document.createElement('div');
-        lockedSlot.className = 'thumbnail thumbnail-locked';
-
-        const mark = document.createElement('span');
-        mark.className = 'thumbnail-locked-mark';
-        mark.textContent = '？';
-        lockedSlot.appendChild(mark);
-
-        const hintLines = LOCKED_CHARACTER_HINTS[i - unknownOffset];
-        if (hintLines) {
             const hint = document.createElement('div');
             hint.className = 'thumbnail-locked-hint';
-            hint.innerHTML = hintLines.join('<br>');
+            hint.innerHTML = '解放条件<br>アチーブメント<br>' + (character.requiredAchievementLabel || character.requiredAchievementId) + '<br>を取得';
             lockedSlot.appendChild(hint);
+
+            wrapper.appendChild(lockedSlot);
+        } else {
+            const img = document.createElement('img');
+            img.src = character.src;
+            img.alt = character.name;
+            img.className = 'thumbnail';
+            img.setAttribute('data-voice', character.voice_select);
+
+            img.addEventListener('click', () => {
+                if (charaSound && !charaSound.paused) {
+                    charaSound.pause();
+                    charaSound.currentTime = 0;
+                }
+                if (selectedCharacter) {
+                    selectedCharacter.classList.remove('selected');
+                }
+                img.classList.add('selected');
+                selectedCharacter = img;
+                displayCharacterInfo(character);
+
+                selectSound.currentTime = 0;
+                selectSound.play().catch(err => console.error('システム音の再生に失敗しました:', err));
+
+                charaSoundUrl = img.getAttribute('data-voice');
+                charaSound = new Audio(charaSoundUrl);
+                charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : 0.2;
+                charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
+            });
+
+            wrapper.appendChild(img);
+
+            // キャラ別勝利数バッジ（ソロモードでは非表示）
+            if (requestedMode !== 'cpu') {
+                const winBadge = document.createElement('span');
+                winBadge.className = 'chara-win-badge';
+                winBadge.textContent = `勝利数：${myCharaWins[character.charaID] || 0}`;
+                wrapper.appendChild(winBadge);
+            }
         }
 
-        wrapper.appendChild(lockedSlot);
         container.appendChild(wrapper);
-    }
+    });
 }
 
 //キャラクターの情報を表示する関数
