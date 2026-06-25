@@ -91,6 +91,11 @@ export const ACHIEVEMENT_GROUPS = [
             { id: 'comeback_win', rarity: 'gold', name: '大逆転', condition: '0-2の劣勢から3-2で逆転勝利する', check: (ctx) => !!ctx.hadComebackWin },
         ],
     },
+    {
+        id: 'bakatare_challenge', name: 'ばかたれチャレンジ',
+        items: [
+        ],
+    },
 ];
 
 export const ALL_ACHIEVEMENTS = ACHIEVEMENT_GROUPS.flatMap((g) =>

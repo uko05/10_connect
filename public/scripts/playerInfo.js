@@ -145,7 +145,9 @@ function renderAchievements() {
 
         const summaryEl = document.createElement('summary');
         summaryEl.className = 'achievement-group-header';
-        summaryEl.innerHTML = `<span class="achievement-group-name">${group.name}</span><span class="achievement-group-count">${groupUnlocked} / ${groupItems.length}</span>`;
+        const groupHasLockedCharUnlock = groupItems.some(a => charUnlockAchIds.has(a.id) && !a.unlocked);
+        const groupBadgeHtml = groupHasLockedCharUnlock ? `<span class="new-char-badge">新キャラ解放！</span>` : '';
+        summaryEl.innerHTML = `<span class="achievement-group-name">${group.name}</span>${groupBadgeHtml}<span class="achievement-group-count">${groupUnlocked} / ${groupItems.length}</span>`;
         details.appendChild(summaryEl);
 
         const itemsEl = document.createElement('div');
