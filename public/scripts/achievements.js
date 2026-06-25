@@ -107,5 +107,3 @@ export const ALL_ACHIEVEMENTS = ACHIEVEMENT_GROUPS.flatMap((g) =>
 
 // debug_test は ALL_ACHIEVEMENTS に含まれているため、IDの参照用にエクスポートする
 export const DEBUG_ACHIEVEMENT = ALL_ACHIEVEMENTS.find(a => a.id === 'debug_test');
-    condition: 'プレイヤー情報画面で名前の末尾に「@debug」をつけて保存する',
-};
