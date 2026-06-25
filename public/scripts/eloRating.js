@@ -43,7 +43,13 @@ export async function ensureUserDoc(uid) {
             rating: INITIAL_RATING,
             matchCount: 0,
             winCount: 0,
-            lastMatchAt: serverTimestamp()
+            lastMatchAt: serverTimestamp(),
+            achievements: [],
+            achievementCount: 0,
+            achStats: {},
+            equippedTitles: [null, null],
+            unlockedHiddenCharas: {},
+            unlockedHiddenCharaCount: 0,
         });
         console.log("[Rating] users doc created for", uid);
     }

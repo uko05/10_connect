@@ -3,6 +3,23 @@
 import { db } from './firebaseConfig.js';
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { ALL_ACHIEVEMENTS } from './achievements.js';
+import { characterData } from './characterData.js';
+
+// requiredAchievementId → { charaID, name } のマップ（隠しキャラのみ）
+const hiddenCharaByAchId = Object.fromEntries(
+    characterData
+        .filter(c => c.requiredAchievementId)
+        .map(c => [c.requiredAchievementId, { charaID: c.charaID, name: c.name }])
+);
+
+function computeHiddenCharaFields(achievementIds) {
+    const unlockedHiddenCharas = {};
+    for (const achId of achievementIds) {
+        const chara = hiddenCharaByAchId[achId];
+        if (chara) unlockedHiddenCharas[chara.charaID] = chara.name;
+    }
+    return { unlockedHiddenCharas, unlockedHiddenCharaCount: Object.keys(unlockedHiddenCharas).length };
+}
 
 const ACH_STATS_DEFAULTS = {
     soloWins: { easy: false, normal: false, hard: false, bakatare: false },
@@ -66,6 +83,7 @@ async function applyAchStatsPatch(uid, patchFn) {
         achStats: mergedStats,
         achievements: updatedAchievements,
         achievementCount: updatedAchievements.length,
+        ...computeHiddenCharaFields(updatedAchievements),
     });
 
     return newlyUnlocked;
@@ -149,7 +167,7 @@ export async function debugForceUnlockAchievement(uid, achId) {
     const current = userData.achievements || [];
     if (current.includes(achId)) return;
     const updated = [...current, achId];
-    await updateDoc(userRef, { achievements: updated, achievementCount: updated.length });
+    await updateDoc(userRef, { achievements: updated, achievementCount: updated.length, ...computeHiddenCharaFields(updated) });
 }
 
 export async function debugForceResetAchievement(uid, achId) {
@@ -157,7 +175,7 @@ export async function debugForceResetAchievement(uid, achId) {
     const snap = await getDoc(userRef);
     const userData = snap.exists() ? snap.data() : {};
     const updated = (userData.achievements || []).filter(id => id !== achId);
-    await updateDoc(userRef, { achievements: updated, achievementCount: updated.length });
+    await updateDoc(userRef, { achievements: updated, achievementCount: updated.length, ...computeHiddenCharaFields(updated) });
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
