@@ -3741,6 +3741,11 @@ async function ult_ruanMei() {
             delete localStones[key];
         }
 
+        // 破壊後の空白を一瞬見せてから落下
+        stonesData = localStones;
+        init_drawBoard(true);
+        await wait(400);
+
         // 削除後、影響を受けた列の石を重力で下に詰める
         applyGravity(localStones, keysToDelete);
 
@@ -3949,6 +3954,11 @@ async function ult_lowen() {
 
         await highlightStones(keysToDelete, 400);
         for (const key of keysToDelete) delete localStones[key];
+
+        // 破壊後の空白を一瞬見せてから落下
+        stonesData = localStones;
+        init_drawBoard(true);
+        await wait(400);
         applyGravity(localStones, keysToDelete);
 
         const roomDocRef = doc(db, "rooms", roomDoc.id);
