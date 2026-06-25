@@ -1240,7 +1240,8 @@ function initCharacters() {
         window.location.href = 'select.html?mode=cpu';
         return false;
     }
-    const playerName = sessionStorage.getItem('soloPlayerName') || 'プレイヤー';
+    const playerName = (sessionStorage.getItem('soloPlayerName') || 'プレイヤー')
+        .replace(/^ばかたれ@/, '').replace(/@debug$/, '');
     document.getElementById('playerName_1').innerText = playerName;
 
     cpuChara = pickCpuCharacter();
