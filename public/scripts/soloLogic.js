@@ -357,6 +357,17 @@ function cpuShouldUseAbility() {
         hanabiSetupCol = findHanabiSetupCol();
         return hanabiSetupCol >= 0;
     }
+    // 鍾離：自分に即勝ち筋があるときは使わない（封鎖がランダムで自分の勝ち列を潰す恐れ）
+    if (cpuChara?.charaID === '012') {
+        const cpuCanWin = getValidColumns().some(c => wouldWin(c, CPU_COLOR));
+        return !cpuCanWin;
+    }
+    // ルアン・メェイ：相手の石≥3かつ自分の石≥6のとき（前半〜中盤で変換が刺さりやすく、Phase2で全滅しない）
+    if (cpuChara?.charaID === '010') {
+        const opponentStones = Object.values(stones).filter(c => c === PLAYER_COLOR).length;
+        const ownStones = Object.values(stones).filter(c => c === CPU_COLOR).length;
+        return opponentStones >= 3 && ownStones >= 6;
+    }
     const playerAheadOnCharge = playerCharge > cpuCharge + 30;
     return hasImmediateThreat(PLAYER_COLOR) || playerAheadOnCharge;
 }
