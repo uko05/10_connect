@@ -26,8 +26,10 @@ const cellSize = 110;
 
 const PLAYER_COLOR = 'red';
 const CPU_COLOR = 'yellow';
-const ABEN_CHARGE_PENALTY = 50; // ソロモード専用：アベンチュリンは時間制限の代わりに相手のチャージを減らす
+const ABEN_CHARGE_PENALTY = 50; // ソロモード専用(BAKATARE以外)：アベンチュリンは相手のチャージを減らす
 const ABEN_MAX_USES = 5;
+const BAKATARE_THINK_MS_PER_NODE = 0.1;  // BAKATARE思考時間係数: 探索ノード数 × この値(ms) が待機時間
+const BAKATARE_THINK_MAX_MS = 12000;     // BAKATARE思考時間の上限(ms)
 
 let stones = {}; // "col_row" -> 'red' | 'yellow'
 let turn = 'player'; // 'player' | 'cpu'
@@ -78,6 +80,8 @@ let playerUltCount = 0;
 let cpuUltCount = 0;
 let abilityInProgress = false;
 let playerMoveInProgress = false; // 連打で複数手が同時に処理されるのを防ぐロック
+let minimaxNodeCount = 0;           // minimax探索ノード数（pickAiColumn毎にリセット）
+let cpuThinkingTimeReduction = 0;   // アベンチュリンが蓄積したCPU思考時間削減量(ms)
 
 //------------------------------------------------------------------------------------------------
 // 必殺技演出強度に応じたフラッシュ・シェイク・パーティクル（バトル画面と同じ考え方）
@@ -100,6 +104,31 @@ function fxParticles(x, y, colors = ['#ff7a00', '#ffd400', '#fff6cc'], count = 1
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// BAKATAREモード専用: CPUの思考中カウントダウン表示 + 待機
+function waitWithCpuThinking(ms) {
+    const label = document.getElementById('cpuThinkingLabel');
+    if (ms <= 0) {
+        label.style.display = 'none';
+        return Promise.resolve();
+    }
+    return new Promise(resolve => {
+        const endTime = Date.now() + ms;
+        const update = () => {
+            const remaining = endTime - Date.now();
+            if (remaining <= 0) {
+                label.style.display = 'none';
+                resolve();
+                return;
+            }
+            label.textContent = `CPU思考中… ${Math.ceil(remaining / 1000)}秒`;
+            setTimeout(update, 100);
+        };
+        label.style.display = 'block';
+        label.textContent = `CPU思考中… ${Math.ceil(ms / 1000)}秒`;
+        setTimeout(update, 100);
+    });
 }
 
 //------------------------------------------------------------------------------------------------
@@ -269,6 +298,7 @@ function evaluateBoard(board, color) {
 }
 
 function minimax(board, depth, alpha, beta, maximizing) {
+    minimaxNodeCount++;
     const winner = checkWinOnBoard(board);
     if (winner === CPU_COLOR) return { score: 1000000 + depth };
     if (winner === PLAYER_COLOR) return { score: -1000000 - depth };
@@ -313,6 +343,7 @@ function minimax(board, depth, alpha, beta, maximizing) {
 }
 
 function pickAiColumn() {
+    minimaxNodeCount = 0;
     const board = boardFromStones();
     const depth = getCpuSearchDepth();
     const result = minimax(board, depth, -Infinity, Infinity, true);
@@ -655,8 +686,11 @@ async function executeAbility(side, charaID) {
         case '007': // キャストリス：左右の縦4列からランダム3列を全消し
             await deleteStonesLocal(getStonesToDeleteLocal(getRandomThreeNumbers(), 6));
             break;
-        case '008': { // アベンチュリン（ソロ専用）：相手のチャージを減少
-            if (side === 'player') {
+        case '008': { // アベンチュリン（ソロ専用）
+            if (side === 'player' && getCpuDifficulty() === 'bakatare') {
+                // BAKATARE専用：CPUの思考時間を19秒分削減（累積プール方式）
+                cpuThinkingTimeReduction += 19000;
+            } else if (side === 'player') {
                 cpuCharge = Math.max(0, cpuCharge - ABEN_CHARGE_PENALTY);
             } else {
                 playerCharge = Math.max(0, playerCharge - ABEN_CHARGE_PENALTY);
@@ -1257,25 +1291,45 @@ async function cpuTurn() {
     updateSpecialMoveButtonVisibility();
     dispTopStone();
 
-    await wait(2000); // 「考えている」演出のための待機
+    let finalCol;
 
-    if (cpuShouldUseAbility()) {
-        await useAbility('cpu');
-        if (await checkGameEnd()) return;
-        await wait(400);
+    if (getCpuDifficulty() === 'bakatare') {
+        // BAKATARE: 先にminimax計算を走らせてノード数から思考時間を算出
+        const usesAbility = cpuShouldUseAbility();
+        finalCol = hanabiSetupCol >= 0 ? hanabiSetupCol : pickAiColumn();
+
+        const rawMs = Math.min(BAKATARE_THINK_MAX_MS, minimaxNodeCount * BAKATARE_THINK_MS_PER_NODE);
+        const thinkMs = Math.max(0, rawMs - cpuThinkingTimeReduction);
+        cpuThinkingTimeReduction = Math.max(0, cpuThinkingTimeReduction - rawMs);
+        await waitWithCpuThinking(thinkMs);
+
+        if (usesAbility) {
+            await useAbility('cpu');
+            if (await checkGameEnd()) return;
+            await wait(400);
+        }
+    } else {
+        await wait(2000); // 「考えている」演出のための待機
+
+        if (cpuShouldUseAbility()) {
+            await useAbility('cpu');
+            if (await checkGameEnd()) return;
+            await wait(400);
+        }
+
+        finalCol = hanabiSetupCol >= 0 ? hanabiSetupCol : pickAiColumn();
     }
 
-    const col = hanabiSetupCol >= 0 ? hanabiSetupCol : pickAiColumn();
     hanabiSetupCol = -1;
     const droppedColor = applyColorSwap(CPU_COLOR);
-    await dropAt(col, droppedColor);
+    await dropAt(finalCol, droppedColor);
     cpuCharge = Math.min(200, cpuCharge + cpuChara.charge);
 
     // ケリュドラ：プレイヤーが発動した場合、CPUの投下後に追加投下
     if (cerluaActive && cerluaCasterSide === 'player') {
         cerluaActive = false;
         cerluaCasterSide = null;
-        const extraCol = getDropRow(col) >= 0 ? col
+        const extraCol = getDropRow(finalCol) >= 0 ? finalCol
             : getValidColumns().find(c => !zhongliBlockedCols.includes(c)) ?? -1;
         if (extraCol >= 0) await dropAt(extraCol, droppedColor);
     }
@@ -1306,6 +1360,9 @@ async function cpuTurn() {
 
 function abilityDetailText(chara) {
     if (chara.charaID === '008') {
+        if (getCpuDifficulty() === 'bakatare') {
+            return `【ソロモード専用効果(BAKATARE)】CPUの思考時間を19秒削減する（試合を通じて累積）。(${ABEN_MAX_USES}回まで使用可能)`;
+        }
         return `【ソロモード専用効果】相手の現在のチャージを${ABEN_CHARGE_PENALTY}減少させる。(${ABEN_MAX_USES}回まで使用可能。時間制限がないため元の効果から変更しています)`;
     }
     return chara.AbilityDetail;
@@ -1398,6 +1455,7 @@ async function resetGame() {
     cpuRoundWins = 0;
     abilityInProgress = false;
     playerMoveInProgress = false;
+    cpuThinkingTimeReduction = 0;
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
 
     // クロスターンエフェクトをリセット
