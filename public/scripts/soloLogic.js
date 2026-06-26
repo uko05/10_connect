@@ -350,8 +350,9 @@ function cpuShouldUseAbility() {
     if (!abilityAvailable('cpu')) return false;
     // ケリュドラ：相手に追加手を与えるだけなので使わない
     if (cpuChara?.charaID === '015') return false;
-    // ホタル：チャージが溜まったら即使う（盤面干渉が常に有効）
+    // ホタル・銀狼：チャージが溜まったら即使う
     if (cpuChara?.charaID === '009') return true;
+    if (cpuChara?.charaID === '016') return true;
     // 花火：セットアップが成立するときのみ使う（守備目的では使えない）
     if (cpuChara?.charaID === '005') {
         hanabiSetupCol = findHanabiSetupCol();
