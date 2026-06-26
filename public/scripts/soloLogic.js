@@ -61,6 +61,7 @@ let playerChara = null;
 let cpuChara = null;
 let playerUltAudio = null;
 let cpuUltAudio = null;
+let hanabiSetupCol = -1; // 花火CPUセットアップ列（-1=なし）
 let currentUid = null; // アチーブメント記録用（認証は裏で進める。対局の進行はブロックしない）
 authReady.then(async (user) => {
     currentUid = user.uid;
@@ -324,9 +325,38 @@ function pickAiColumn() {
     return validNonBlocked[0];
 }
 
+// 花火CPU専用：セットアップ石を置くと次手で同列に勝てる列を探す
+// 守備には使えない（セットアップ石が相手色で記録され、相手の勝ちを完成させてしまう）
+function findHanabiSetupCol() {
+    // 直接勝てる列があるなら花火は不要
+    for (let c = 0; c < cols; c++) {
+        if (wouldWin(c, CPU_COLOR)) return -1;
+    }
+    for (let c = 0; c < cols; c++) {
+        const row = getDropRow(c);
+        if (row <= 0) continue; // セットアップ石＋勝ち石の2手分の余地が必要
+        // セットアップ石を仮置き（花火効果で相手色として記録される）
+        stones[`${c}_${row}`] = PLAYER_COLOR;
+        const canWinNext = wouldWin(c, CPU_COLOR);       // 同列に次手で勝てるか
+        const playerWins = checkWinLocal()?.color === PLAYER_COLOR; // 相手の勝ちを完成させないか
+        delete stones[`${c}_${row}`];
+        if (canWinNext && !playerWins) return c;
+    }
+    return -1;
+}
+
 // CPUが「不利」と判断する条件：相手に即勝ち筋がある、またはチャージで大きく差をつけられている
 function cpuShouldUseAbility() {
     if (!abilityAvailable('cpu')) return false;
+    // ケリュドラ：相手に追加手を与えるだけなので使わない
+    if (cpuChara?.charaID === '015') return false;
+    // ホタル：チャージが溜まったら即使う（盤面干渉が常に有効）
+    if (cpuChara?.charaID === '009') return true;
+    // 花火：セットアップが成立するときのみ使う（守備目的では使えない）
+    if (cpuChara?.charaID === '005') {
+        hanabiSetupCol = findHanabiSetupCol();
+        return hanabiSetupCol >= 0;
+    }
     const playerAheadOnCharge = playerCharge > cpuCharge + 30;
     return hasImmediateThreat(PLAYER_COLOR) || playerAheadOnCharge;
 }
@@ -1223,7 +1253,8 @@ async function cpuTurn() {
         await wait(400);
     }
 
-    const col = pickAiColumn();
+    const col = hanabiSetupCol >= 0 ? hanabiSetupCol : pickAiColumn();
+    hanabiSetupCol = -1;
     const droppedColor = applyColorSwap(CPU_COLOR);
     await dropAt(col, droppedColor);
     cpuCharge = Math.min(200, cpuCharge + cpuChara.charge);
