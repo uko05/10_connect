@@ -197,9 +197,14 @@ function resolveAchTitleName(achId, jaName) {
 export function fitChipText(chip) {
     requestAnimationFrame(() => requestAnimationFrame(() => {
         chip.style.fontSize = '';
+        chip.style.maxWidth = '';
+        const parent = chip.parentElement;
+        const maxW = parent ? parent.getBoundingClientRect().width : 0;
+        if (!maxW) return;
+        chip.style.maxWidth = maxW + 'px';
         let size = parseFloat(getComputedStyle(chip).fontSize);
         const minSize = 8;
-        while (chip.scrollWidth > chip.clientWidth && size > minSize) {
+        while (chip.scrollWidth > maxW && size > minSize) {
             size -= 0.5;
             chip.style.fontSize = size + 'px';
         }
