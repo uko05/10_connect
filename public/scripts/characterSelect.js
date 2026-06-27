@@ -52,7 +52,8 @@ function updateCpuDifficultyLabel(difficultyId) {
     if (!cpuDifficultyLabel) return;
     const level = CPU_DIFFICULTY_LEVELS.find(d => d.id === difficultyId);
     cpuDifficultyLabel.textContent = level ? level.label : "";
-    cpuDifficultyLabel.classList.toggle('bakatare', difficultyId === 'bakatare');
+    ['easy', 'normal', 'hard', 'bakatare'].forEach(d => cpuDifficultyLabel.classList.remove(d));
+    if (difficultyId) cpuDifficultyLabel.classList.add(difficultyId);
 }
 
 const initialCpuDifficulty = getCpuDifficulty();
