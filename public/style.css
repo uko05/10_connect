@@ -227,8 +227,8 @@ header {
 
 #soloModeButton {
     font-family: 'SDK_JP_WEB', sans-serif;
-    background-color: #6f42c1; /* マッチングボタンと区別する紫系 */
-    border: 2px solid #6f42c1;
+    background-color: #e67e22;
+    border: 2px solid #e67e22;
     color: white;
     padding: 8px 0;
     font-size: 18px;
@@ -260,7 +260,7 @@ header {
     width: 18px;
     height: 18px;
     margin: 0;
-    accent-color: #6f42c1; /* ソロモードボタンと同系色 */
+    accent-color: #e67e22;
     cursor: pointer;
 }
 
@@ -275,7 +275,7 @@ header {
     font-weight: bold;
     font-size: 0.95em;
     letter-spacing: 0.05em;
-    color: #6f42c1;
+    color: #e67e22;
 }
 
 .status {
@@ -318,8 +318,8 @@ header {
 }
 
 .hub-btn-cpu {
-    background-color: #6f42c1;
-    border: 2px solid #6f42c1;
+    background-color: #e67e22;
+    border: 2px solid #e67e22;
 }
 
 .hub-btn-match {
