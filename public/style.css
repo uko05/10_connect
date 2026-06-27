@@ -401,6 +401,8 @@ header {
     display: flex;
     gap: 8px;
     margin: 4px 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .title-slot {
