@@ -33,6 +33,8 @@ const DEFAULT_SETTINGS = {
     ultIntensity: "strong",
     cpuDifficulty: "normal",
     clickMode: "single",
+    systemVolume: 0.2,
+    voiceVolume: 0.2,
 };
 
 function loadSettings() {
@@ -118,6 +120,24 @@ export function getClickMode() {
     return currentSettings.clickMode;
 }
 
+export function setSystemVolume(v) {
+    currentSettings.systemVolume = Math.max(0, Math.min(1, parseFloat(v) || 0));
+    persist();
+}
+
+export function getSystemVolume() {
+    return currentSettings.systemVolume ?? 0.2;
+}
+
+export function setVoiceVolume(v) {
+    currentSettings.voiceVolume = Math.max(0, Math.min(1, parseFloat(v) || 0));
+    persist();
+}
+
+export function getVoiceVolume() {
+    return currentSettings.voiceVolume ?? 0.2;
+}
+
 /**
  * 設定モーダル内のUI(色スウォッチ・演出強度ラジオ)を現在の設定値で初期化し、
  * クリック/変更イベントをバインドする。
@@ -154,6 +174,18 @@ export function bindSettingsUI(root, onColorChange) {
             if (radio.checked) setClickMode(radio.value);
         });
     });
+
+    // 音量スライダー（値を復元 + 変更時に保存）
+    const sysSlider = root.querySelector('#systemvolumeSlider');
+    if (sysSlider) {
+        sysSlider.value = currentSettings.systemVolume;
+        sysSlider.addEventListener('input', (e) => setSystemVolume(e.target.value));
+    }
+    const voiceSlider = root.querySelector('#voicevolumeSlider');
+    if (voiceSlider) {
+        voiceSlider.value = currentSettings.voiceVolume;
+        voiceSlider.addEventListener('input', (e) => setVoiceVolume(e.target.value));
+    }
 }
 
 /**

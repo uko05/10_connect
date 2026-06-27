@@ -22,7 +22,7 @@ import { setupScaledLayout } from './layoutScaler.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { applyTitleDisplay } from './achievementManager.js';
-import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty } from './settingsManager.js';
+import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume } from './settingsManager.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');
@@ -173,13 +173,8 @@ document.addEventListener('visibilitychange', () => {
 //サムネイルを表示する関数
 function displayThumbnails() {
     const container = document.getElementById('thumbnailContainer');
-    systemvolumeSlider = document.getElementById('systemvolumeSlider');
-    voicevolumeSlider = document.getElementById('voicevolumeSlider');
+    selectSound.volume = getSystemVolume();
 
-    selectSound.volume = 0.2;
-
-    console.log("システム音量スライダー:", systemvolumeSlider);
-    console.log("ボイス音量スライダー:", voicevolumeSlider);
 
     // charaID順にすべてのキャラを描画（解放状態にかかわらず）
     characterData.forEach((character) => {
@@ -226,7 +221,7 @@ function displayThumbnails() {
 
                 charaSoundUrl = img.getAttribute('data-voice');
                 charaSound = new Audio(charaSoundUrl);
-                charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : 0.2;
+                charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : getVoiceVolume();
                 charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
             });
 
@@ -325,35 +320,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("[characterSelect] Auth initialization failed:", error);
     }
 
-    //スライダー要素を取得
-    systemvolumeSlider = document.getElementById('systemvolumeSlider');
-    voicevolumeSlider = document.getElementById('voicevolumeSlider');
-
-    console.log("システム音量スライダー:", systemvolumeSlider);
-    console.log("ボイス音量スライダー:", voicevolumeSlider);
-
     //サムネイルを表示
     displayThumbnails();
 
-    //スライダーのイベントリスナーを設定
+    // 音量スライダー：リアルタイムで再生中の音声に反映
+    systemvolumeSlider = document.getElementById('systemvolumeSlider');
+    voicevolumeSlider  = document.getElementById('voicevolumeSlider');
     if (systemvolumeSlider) {
-        systemvolumeSlider.addEventListener('input', (event) => {
-            const newVolume = parseFloat(event.target.value); //数値として取得
-            console.log("○システム音量変更：", newVolume);
-            selectSound.volume = newVolume; //音量を更新
-        });
-    } else {
-        console.error("systemvolumeSlider が見つかりません");
+        systemvolumeSlider.addEventListener('input', (e) => { selectSound.volume = parseFloat(e.target.value); });
     }
-
     if (voicevolumeSlider) {
-        voicevolumeSlider.addEventListener('input', (event) => {
-            const newVolume = parseFloat(event.target.value); //数値として取得
-            console.log("○ボイス音量変更：", newVolume);
-            if (charaSound) charaSound.volume = newVolume;
-        });
-    } else {
-        console.error("voicevolumeSlider が見つかりません");
+        voicevolumeSlider.addEventListener('input', (e) => { if (charaSound) charaSound.volume = parseFloat(e.target.value); });
     }
 
     localStorage.setItem("timeRemaining", 1000); //残り時間を保存
