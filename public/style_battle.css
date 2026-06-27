@@ -175,10 +175,11 @@ html, body {
 /* ------------------------------------------------------------------------------------------- */
 
 #leftPane, #centerPane, #rightPane {
-    flex: 1; /* 残りのスペースを均等に分配 */
+    flex: 1;
+    min-width: 0;
     display: flex;
-    flex-direction: column; /* 縦方向に並べる */
-    align-items: center; /* 中央揃え */
+    flex-direction: column;
+    align-items: center;
     background-color: white;
 }
 
@@ -584,8 +585,14 @@ html, body {
 
 /* ------------------------------------------------------------------------------------------- */
 
+.player-info {
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
 .player-info p {
-    margin: 0; /* pタグのデフォルトマージンを削除 */
+    margin: 0;
 }
 
 /* プレイヤー情報：左側テキスト + 右側バッジ */
@@ -593,6 +600,8 @@ html, body {
     display: flex;
     align-items: stretch;
     gap: 12px;
+    width: 100%;
+    overflow: hidden;
 }
 .player-info-left {
     flex: 1;
