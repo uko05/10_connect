@@ -13,6 +13,21 @@ import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText
 initLang();
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
+
+// キャラ別アチーブメント（solo_bakatare_XXX / chara_win10_XXX 等）を含むi18n名前解決
+function resolveAchName(achId, jaName) {
+    if (!achId) return jaName || '';
+    const charaMatch =
+        achId.startsWith('chara_win10_') ? achId.slice('chara_win10_'.length) :
+        achId.startsWith('chara_win50_') ? achId.slice('chara_win50_'.length) :
+        (achId.startsWith('solo_bakatare_') && achId !== 'solo_bakatare_all') ? achId.slice('solo_bakatare_'.length) :
+        null;
+    if (charaMatch !== null) {
+        const charaEnName = getCharaText(charaMatch, 'name');
+        return getCharaAchText(achId, jaName, '', charaEnName ?? jaName).name;
+    }
+    return getAchText(achId, 'name') ?? jaName;
+}
 document.getElementById('version').textContent = APP_VERSION;
 
 document.getElementById('backToHubButton').addEventListener('click', () => {
@@ -94,7 +109,7 @@ function renderTitleSlots(userData) {
         const achId = ids[slot];
         const ach = achId ? ALL_ACHIEVEMENTS.find((a) => a.id === achId) : null;
         bannerEl.className = ach ? `title-slot-banner rarity-${ach.rarity}` : 'title-slot-banner empty';
-        bannerEl.textContent = ach ? (getAchText(ach.id, 'name') ?? ach.name) : t('titleSlotEmpty');
+        bannerEl.textContent = ach ? resolveAchName(ach.id, ach.name) : t('titleSlotEmpty');
     }
 }
 
