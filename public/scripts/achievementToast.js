@@ -1,5 +1,6 @@
 // achievementToast.js - アチーブメント解放トースト＆キャラクター解放モーダル
 import { ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
+import { t, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
 let achToastQueue = [];
 let achToastBusy = false;
@@ -7,6 +8,22 @@ let achToastBusy = false;
 export function showAchievementToast(achId) {
     achToastQueue.push(achId);
     if (!achToastBusy) processToastQueue();
+}
+
+function resolveAchI18n(achId, ach) {
+    const charaMatch =
+        achId.startsWith('chara_win10_') ? achId.slice('chara_win10_'.length) :
+        achId.startsWith('chara_win50_') ? achId.slice('chara_win50_'.length) :
+        (achId.startsWith('solo_bakatare_') && achId !== 'solo_bakatare_all') ? achId.slice('solo_bakatare_'.length) :
+        null;
+    if (charaMatch !== null) {
+        const charaEnName = getCharaText(charaMatch, 'name');
+        return getCharaAchText(achId, ach.name, ach.condition, charaEnName ?? ach.name);
+    }
+    return {
+        name: getAchText(achId, 'name') ?? ach.name,
+        condition: getAchText(achId, 'condition') ?? ach.condition,
+    };
 }
 
 function processToastQueue() {
@@ -21,8 +38,9 @@ function processToastQueue() {
     if (!toast) { achToastBusy = false; return; }
 
     const rarity = ach.rarity || 'bronze';
-    document.getElementById('ach-toast-name').textContent = ach.name;
-    document.getElementById('ach-toast-condition').textContent = ach.condition;
+    const { name: achName, condition: achCondition } = resolveAchI18n(achId, ach);
+    document.getElementById('ach-toast-name').textContent = achName;
+    document.getElementById('ach-toast-condition').textContent = achCondition;
 
     toast.style.display = 'block';
     toast.classList.remove('rarity-bronze', 'rarity-silver', 'rarity-gold', 'rarity-legend');
@@ -94,7 +112,7 @@ export function showCharacterUnlockModal(character) {
     });
 
     const label = document.createElement('div');
-    label.textContent = '✦ 新キャラクター解放 ✦';
+    label.textContent = t('charaUnlockTitle');
     Object.assign(label.style, {
         fontSize: 'clamp(1em, 3vw, 1.4em)',
         color: '#ffd700', letterSpacing: '2px',
@@ -112,7 +130,7 @@ export function showCharacterUnlockModal(character) {
     });
 
     const name = document.createElement('div');
-    name.textContent = character.name;
+    name.textContent = getCharaText(character.charaID, 'name') ?? character.name;
     Object.assign(name.style, {
         marginTop: '18px',
         fontSize: 'clamp(1.3em, 5vw, 2em)',
@@ -121,14 +139,14 @@ export function showCharacterUnlockModal(character) {
     });
 
     const sub = document.createElement('div');
-    sub.textContent = 'を解放しました！';
+    sub.textContent = t('charaUnlockSub');
     Object.assign(sub.style, {
         marginTop: '6px', color: '#ffd700',
         fontSize: 'clamp(0.9em, 2.5vw, 1.1em)',
     });
 
     const hint = document.createElement('div');
-    hint.textContent = 'タップ / クリックで閉じる';
+    hint.textContent = t('charaUnlockHint');
     Object.assign(hint.style, {
         marginTop: '28px', color: '#888',
         fontSize: 'clamp(0.7em, 2vw, 0.85em)',

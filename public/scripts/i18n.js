@@ -80,6 +80,10 @@ const dict = {
     lockedHintPre: "解放条件<br>アチーブメント<br>",
     lockedHintPost: "<br>を取得",
     returnMsg: "秒後にキャラ選択画面に戻ります。",
+    charaUnlockTitle: "✦ 新キャラクター解放 ✦",
+    charaUnlockSub: "を解放しました！",
+    charaUnlockHint: "タップ / クリックで閉じる",
+    newCharBadge: "新キャラ解放！",
   },
   en: {
     pageTitle: "GK: Connect Battle",
@@ -159,6 +163,10 @@ const dict = {
     lockedHintPre: "Unlock:<br>Achievement<br>",
     lockedHintPost: "",
     returnMsg: "s until character select.",
+    charaUnlockTitle: "✦ New Character Unlocked ✦",
+    charaUnlockSub: " has been unlocked!",
+    charaUnlockHint: "Tap / Click to close",
+    newCharBadge: "New Character!",
   },
 };
 

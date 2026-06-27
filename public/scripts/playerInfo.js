@@ -164,7 +164,7 @@ function renderAchievements() {
         const summaryEl = document.createElement('summary');
         summaryEl.className = 'achievement-group-header';
         const groupHasLockedCharUnlock = groupItems.some(a => charUnlockAchIds.has(a.id) && !a.unlocked);
-        const groupBadgeHtml = groupHasLockedCharUnlock ? `<span class="new-char-badge">新キャラ解放！</span>` : '';
+        const groupBadgeHtml = groupHasLockedCharUnlock ? `<span class="new-char-badge">${t('newCharBadge')}</span>` : '';
         summaryEl.innerHTML = `<span class="achievement-group-name">${getAchGroupName(group.name)}</span>${groupBadgeHtml}<span class="achievement-group-count">${groupUnlocked} / ${groupItems.length}</span>`;
         details.appendChild(summaryEl);
 
@@ -196,7 +196,7 @@ function renderAchievements() {
 
             const isSet = equippedInSlot === ach.id;
             const isCharUnlock = charUnlockAchIds.has(ach.id);
-            const charUnlockBadge = `<span class="new-char-badge">新キャラ解放！</span>`;
+            const charUnlockBadge = `<span class="new-char-badge">${t('newCharBadge')}</span>`;
 
             // ②: 未所持かつ新キャラ解放アチーブメントの場合、未所持ボタン左にバッジを表示
             const setBtnHtml = ach.unlocked
