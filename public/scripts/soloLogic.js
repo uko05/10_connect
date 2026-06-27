@@ -1720,11 +1720,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // レイアウト（バトル画面と同じスケーリング方式）
     const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
     if (isMobileLayout) {
-        setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 0, (scale) => {
+        setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 30, (scale) => {
             boardScale = scale;
         });
     } else {
-        setupScaledLayout('boardWrap', cellSize * cols, 110 + cellSize * rows, (scale) => {
+        setupScaledLayout('boardWrap', cellSize * cols, 110 + cellSize * rows + 30, (scale) => {
             boardScale = scale;
         });
     }
