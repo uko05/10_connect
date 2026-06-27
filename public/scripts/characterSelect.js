@@ -45,7 +45,7 @@ function getAchName(achId, jaLabel) {
     return getAchText(achId, 'name') ?? jaLabel;
 }
 
-// 言語切替時: キャラ詳細とロックヒントを即時更新
+// 言語切替時: キャラ詳細・ロックヒント・称号バナーを即時更新
 document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
     radio.addEventListener('change', () => {
         if (currentCharacterData) displayCharacterInfo(currentCharacterData);
@@ -54,6 +54,8 @@ document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
             const jaLabel = el.dataset.reqAchLabel;
             el.innerHTML = t('lockedHintPre') + getAchName(achId, jaLabel) + t('lockedHintPost');
         });
+        const titlesEl = document.getElementById('lobbyTitles');
+        if (titlesEl) applyTitleDisplay(titlesEl, cachedLobbyUserData);
     });
 });
 
@@ -133,6 +135,8 @@ let roomDocRef = null; //ここで roomDocRef を宣言
 let selectedCharacter = null;
 // 選択中キャラクターのdataオブジェクト（言語切替時の再描画に使用）
 let currentCharacterData = null;
+// ロビーのユーザーデータキャッシュ（言語切替時の称号再描画に使用）
+let cachedLobbyUserData = null;
 
 //バトル画面への遷移フラグ
 let isNavigatingToBattle = false;
@@ -284,6 +288,7 @@ function displayCharacterInfo(character) {
 
 // ロビーのプレイヤー情報エリアを更新する（5行レイアウト）
 async function applyLobbyDisplay(userData) {
+    cachedLobbyUserData = userData;
     const rankAndRateEl = document.getElementById('lobbyRankAndRate');
     const rankingEl     = document.getElementById('lobbyRanking');
     const badgeEl       = document.getElementById('lobbyRankBadge');

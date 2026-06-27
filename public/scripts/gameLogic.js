@@ -95,7 +95,9 @@ let turnCount = 1;
 
 let charaInfo1 = null;
 let charaInfo2 = null;
-  
+let cachedLeftRating = null;
+let cachedRightRating = null;
+
 let startP = null;
 
 let red_Win = 0;
@@ -443,6 +445,8 @@ async function displayThumbnails() {
         console.warn("[Rating] レート表示取得失敗:", e);
     }
     // 称号は rating 取得失敗時も null で「未設定」表示になるよう try 外で呼ぶ
+    cachedLeftRating = leftRating;
+    cachedRightRating = rightRating;
     applyTitleDisplay(document.getElementById('playerTitles_1'), leftRating);
     applyTitleDisplay(document.getElementById('playerTitles_2'), rightRating);
 
@@ -772,6 +776,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         disp_TopStone(turn, nowCol);
     });
     initLang();
+
+    // 言語切替時: キャラ名・必殺技・称号を即時更新
+    document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (charaInfo1) {
+                const n = document.getElementById('charaID_1');
+                if (n) n.innerText = getCharaText(charaInfo1.charaID, 'name') ?? charaInfo1.name;
+                const a = document.getElementById('Ability_1');
+                if (a) a.innerText = getCharaText(charaInfo1.charaID, 'Ability') ?? charaInfo1.Ability;
+                const d = document.getElementById('AbilityDetail_1');
+                if (d) d.innerText = getCharaText(charaInfo1.charaID, 'AbilityDetail') ?? charaInfo1.AbilityDetail;
+            }
+            if (charaInfo2) {
+                const n = document.getElementById('charaID_2');
+                if (n) n.innerText = getCharaText(charaInfo2.charaID, 'name') ?? charaInfo2.name;
+                const a = document.getElementById('Ability_2');
+                if (a) a.innerText = getCharaText(charaInfo2.charaID, 'Ability') ?? charaInfo2.Ability;
+                const d = document.getElementById('AbilityDetail_2');
+                if (d) d.innerText = getCharaText(charaInfo2.charaID, 'AbilityDetail') ?? charaInfo2.AbilityDetail;
+            }
+            applyTitleDisplay(document.getElementById('playerTitles_1'), cachedLeftRating);
+            applyTitleDisplay(document.getElementById('playerTitles_2'), cachedRightRating);
+        });
+    });
 
     // Auth完了を待機（Security Rulesで auth != null が必要）
     try {
