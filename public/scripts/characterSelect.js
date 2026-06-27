@@ -23,12 +23,39 @@ import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './elo
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume } from './settingsManager.js';
-import { initLang, t, getCharaText } from './i18n.js';
+import { initLang, t, getCharaText, getAchText, getCharaAchText } from './i18n.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
 initLang();
+
+// アチーブメント名を現在の言語で返すヘルパー
+function getAchName(achId, jaLabel) {
+    if (!achId) return jaLabel || '';
+    const charaMatch =
+        achId.startsWith('chara_win10_') ? achId.slice('chara_win10_'.length) :
+        achId.startsWith('chara_win50_') ? achId.slice('chara_win50_'.length) :
+        (achId.startsWith('solo_bakatare_') && achId !== 'solo_bakatare_all') ? achId.slice('solo_bakatare_'.length) :
+        null;
+    if (charaMatch !== null) {
+        const charaEnName = getCharaText(charaMatch, 'name');
+        return getCharaAchText(achId, jaLabel, '', charaEnName ?? jaLabel).name;
+    }
+    return getAchText(achId, 'name') ?? jaLabel;
+}
+
+// 言語切替時: キャラ詳細とロックヒントを即時更新
+document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        if (currentCharacterData) displayCharacterInfo(currentCharacterData);
+        document.querySelectorAll('.thumbnail-locked-hint[data-req-ach-id]').forEach(el => {
+            const achId = el.dataset.reqAchId;
+            const jaLabel = el.dataset.reqAchLabel;
+            el.innerHTML = t('lockedHintPre') + getAchName(achId, jaLabel) + t('lockedHintPost');
+        });
+    });
+});
 
 // 遷移元モード（ハブ画面からの ?mode=cpu / ?mode=match）に応じて、関係ないブロックを隠す
 // modeが無い場合（直接アクセス等）は両方表示してフォールバックする
@@ -104,6 +131,8 @@ let roomDocRef = null; //ここで roomDocRef を宣言
 
 //選択中のキャラクターを保持する変数
 let selectedCharacter = null;
+// 選択中キャラクターのdataオブジェクト（言語切替時の再描画に使用）
+let currentCharacterData = null;
 
 //バトル画面への遷移フラグ
 let isNavigatingToBattle = false;
@@ -194,7 +223,9 @@ function displayThumbnails() {
 
             const hint = document.createElement('div');
             hint.className = 'thumbnail-locked-hint';
-            hint.innerHTML = t('lockedHintPre') + (character.requiredAchievementLabel || character.requiredAchievementId) + t('lockedHintPost');
+            hint.dataset.reqAchId = character.requiredAchievementId || '';
+            hint.dataset.reqAchLabel = character.requiredAchievementLabel || '';
+            hint.innerHTML = t('lockedHintPre') + getAchName(character.requiredAchievementId, character.requiredAchievementLabel) + t('lockedHintPost');
             lockedSlot.appendChild(hint);
 
             wrapper.appendChild(lockedSlot);
@@ -215,6 +246,7 @@ function displayThumbnails() {
                 }
                 img.classList.add('selected');
                 selectedCharacter = img;
+                currentCharacterData = character;
                 displayCharacterInfo(character);
 
                 selectSound.currentTime = 0;

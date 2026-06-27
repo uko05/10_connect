@@ -1515,12 +1515,12 @@ html, body {
   }
 }
 
-/* EN: 必殺技名・内容を各ブレークポイントで1px縮小 */
-html[lang="en"] .abilityName,
+/* EN: 必殺技名・内容を各ブレークポイントで縮小（nameはさらに1px小さく） */
+html[lang="en"] .abilityName  { font-size: 16px; }
 html[lang="en"] .abilityDetail { font-size: 17px; }
 
 @media (max-width: 1180px) and (max-height: 820px) {
-  html[lang="en"] .abilityName,
+  html[lang="en"] .abilityName  { font-size: 14px; }
   html[lang="en"] .abilityDetail { font-size: 15px; }
 }
 

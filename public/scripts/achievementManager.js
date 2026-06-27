@@ -4,6 +4,7 @@ import { db } from './firebaseConfig.js';
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { ALL_ACHIEVEMENTS } from './achievements.js';
 import { characterData } from './characterData.js';
+import { t, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
 // requiredAchievementId → { charaID, name } のマップ（隠しキャラのみ）
 const hiddenCharaByAchId = Object.fromEntries(
@@ -180,6 +181,30 @@ export async function debugForceResetAchievement(uid, achId) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // バトル画面用：プレイヤーの設定済み称号をDOM要素に反映する（rarity色のチップ表示）
+function resolveAchTitleName(achId, jaName) {
+    const charaMatch =
+        achId.startsWith('chara_win10_') ? achId.slice('chara_win10_'.length) :
+        achId.startsWith('chara_win50_') ? achId.slice('chara_win50_'.length) :
+        (achId.startsWith('solo_bakatare_') && achId !== 'solo_bakatare_all') ? achId.slice('solo_bakatare_'.length) :
+        null;
+    if (charaMatch !== null) {
+        const charaEnName = getCharaText(charaMatch, 'name');
+        return getCharaAchText(achId, jaName, '', charaEnName ?? jaName).name;
+    }
+    return getAchText(achId, 'name') ?? jaName;
+}
+
+function fitChipText(chip) {
+    requestAnimationFrame(() => {
+        let size = parseFloat(getComputedStyle(chip).fontSize);
+        const minSize = 8;
+        while (chip.scrollWidth > chip.clientWidth && size > minSize) {
+            size -= 0.5;
+            chip.style.fontSize = size + 'px';
+        }
+    });
+}
+
 export function applyTitleDisplay(element, userData) {
     if (!element) return;
     const equipped = (userData && Array.isArray(userData.equippedTitles))
@@ -192,11 +217,12 @@ export function applyTitleDisplay(element, userData) {
         const chip = document.createElement('span');
         if (ach) {
             chip.className = `battle-title-banner rarity-${ach.rarity}`;
-            chip.textContent = ach.name;
+            chip.textContent = resolveAchTitleName(ach.id, ach.name);
         } else {
             chip.className = 'battle-title-banner empty';
-            chip.textContent = '未設定';
+            chip.textContent = t('titleSlotEmpty');
         }
         element.appendChild(chip);
+        fitChipText(chip);
     }
 }
