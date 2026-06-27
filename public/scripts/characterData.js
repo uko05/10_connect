@@ -108,9 +108,9 @@ export const characterData = [
     },
     { 
         src: 'public/chara/aben.png', 
-        charaID: '008', 
-        name: 'アベンチュリン', 
-        charge: 25, 
+        charaID: '008',
+        name: 'アベンチュリン',
+        charge: 18,
         chargeMax: 200,
         Ability: 'ロード・オブ・ルーレット', 
         AbilityDetail: '【サポート】相手の思考時間を19秒減少させる。この必殺技は5回まで使用可能。',
