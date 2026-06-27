@@ -162,6 +162,38 @@ function stopSoloPlayerTimer() {
     soloTimeLimitTimer = null;
 }
 
+// 必殺技演出後など、残り時間を維持したままタイマーを再開する（リセットしない）
+function resumeSoloPlayerTimer() {
+    if (getCpuDifficulty() !== 'bakatare') return;
+    clearInterval(soloTimeLimitTimer);
+    updateSoloGauge(soloCurrentTimeRemaining, soloPlayerTimeLimit);
+    if (soloCurrentTimeRemaining <= 0) {
+        setTimeout(async () => {
+            if (!gameOver && turn === 'player' && !playerMoveInProgress) {
+                const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+                if (validCols.length > 0) {
+                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
+                }
+            }
+        }, 0);
+        return;
+    }
+    soloTimeLimitTimer = setInterval(async () => {
+        soloCurrentTimeRemaining = Math.max(0, soloCurrentTimeRemaining - 1);
+        updateSoloGauge(soloCurrentTimeRemaining, soloPlayerTimeLimit);
+        if (soloCurrentTimeRemaining <= 0) {
+            clearInterval(soloTimeLimitTimer);
+            soloTimeLimitTimer = null;
+            if (!gameOver && turn === 'player' && !playerMoveInProgress) {
+                const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+                if (validCols.length > 0) {
+                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
+                }
+            }
+        }
+    }, 1000);
+}
+
 // CPUターン: soloCpuTimeLimitからリセットして思考時間(thinkMs)だけ待機。
 // タイムリミット到達時は true(タイムアウト)を返す。PvPと同じくターン毎にゲージリセット。
 function cpuThinkWithTimer(thinkMs) {
@@ -878,6 +910,7 @@ async function executeAbility(side, charaID) {
 async function useAbility(side) {
     const chara = side === 'player' ? playerChara : cpuChara;
     if (!chara || abilityInProgress) return;
+    if (side === 'player') stopSoloPlayerTimer(); // 演出中は一時停止（終了後resumeで再開）
     abilityInProgress = true;
 
     if (side === 'player') {
@@ -906,6 +939,7 @@ async function useAbility(side) {
         // ★abilityInProgressをfalseにしてから再描画する（updateGaugeUI内のボタン表示/盤面操作可否判定が
         //   正しい最終状態を見られるようにするため。順序を間違えると必殺技後に盤面が操作不能のまま固まる）
         abilityInProgress = false;
+        if (side === 'player') resumeSoloPlayerTimer(); // 残り時間から再開（リセットしない）
         updateGaugeUI();
     }
 }
