@@ -190,8 +190,9 @@ header {
 }
 
 .container {
-    flex: 1; /* containerが利用可能なスペースを占有する */
-    padding: 10px; /* パディングを追加 */
+    flex: 1;
+    min-width: 0;
+    padding: 10px;
     border-radius: 5px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-align: center;
