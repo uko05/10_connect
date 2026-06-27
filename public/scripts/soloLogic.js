@@ -447,11 +447,97 @@ function findHanabiSetupCol() {
     return -1;
 }
 
+// シミュレーション用: 仮想stonesでCPUの4連を確認
+function checkWinInSim(simStones) {
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (simStones[`${c}_${r}`] !== CPU_COLOR) continue;
+            for (const [dr, dc] of dirs) {
+                let count = 1;
+                for (let i = 1; i < 4; i++) {
+                    const nr = r + dr * i, nc = c + dc * i;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && simStones[`${nc}_${nr}`] === CPU_COLOR) count++;
+                    else break;
+                }
+                if (count >= 4) return true;
+            }
+        }
+    }
+    return false;
+}
+
+// シミュレーション用: 仮想stonesに重力を適用して返す（グローバルstonesは変更しない）
+function applyGravityToSim(simStones) {
+    const result = {};
+    for (let c = 0; c < cols; c++) {
+        const colStones = [];
+        for (let r = rows - 1; r >= 0; r--) {
+            if (simStones[`${c}_${r}`]) colStones.push(simStones[`${c}_${r}`]);
+        }
+        for (let i = 0; i < colStones.length; i++) {
+            result[`${c}_${rows - 1 - i}`] = colStones[i];
+        }
+    }
+    return result;
+}
+
+// 能力発動後の盤面をシミュレートし、CPUが即勝ちになるか確認
+function wouldWinAfterAbility(charaID) {
+    switch (charaID) {
+        case '004': { // ナヴィア：上3行を全消し（固定）
+            const sim = {...stones};
+            for (let c = 0; c < cols; c++) for (let r = 0; r < 3; r++) delete sim[`${c}_${r}`];
+            return checkWinInSim(sim);
+        }
+        case '006': { // マダム・ヘルタ：7列のいずれかを全消しで勝てるか全試行
+            for (let c = 0; c < cols; c++) {
+                const sim = {...stones};
+                for (let r = 0; r < rows; r++) delete sim[`${c}_${r}`];
+                if (checkWinInSim(sim)) return true;
+            }
+            return false;
+        }
+        case '003': { // アルハイゼン：中央3列(2,3,4)から2列全消し → C(3,2)=3パターン
+            const mid = [2, 3, 4];
+            for (let i = 0; i < mid.length; i++) {
+                for (let j = i + 1; j < mid.length; j++) {
+                    const sim = {...stones};
+                    for (const c of [mid[i], mid[j]]) for (let r = 0; r < rows; r++) delete sim[`${c}_${r}`];
+                    if (checkWinInSim(sim)) return true;
+                }
+            }
+            return false;
+        }
+        case '007': { // キャストリス：外側4列(0,1,5,6)から3列全消し → C(4,3)=4パターン
+            const outer = [0, 1, 5, 6];
+            for (let skip = 0; skip < outer.length; skip++) {
+                const sim = {...stones};
+                for (let i = 0; i < outer.length; i++) {
+                    if (i === skip) continue;
+                    for (let r = 0; r < rows; r++) delete sim[`${outer[i]}_${r}`];
+                }
+                if (checkWinInSim(sim)) return true;
+            }
+            return false;
+        }
+        case '011': { // ローエン：下から2段目(row 4)全消し→重力落下後に勝ちがあるか
+            const sim = {...stones};
+            for (let c = 0; c < cols; c++) delete sim[`${c}_4`];
+            return checkWinInSim(applyGravityToSim(sim));
+        }
+        default:
+            return false;
+    }
+}
+
 // CPUが「不利」と判断する条件：相手に即勝ち筋がある、またはチャージで大きく差をつけられている
 function cpuShouldUseAbility() {
     if (!abilityAvailable('cpu')) return false;
     // ケリュドラ：相手に追加手を与えるだけなので使わない
     if (cpuChara?.charaID === '015') return false;
+    // 能力発動後に即勝ちになるなら最優先で発動
+    if (wouldWinAfterAbility(cpuChara?.charaID)) return true;
     // ホタル・銀狼：チャージが溜まったら即使う
     if (cpuChara?.charaID === '009') return true;
     if (cpuChara?.charaID === '016') return true;
