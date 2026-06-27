@@ -964,6 +964,8 @@ function dispTopStone() {
     topCtx.arc(nowCol * cellSize + cellSize / 2 - 10, centerY - 10, (cellSize / 2) - 20, 0, Math.PI * 2);
     topCtx.fill();
     topCtx.closePath();
+
+    highlightColumn(nowCol); // マウスが止まっていてもターン開始時にハイライトを復元
 }
 
 function highlightColumn(col) {
