@@ -22,7 +22,7 @@
 </head>
 <body>
      <!-- ヘルプボタン -->
-    <button id="helpButton" class="help-btn">あそびかた</button>
+    <button id="helpButton" class="help-btn" data-i18n="helpBtn">あそびかた</button>
 
     <!-- 設定ボタン -->
     <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
@@ -55,61 +55,69 @@
     <div id="settingsModal" class="modal">
       <div class="modal-content">
         <span class="close">&times;</span>
-        <h2>設定</h2>
+        <h2 data-i18n="settingsTitle">設定</h2>
 
         <div class="settings-section">
-          <h3>石の色</h3>
+          <h3 data-i18n="settingsStoneColor">石の色</h3>
           <div class="color-swatch-group" id="colorSwatchGroup">
             <button type="button" class="color-swatch" data-preset-id="classic">
               <div class="color-swatch-preview">
                 <span class="color-swatch-dot" style="background:#ff0000;"></span>
                 <span class="color-swatch-dot" style="background:#ffff00;"></span>
               </div>
-              クラシック
+              <span data-i18n="settingsColorClassic">クラシック</span>
             </button>
             <button type="button" class="color-swatch" data-preset-id="colorsafeA">
               <div class="color-swatch-preview">
                 <span class="color-swatch-dot" style="background:#0072B2;"></span>
                 <span class="color-swatch-dot" style="background:#E69F00;"></span>
               </div>
-              カラーセーフ(青/オレンジ)
+              <span data-i18n="settingsColorSafeA">カラーセーフ(青/オレンジ)</span>
             </button>
             <button type="button" class="color-swatch" data-preset-id="colorsafeB">
               <div class="color-swatch-preview">
                 <span class="color-swatch-dot" style="background:#009E73;"></span>
                 <span class="color-swatch-dot" style="background:#CC79A7;"></span>
               </div>
-              カラーセーフ(緑/紫)
+              <span data-i18n="settingsColorSafeB">カラーセーフ(緑/紫)</span>
             </button>
           </div>
         </div>
 
         <div class="settings-section">
-          <h3>必殺技演出の強度</h3>
+          <h3 data-i18n="settingsUltIntensity">必殺技演出の強度</h3>
           <div class="intensity-radio-group" id="ultIntensityGroup">
-            <label><input type="radio" name="ultIntensity" value="strong"> 強(おすすめ)</label>
-            <label><input type="radio" name="ultIntensity" value="weak"> 弱(控えめ)</label>
-            <label><input type="radio" name="ultIntensity" value="off"> なし</label>
+            <label><input type="radio" name="ultIntensity" value="strong"> <span data-i18n="settingsUltStrong">強(おすすめ)</span></label>
+            <label><input type="radio" name="ultIntensity" value="weak"> <span data-i18n="settingsUltWeak">弱(控えめ)</span></label>
+            <label><input type="radio" name="ultIntensity" value="off"> <span data-i18n="settingsUltOff">なし</span></label>
           </div>
         </div>
 
         <div class="settings-section">
-          <h3>音量</h3>
+          <h3 data-i18n="settingsVolume">音量</h3>
           <div class="settings-volume-row">
-            <label for="systemvolumeSlider">システム音量: </label>
+            <label for="systemvolumeSlider" data-i18n="settingsSysVol">システム音量: </label>
             <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
           </div>
           <div class="settings-volume-row">
-            <label for="voicevolumeSlider">ボイス音量: </label>
+            <label for="voicevolumeSlider" data-i18n="settingsVoiceVol">ボイス音量: </label>
             <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
           </div>
         </div>
 
         <div class="settings-section">
-          <h3>クリック操作</h3>
+          <h3 data-i18n="settingsClickMode">クリック操作</h3>
           <div class="intensity-radio-group">
-            <label><input type="radio" name="clickMode" value="single"> 1クリックで石を落とす</label>
-            <label><input type="radio" name="clickMode" value="double"> 2クリックで石を落とす（列選択→確定）</label>
+            <label><input type="radio" name="clickMode" value="single"> <span data-i18n="settingsClickSingle">1クリックで石を落とす</span></label>
+            <label><input type="radio" name="clickMode" value="double"> <span data-i18n="settingsClickDouble">2クリックで石を落とす（列選択→確定）</span></label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 data-i18n="settingsLang">言語</h3>
+          <div class="intensity-radio-group" id="langRadioGroup">
+            <label><input type="radio" name="langSelect" value="ja"> <span data-i18n="langJa">日本語</span></label>
+            <label><input type="radio" name="langSelect" value="en"> <span data-i18n="langEn">English</span></label>
           </div>
         </div>
       </div>
@@ -157,18 +165,18 @@
                 <div id="playerTitles_1" class="player-titles"></div>
                 <div id="characterInfoContainer">
                     <div class="info-item-yoko">
-                        <div class="label chara-label-short">キャラ</div>
+                        <div class="label chara-label-short" data-i18n="labelChara">キャラ</div>
                         <div id="charaID_1" class="value-yoko chara-name-short"></div>
                         <div id="charge_1" class="value-yoko chara-charge-short"></div>
                     </div>
                     <div class="info-item-tate">
-                        <div class="label label-even">必殺技</div>
+                        <div class="label label-even" data-i18n="labelAbility">必殺技</div>
                         <div id="Ability_1" class="value-tate abilityName"></div>
                         <div id="AbilityDetail_1" class="value-tate abilityDetail"></div>
                     </div>
                 </div>
                 <div id="leaveButtonContainer">
-                    <button id="leaveButton" class="leave-btn">退出する</button>
+                    <button id="leaveButton" class="leave-btn" data-i18n="btnLeave">退出する</button>
                 </div>
             </div>
         </div>
@@ -178,7 +186,7 @@
         <div class="board">
         
             <div id="specialMoveButtonContainer" style="display: none; text-align: center;">
-                <button id="specialMoveButton" class="special-move-button">
+                <button id="specialMoveButton" class="special-move-button" data-i18n="labelAbilityBtn">
                     必殺技発動
                 </button>
             </div>
@@ -263,12 +271,12 @@
                 <div id="playerTitles_2" class="player-titles"></div>
                 <div id="characterInfoContainer">
                     <div class="info-item-yoko">
-                        <div class="label chara-label-short">キャラ</div>
+                        <div class="label chara-label-short" data-i18n="labelChara">キャラ</div>
                         <div id="charaID_2" class="value-yoko chara-name-short"></div>
                         <div id="charge_2" class="value-yoko chara-charge-short"></div>
                     </div>
                     <div class="info-item-tate">
-                        <div class="label label-even">必殺技</div>
+                        <div class="label label-even" data-i18n="labelAbility">必殺技</div>
                         <div id="Ability_2" class="value-tate abilityName"></div>
                         <div id="AbilityDetail_2" class="value-tate abilityDetail"></div>
                     </div>

@@ -1,10 +1,12 @@
 // main.js - ハブ画面（モード選択）。キャラ選択・対戦ロジックは characterSelect.js が担当する
 import { APP_VERSION } from './version.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
+import { initLang, t } from './i18n.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
+initLang();
 
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;
@@ -13,8 +15,8 @@ document.getElementById('version').textContent = APP_VERSION;
 const orientationLabel = document.getElementById('orientationLabel');
 if (orientationLabel) {
     orientationLabel.innerHTML =
-        '<div>横画面にしてください</div>' +
-        '<div style="font-size:0.45em; margin-top:0.5em; line-height:1.4;">This game currently supports Japanese only.<br>Thanks for your support!</div>';
+        `<div>${t('orientationMsg')}</div>` +
+        `<div style="font-size:0.45em; margin-top:0.5em; line-height:1.4;">${t('orientationSub')}</div>`;
 }
 
 //------------------------------------------------------------------------------------------------

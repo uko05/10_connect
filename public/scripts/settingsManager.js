@@ -1,6 +1,8 @@
 // settingsManager.js - 石カラー・必殺技演出強度などのユーザー設定を管理する共通モジュール
 // localStorageに保存し、ハブ(index.html)・キャラ選択(select.html)・バトル(battle.html)など各画面から利用する
 
+import { applyLang, getCurrentLang } from './i18n.js';
+
 const STORAGE_KEY = "gameSettings";
 
 export const STONE_COLOR_PRESETS = [
@@ -186,6 +188,16 @@ export function bindSettingsUI(root, onColorChange) {
         voiceSlider.value = currentSettings.voiceVolume;
         voiceSlider.addEventListener('input', (e) => setVoiceVolume(e.target.value));
     }
+
+    // 言語ラジオボタン（TopPageと同一の "lang" キーで共有）
+    const langRadios = root.querySelectorAll('input[name="langSelect"]');
+    const currentLang = getCurrentLang();
+    langRadios.forEach(radio => {
+        radio.checked = radio.value === currentLang;
+        radio.addEventListener("change", () => {
+            if (radio.checked) applyLang(radio.value);
+        });
+    });
 }
 
 /**

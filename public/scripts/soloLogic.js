@@ -6,6 +6,7 @@ import { drawPiece as _drawPiece, flashScreen as _flashScreen, shakeElement as _
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty, getClickMode } from "./settingsManager.js";
+import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
 import { APP_VERSION } from "./version.js";
@@ -1389,15 +1390,15 @@ async function showRoundResult(result) {
     const score = `${playerRoundWins} - ${cpuRoundWins}`;
 
     if (result === 'win') {
-        winLabel.innerHTML = `YOU WIN!<br>${score}`;
+        winLabel.innerHTML = `${t('winLabelWin')}<br>${score}`;
         fxFlash('rgba(255, 215, 0, 0.4)', 250);
         fxParticles(burstX, burstY, ['#ffd700', '#ff7a00', '#fff6cc', '#5cff5c', '#5cc8ff'], 26);
     } else if (result === 'lose') {
-        winLabel.innerHTML = `YOU LOSE!<br>${score}`;
+        winLabel.innerHTML = `${t('winLabelLose')}<br>${score}`;
         fxFlash('rgba(180, 0, 0, 0.45)', 220);
         fxShake(document.getElementById('centerPanel'), 14, 400);
     } else {
-        winLabel.innerHTML = `DRAW<br>${score}`;
+        winLabel.innerHTML = `${t('winLabelDraw')}<br>${score}`;
         fxFlash('rgba(200, 200, 200, 0.3)', 200);
     }
 
@@ -1423,11 +1424,11 @@ async function showFinalResult(result) {
     const score = `${playerRoundWins} - ${cpuRoundWins}`;
 
     if (result === 'win') {
-        winLabel.innerHTML = `YOU WIN!<br>${score}`;
+        winLabel.innerHTML = `${t('winLabelWin')}<br>${score}`;
         fxFlash('rgba(255, 215, 0, 0.4)', 250);
         fxParticles(burstX, burstY, ['#ffd700', '#ff7a00', '#fff6cc', '#5cff5c', '#5cc8ff'], 26);
     } else {
-        winLabel.innerHTML = `YOU LOSE!<br>${score}`;
+        winLabel.innerHTML = `${t('winLabelLose')}<br>${score}`;
         fxFlash('rgba(180, 0, 0, 0.45)', 220);
         fxShake(document.getElementById('centerPanel'), 14, 400);
     }
@@ -1472,7 +1473,7 @@ async function startNextRound() {
     updateGaugeUI();
 
     if (turn === 'player') {
-        showTurnLabel('あなたの番');
+        showTurnLabel(t('turnPlayer'));
         dispTopStone();
         startSoloPlayerTimer();
     } else {
@@ -1538,7 +1539,7 @@ async function cpuTurn() {
     await durinPreTurnEffect('cpu');
     if (await checkGameEnd()) return;
 
-    showTurnLabel('CPUの番');
+    showTurnLabel(t('turnCpu'));
     updateSpecialMoveButtonVisibility();
     dispTopStone();
 
@@ -1648,10 +1649,13 @@ function abilityDetailText(chara) {
 
 function displayCharaPanel(side, chara) {
     const suffix = side === 'player' ? '1' : '2';
-    document.getElementById(`charaID_${suffix}`).innerText = chara.name;
+    document.getElementById(`charaID_${suffix}`).innerText = getCharaText(chara.charaID, 'name') ?? chara.name;
     document.getElementById(`charge_${suffix}`).innerText = chara.charge;
-    document.getElementById(`Ability_${suffix}`).innerText = chara.Ability;
-    document.getElementById(`AbilityDetail_${suffix}`).innerText = abilityDetailText(chara);
+    document.getElementById(`Ability_${suffix}`).innerText = getCharaText(chara.charaID, 'Ability') ?? chara.Ability;
+    const soloDetail = abilityDetailText(chara);
+    const enDetail = getCharaText(chara.charaID, 'AbilityDetail');
+    document.getElementById(`AbilityDetail_${suffix}`).innerText =
+        (soloDetail === chara.AbilityDetail && enDetail) ? enDetail : soloDetail;
 
     const container = document.getElementById(`thumbnailContainerP${suffix}`);
     container.innerHTML = '';
@@ -1773,7 +1777,7 @@ async function resetGame() {
     drawBoard();
 
     if (turn === 'player') {
-        showTurnLabel('あなたの番');
+        showTurnLabel(t('turnPlayer'));
         dispTopStone();
         startSoloPlayerTimer();
     } else {
@@ -1933,6 +1937,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dispTopStone();
         applyPaneColors();
     });
+    initLang();
 
     const systemvolumeSlider = document.getElementById('systemvolumeSlider');
     setupSystemVolumeSlider(systemvolumeSlider);
@@ -1985,7 +1990,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (turn === 'player') {
-        showTurnLabel('あなたの番');
+        showTurnLabel(t('turnPlayer'));
         dispTopStone();
         startSoloPlayerTimer();
     } else {

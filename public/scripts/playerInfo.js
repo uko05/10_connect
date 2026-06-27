@@ -7,7 +7,12 @@ import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achie
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement } from './achievementManager.js';
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
+import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
+import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
+initLang();
+setupSettingsModal('settingsButton', 'settingsModal');
+bindSettingsUI(document.getElementById('settingsModal'));
 document.getElementById('version').textContent = APP_VERSION;
 
 document.getElementById('backToHubButton').addEventListener('click', () => {
@@ -89,7 +94,7 @@ function renderTitleSlots(userData) {
         const achId = ids[slot];
         const ach = achId ? ALL_ACHIEVEMENTS.find((a) => a.id === achId) : null;
         bannerEl.className = ach ? `title-slot-banner rarity-${ach.rarity}` : 'title-slot-banner empty';
-        bannerEl.textContent = ach ? ach.name : '未設定';
+        bannerEl.textContent = ach ? (getAchText(ach.id, 'name') ?? ach.name) : t('titleSlotEmpty');
     }
 }
 
@@ -123,15 +128,23 @@ function renderAchievements() {
         characterData.filter(c => c.requiredAchievementId).map(c => c.requiredAchievementId)
     );
 
-    // ロックキャラに関連するアチーブメントのキャラ名をマスク
+    // ロックキャラに関連するアチーブメントのキャラ名をマスク（日英両方）
     function maskCharaText(text, ach) {
         const match = ach.id.match(/(?:chara_win\d+_|solo_bakatare_)(\d+)$/);
         const charaId = match?.[1] ?? ach.hiddenCharaId ?? null;
         if (!charaId || !lockedCharaIds.has(charaId)) return text;
-        const realName = charaIdToName[charaId];
-        if (!realName) return text;
-        const escaped = realName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return text.replace(new RegExp(escaped, 'g'), '？？？');
+        let result = text;
+        const jaName = charaIdToName[charaId];
+        if (jaName) {
+            const escaped = jaName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            result = result.replace(new RegExp(escaped, 'g'), '？？？');
+        }
+        const enName = getCharaText(charaId, 'name');
+        if (enName) {
+            const escapedEn = enName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            result = result.replace(new RegExp(escapedEn, 'g'), '???');
+        }
+        return result;
     }
 
     list.innerHTML = '';
@@ -152,7 +165,7 @@ function renderAchievements() {
         summaryEl.className = 'achievement-group-header';
         const groupHasLockedCharUnlock = groupItems.some(a => charUnlockAchIds.has(a.id) && !a.unlocked);
         const groupBadgeHtml = groupHasLockedCharUnlock ? `<span class="new-char-badge">新キャラ解放！</span>` : '';
-        summaryEl.innerHTML = `<span class="achievement-group-name">${group.name}</span>${groupBadgeHtml}<span class="achievement-group-count">${groupUnlocked} / ${groupItems.length}</span>`;
+        summaryEl.innerHTML = `<span class="achievement-group-name">${getAchGroupName(group.name)}</span>${groupBadgeHtml}<span class="achievement-group-count">${groupUnlocked} / ${groupItems.length}</span>`;
         details.appendChild(summaryEl);
 
         const itemsEl = document.createElement('div');
@@ -162,8 +175,20 @@ function renderAchievements() {
             const item = document.createElement('div');
             item.className = `achievement-item rarity-${ach.rarity} ${ach.unlocked ? 'unlocked' : 'locked'}`;
 
-            const displayName = maskCharaText(ach.name, ach);
-            const displayCondition = maskCharaText(ach.condition, ach);
+            // キャラ別アチーブメント（chara_win10_XXX等）は getCharaAchText、それ以外は getAchText で翻訳
+            const charaMatchId = ach.id.match(/(?:chara_win\d+_|solo_bakatare_)(\d+)$/);
+            let rawName, rawCondition;
+            if (charaMatchId) {
+                const enCharaName = getCharaText(charaMatchId[1], 'name') ?? charaIdToName[charaMatchId[1]] ?? '';
+                const i18nTexts = getCharaAchText(ach.id, ach.name, ach.condition, enCharaName);
+                rawName = i18nTexts.name;
+                rawCondition = i18nTexts.condition;
+            } else {
+                rawName = getAchText(ach.id, 'name') ?? ach.name;
+                rawCondition = getAchText(ach.id, 'condition') ?? ach.condition;
+            }
+            const displayName = maskCharaText(rawName, ach);
+            const displayCondition = maskCharaText(rawCondition, ach);
 
             const progressHtml = ach.progress
                 ? `<span class="achievement-progress">${Math.min(ach.progress.current, ach.progress.target)} / ${ach.progress.target}</span>`
@@ -175,8 +200,8 @@ function renderAchievements() {
 
             // ②: 未所持かつ新キャラ解放アチーブメントの場合、未所持ボタン左にバッジを表示
             const setBtnHtml = ach.unlocked
-                ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? '設定済み' : '設定'}</button>`
-                : (isCharUnlock ? charUnlockBadge : '') + `<button type="button" class="ach-set-btn" disabled>未所持</button>`;
+                ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? t('btnAchSetDone') : t('btnAchSet')}</button>`
+                : (isCharUnlock ? charUnlockBadge : '') + `<button type="button" class="ach-set-btn" disabled>${t('btnAchUnowned')}</button>`;
 
             const showDebugBtns = isDebugUser || (isBakatareUser && isCharUnlock);
             const debugBtnsHtml = showDebugBtns
@@ -265,14 +290,14 @@ document.getElementById('savePlayerNameButton').addEventListener('click', async 
     if (!currentUid || !nameInput) return;
 
     if (nameInput.value.trim() === '') {
-        if (feedback) feedback.textContent = '名前を入力してください';
+        if (feedback) feedback.textContent = t('saveFeedbackEmpty');
         return;
     }
 
     await savePlayerName(currentUid, nameInput.value);
 
     if (feedback) {
-        feedback.textContent = '保存しました';
+        feedback.textContent = t('saveFeedback');
         setTimeout(() => { feedback.textContent = ''; }, 2000);
     }
 

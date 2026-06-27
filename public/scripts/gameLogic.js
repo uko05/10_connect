@@ -39,6 +39,7 @@ import {
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getClickMode } from "./settingsManager.js";
+import { initLang, t, getCharaText } from "./i18n.js";
 import { recordPvpMatchAchievements, applyTitleDisplay } from "./achievementManager.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
@@ -469,11 +470,11 @@ async function dispP1Info(charaInfo, player_Name) {
     
     // 自分のキャラを左側に置く
     document.getElementById('playerName_1').innerText = player_Name; // プレイヤー名を表示
-    document.getElementById('charaID_1').innerText = charaInfo.name; // キャラクター名を表示
+    document.getElementById('charaID_1').innerText = getCharaText(charaInfo.charaID, 'name') ?? charaInfo.name;
     playerLeft_chargeNum = charaInfo.charge;
-    document.getElementById('charge_1').innerText = playerLeft_chargeNum; // チャージ量を表示
-    document.getElementById('Ability_1').innerText = charaInfo.Ability; // 必殺技名を表示
-    document.getElementById('AbilityDetail_1').innerText = charaInfo.AbilityDetail; // 必殺技内容を表示
+    document.getElementById('charge_1').innerText = playerLeft_chargeNum;
+    document.getElementById('Ability_1').innerText = getCharaText(charaInfo.charaID, 'Ability') ?? charaInfo.Ability;
+    document.getElementById('AbilityDetail_1').innerText = getCharaText(charaInfo.charaID, 'AbilityDetail') ?? charaInfo.AbilityDetail;
     
     document.getElementById('chargeGageNow_1').innerText = 0; // チャージ量を表示
     document.getElementById('chargeGageMax_1').innerText = charaInfo.chargeMax; // チャージ量を表示
@@ -553,9 +554,7 @@ async function dispP1Info(charaInfo, player_Name) {
 
 // 退出ボタン：確認のうえ離脱扱い（resultType: "leave"）でキャラ選択へ戻る。レートには通常より大きいペナルティが入る
 document.getElementById('leaveButton').addEventListener('click', async () => {
-    const confirmed = window.confirm(
-        '本当に退出しますか？\nこの試合は敗北扱いとなり、通常よりも大きいレートペナルティが入ります。'
-    );
+    const confirmed = window.confirm(t('leaveConfirm'));
     if (!confirmed) return;
 
     stopHeartbeats();
@@ -609,11 +608,11 @@ async function dispP2Info(charaInfo, player_Name) {
     
     // 相手のキャラを右側に置く
     document.getElementById('playerName_2').innerText = player_Name; // プレイヤー名を表示
-    document.getElementById('charaID_2').innerText = charaInfo.name; // キャラクター名を表示
+    document.getElementById('charaID_2').innerText = getCharaText(charaInfo.charaID, 'name') ?? charaInfo.name;
     playerRight_chargeNum = charaInfo.charge;
-    document.getElementById('charge_2').innerText = playerRight_chargeNum; // チャージ量を表示
-    document.getElementById('Ability_2').innerText = charaInfo.Ability; // 必殺技名を表示
-    document.getElementById('AbilityDetail_2').innerText = charaInfo.AbilityDetail; // 必殺技内容を表示
+    document.getElementById('charge_2').innerText = playerRight_chargeNum;
+    document.getElementById('Ability_2').innerText = getCharaText(charaInfo.charaID, 'Ability') ?? charaInfo.Ability;
+    document.getElementById('AbilityDetail_2').innerText = getCharaText(charaInfo.charaID, 'AbilityDetail') ?? charaInfo.AbilityDetail;
         
     document.getElementById('chargeGageNow_2').innerText = 0; // チャージ量を表示
     document.getElementById('chargeGageMax_2').innerText = charaInfo.chargeMax; // チャージ量を表示
@@ -772,6 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         init_drawBoard(true);
         disp_TopStone(turn, nowCol);
     });
+    initLang();
 
     // Auth完了を待機（Security Rulesで auth != null が必要）
     try {
@@ -1619,7 +1619,7 @@ async function showTurnLabel() {
   const turnLabel = document.getElementById("turnLabel");
 
   const isMyTurn = isTurnPlayer();
-  const turnlbl = isMyTurn ? "自分のターン" : "相手のターン";
+  const turnlbl = isMyTurn ? t('turnYours') : t('turnOpponent');
 
   // ★ここが本体：今ターンの色を決める
   const turnColor = (turn === player_info) ? playerLeft_Color : playerRight_Color;
@@ -2361,24 +2361,24 @@ async function showWinner(result) {
     if (result.red && !result.yellow) {
         isMyWin = playerLeft_Color === 'red';
         if (isMyWin) {
-            turnlbl = "YOU WIN!";
+            turnlbl = t('winLabelWin');
             turnLabel.innerHTML = `${turnlbl}<br>${red_Win} - ${yellow_Win}`;
         } else {
-            turnlbl = "YOU LOSE!";
+            turnlbl = t('winLabelLose');
             turnLabel.innerHTML = `${turnlbl}<br>${yellow_Win} - ${red_Win}`;
         }
     } else if (!result.red && result.yellow) {
         isMyWin = playerLeft_Color === 'yellow';
         if (isMyWin) {
-            turnlbl = "YOU WIN!";
+            turnlbl = t('winLabelWin');
             turnLabel.innerHTML = `${turnlbl}<br>${yellow_Win} - ${red_Win}`;
         } else {
-            turnlbl = "YOU LOSE!";
+            turnlbl = t('winLabelLose');
             turnLabel.innerHTML = `${turnlbl}<br>${red_Win} - ${yellow_Win}`;
         }
     } else if (result.red && result.yellow) {
         isDraw = true;
-        turnlbl = "DRAW";
+        turnlbl = t('winLabelDraw');
         turnLabel.innerHTML = `${turnlbl}<br>${red_Win} - ${yellow_Win}`;
     }
 
@@ -2680,7 +2680,7 @@ function displayMatchDraw() {
     document.getElementById('leaveButtonContainer').style.display = 'none';
 
     victoryImage.src = playerLeft_Image;
-    victoryMessage.textContent = "DRAW!! (3-3)";
+    victoryMessage.textContent = t('victoryMsgDraw');
 
     fxFlash('rgba(200, 200, 200, 0.3)', 200);
 
@@ -2834,7 +2834,7 @@ function displayVictory(winningColor) {
 
     // rankedマッチの場合のみレート変動を表示
     if (matchType === "ranked" && myPreRating !== null) {
-        ratingChangeEl.textContent = "レート計算中...";
+        ratingChangeEl.textContent = t('ratingCalculating');
         fetchAndAnimateRating(ratingChangeEl);
     } else {
         ratingChangeEl.style.display = "none";
@@ -2909,14 +2909,14 @@ function displayLeaveMessage() {
     document.getElementById('leaveButtonContainer').style.display = 'none'; // 試合終了後は退出ボタンを隠す
 
     victoryImage.src = playerLeft_Image;
-    victoryMessage.innerHTML = "相手が部屋を抜けたので、あなたの勝利です！<br>キャラクター選択画面に戻ります。";
+    victoryMessage.innerHTML = t('msgOpponentLeft');
 
     // モーダルを表示
     victoryModal.style.display = "block";
 
     // rankedマッチの場合のみレート変動を表示
     if (matchType === "ranked" && myPreRating !== null) {
-        ratingChangeEl.textContent = "レート計算中...";
+        ratingChangeEl.textContent = t('ratingCalculating');
         fetchAndAnimateRating(ratingChangeEl);
     } else {
         ratingChangeEl.style.display = "none";

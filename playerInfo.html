@@ -18,32 +18,90 @@
     <link rel="icon" sizes="512x512" href="public/scripts/favicon_io/android-chrome-512x512.png">
 </head>
 <body class="simple-page">
+    <!-- 設定ボタン -->
+    <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 data-i18n="settingsTitle">設定</h2>
+
+        <div class="settings-section">
+          <h3 data-i18n="settingsStoneColor">石の色</h3>
+          <div class="color-swatch-group" id="colorSwatchGroup">
+            <button type="button" class="color-swatch" data-preset-id="classic">
+              <div class="color-swatch-preview">
+                <span class="color-swatch-dot" style="background:#ff0000;"></span>
+                <span class="color-swatch-dot" style="background:#ffff00;"></span>
+              </div>
+              <span data-i18n="settingsColorClassic">クラシック</span>
+            </button>
+            <button type="button" class="color-swatch" data-preset-id="colorsafeA">
+              <div class="color-swatch-preview">
+                <span class="color-swatch-dot" style="background:#0072B2;"></span>
+                <span class="color-swatch-dot" style="background:#E69F00;"></span>
+              </div>
+              <span data-i18n="settingsColorSafeA">カラーセーフ(青/オレンジ)</span>
+            </button>
+            <button type="button" class="color-swatch" data-preset-id="colorsafeB">
+              <div class="color-swatch-preview">
+                <span class="color-swatch-dot" style="background:#009E73;"></span>
+                <span class="color-swatch-dot" style="background:#CC79A7;"></span>
+              </div>
+              <span data-i18n="settingsColorSafeB">カラーセーフ(緑/紫)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 data-i18n="settingsVolume">音量</h3>
+          <div class="settings-volume-row">
+            <label for="systemvolumeSlider" data-i18n="settingsSysVol">システム音量: </label>
+            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
+          </div>
+          <div class="settings-volume-row">
+            <label for="voicevolumeSlider" data-i18n="settingsVoiceVol">ボイス音量: </label>
+            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 data-i18n="settingsLang">言語</h3>
+          <div class="intensity-radio-group" id="langRadioGroup">
+            <label><input type="radio" name="langSelect" value="ja"> <span data-i18n="langJa">日本語</span></label>
+            <label><input type="radio" name="langSelect" value="en"> <span data-i18n="langEn">English</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <main>
-        <div id="portraitHint" class="portrait-hint">📱 この画面は端末を縦持ちにすると見やすくなります</div>
+        <div id="portraitHint" class="portrait-hint" data-i18n="portraitHint">📱 この画面は端末を縦持ちにすると見やすくなります</div>
         <div id="playerInfoWrap" class="player-info-wrap">
             <div class="player-info-sticky-header">
-                <button id="backToHubButton" class="back-btn">← モード選択に戻る</button>
+                <button id="backToHubButton" class="back-btn" data-i18n="backBtnPlayerInfo">← モード選択に戻る</button>
 
-                <h2 class="hub-title">プレイヤー情報</h2>
+                <h2 class="hub-title" data-i18n="playerInfoTitle">プレイヤー情報</h2>
 
                 <div class="info-item-yoko lobby-player-info">
                     <div class="lobby-player-left">
                         <div class="info-row-no-bg" style="border:none; padding:0; gap:8px;">
-                            <div class="label label-even">名前</div>
+                            <div class="label label-even" data-i18n="labelName">名前</div>
                             <input id="playerInfoNameInput" class="value-yoko name-input-short" type="text" placeholder="名前" />
-                            <button id="savePlayerNameButton" class="save-name-btn">保存</button>
+                            <button id="savePlayerNameButton" class="save-name-btn" data-i18n="btnSaveName">保存</button>
                             <div id="playerInfoRankName" class="player-rating" style="margin:0;">---</div>
                         </div>
                         <div id="saveNameFeedback" class="save-name-feedback"></div>
 
                         <div class="title-slots-row">
                             <div class="title-slot">
-                                <div class="title-slot-label">アチーブメント1</div>
-                                <div id="titleSlotBanner0" class="title-slot-banner empty">未設定</div>
+                                <div class="title-slot-label" data-i18n="tabAch1">アチーブメント1</div>
+                                <div id="titleSlotBanner0" class="title-slot-banner empty" data-i18n="titleSlotEmpty">未設定</div>
                             </div>
                             <div class="title-slot">
-                                <div class="title-slot-label">アチーブメント2</div>
-                                <div id="titleSlotBanner1" class="title-slot-banner empty">未設定</div>
+                                <div class="title-slot-label" data-i18n="tabAch2">アチーブメント2</div>
+                                <div id="titleSlotBanner1" class="title-slot-banner empty" data-i18n="titleSlotEmpty">未設定</div>
                             </div>
                         </div>
 
@@ -53,12 +111,12 @@
                 </div>
             </div>
 
-            <div class="info-box top15">▼アチーブメント▼</div>
+            <div class="info-box top15" data-i18n="achSectionLabel">▼アチーブメント▼</div>
             <div id="achievementSummary" class="achievement-summary">---</div>
 
             <div class="achievement-tabs">
-                <button type="button" id="achievementTab0" class="achievement-tab-btn active" data-slot="0">アチーブメント1</button>
-                <button type="button" id="achievementTab1" class="achievement-tab-btn" data-slot="1">アチーブメント2</button>
+                <button type="button" id="achievementTab0" class="achievement-tab-btn active" data-slot="0" data-i18n="tabAch1">アチーブメント1</button>
+                <button type="button" id="achievementTab1" class="achievement-tab-btn" data-slot="1" data-i18n="tabAch2">アチーブメント2</button>
             </div>
 
             <div id="achievementList" class="achievement-list"></div>

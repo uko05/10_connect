@@ -23,10 +23,12 @@ import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './elo
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume } from './settingsManager.js';
+import { initLang, t, getCharaText } from './i18n.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
+initLang();
 
 // 遷移元モード（ハブ画面からの ?mode=cpu / ?mode=match）に応じて、関係ないブロックを隠す
 // modeが無い場合（直接アクセス等）は両方表示してフォールバックする
@@ -72,7 +74,7 @@ updateCpuDifficultyLabel(initialCpuDifficulty);
 document.getElementById('soloModeButton').addEventListener('click', () => {
     const charaID = document.getElementById('charaID').value;
     if (charaID.trim() === "") {
-        document.getElementById('statusMessage').innerText = "キャラクターを選択してください。";
+        document.getElementById('statusMessage').innerText = t('statusSelectChara');
         return;
     }
     const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
@@ -89,12 +91,11 @@ document.getElementById('version').textContent = APP_VERSION;
 // スマホ対応：ロビー画面のスケーリング
 const setupLobbyLayout = setupScaledLayout('lobbyWrap', 1200, 730);
 
-// ④ 縦持ち時の「横画面にしてください」ラベル設定（③ 英語文を縦積み追加）
 const orientationLabel = document.getElementById('orientationLabel');
 if (orientationLabel) {
     orientationLabel.innerHTML =
-        '<div>横画面にしてください</div>' +
-        '<div style="font-size:0.45em; margin-top:0.5em; line-height:1.4;">This game currently supports Japanese only.<br>Thanks for your support!</div>';
+        `<div>${t('orientationMsg')}</div>` +
+        `<div style="font-size:0.45em; margin-top:0.5em; line-height:1.4;">${t('orientationSub')}</div>`;
 }
 
 let playerDocRef = null;
@@ -193,7 +194,7 @@ function displayThumbnails() {
 
             const hint = document.createElement('div');
             hint.className = 'thumbnail-locked-hint';
-            hint.innerHTML = '解放条件<br>アチーブメント<br>' + (character.requiredAchievementLabel || character.requiredAchievementId) + '<br>を取得';
+            hint.innerHTML = t('lockedHintPre') + (character.requiredAchievementLabel || character.requiredAchievementId) + t('lockedHintPost');
             lockedSlot.appendChild(hint);
 
             wrapper.appendChild(lockedSlot);
@@ -231,7 +232,7 @@ function displayThumbnails() {
             if (requestedMode !== 'cpu') {
                 const winBadge = document.createElement('span');
                 winBadge.className = 'chara-win-badge';
-                winBadge.textContent = `勝利数：${myCharaWins[character.charaID] || 0}`;
+                winBadge.textContent = `${t('winCountBadge')}${myCharaWins[character.charaID] || 0}`;
                 wrapper.appendChild(winBadge);
             }
         }
@@ -242,11 +243,11 @@ function displayThumbnails() {
 
 //キャラクターの情報を表示する関数
 function displayCharacterInfo(character) {
-    document.getElementById('characterName').innerText = character.name; //キャラクター名を表示
-    document.getElementById('characterCharge').innerText = character.charge; //チャージ量を表示
-    document.getElementById('Ability').innerText = character.Ability; //必殺技名を表示
-    document.getElementById('AbilityDetail').innerText = character.AbilityDetail; //必殺技内容を表示
-    document.getElementById('charaID').value = character.charaID; //キャラIDをhiddenフィールドに設定
+    document.getElementById('characterName').innerText = getCharaText(character.charaID, 'name') ?? character.name;
+    document.getElementById('characterCharge').innerText = character.charge;
+    document.getElementById('Ability').innerText = getCharaText(character.charaID, 'Ability') ?? character.Ability;
+    document.getElementById('AbilityDetail').innerText = getCharaText(character.charaID, 'AbilityDetail') ?? character.AbilityDetail;
+    document.getElementById('charaID').value = character.charaID;
 }
 
 // ロビーのプレイヤー情報エリアを更新する（5行レイアウト）
@@ -414,7 +415,7 @@ function toggleInputs(isDisabled) {
     document.getElementById('roomMatching').disabled = isDisabled;
     document.getElementById('matchButton').disabled = isDisabled;
 
-    document.getElementById('statusMessage').innerText = isDisabled ? "マッチング待機中" : "";
+    document.getElementById('statusMessage').innerText = isDisabled ? t('statusMatching') : "";
 
     //サムネイルのクリックイベントを無効化
     const thumbnails = document.querySelectorAll('.thumbnail');
@@ -526,11 +527,11 @@ function startWaitingExpireTimer(roomDocRef) {
           toggleInputs(false);
 
           const matchButton = document.getElementById('matchButton');
-          matchButton.innerText = "マッチング";
+          matchButton.innerText = t('btnMatchStart');
           matchButton.style.backgroundColor = "";
 
           document.getElementById('statusMessage').innerText =
-            `${WAITING_EXPIRE_MS / 60000}分経過したのでキャンセルしました。`;
+            `${WAITING_EXPIRE_MS / 60000}${t('statusMatchingCanceled')}`;
 
           playerDocRef = null;
           waitingExpireTimerId = null;
@@ -555,14 +556,14 @@ document.getElementById('matchButton').addEventListener('click', async () => {
     //プレイヤー名チェック
     const playerName = document.getElementById('playerName').value;
     if (playerName.trim() === "") {
-        document.getElementById('statusMessage').innerText = "名前を入力してください。";
+        document.getElementById('statusMessage').innerText = t('statusInputName');
         return;
     }
 
     //キャラクター選択チェック
     const charaID = document.getElementById('charaID').value;
     if (charaID.trim() === "") {
-        document.getElementById('statusMessage').innerText = "キャラクターを選択してください。";
+        document.getElementById('statusMessage').innerText = t('statusSelectChara');
         return;
     }
 
@@ -588,10 +589,10 @@ document.getElementById('matchButton').addEventListener('click', async () => {
     const matchButton = document.getElementById('matchButton');
 
     if (NowMatching == false) {
-        matchButton.innerText = "マッチング中・・・";
+        matchButton.innerText = t('statusMatchingInProgress');
         matchButton.style.backgroundColor = "#ff9900";
     } else {
-        matchButton.innerText = "マッチング";
+        matchButton.innerText = t('btnMatchStart');
         matchButton.style.backgroundColor = "";
     }
 
@@ -754,7 +755,7 @@ function listenForMatches() {
                     return; //NowMatchingがfalseなら処理を実行しない
                 }
 
-                document.getElementById('statusMessage').innerText = "マッチングしました！！";
+                document.getElementById('statusMessage').innerText = t('statusMatchingDone');
                 isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
 
                 showMatchLabel();
@@ -767,7 +768,7 @@ function listenForMatches() {
             //statusが"waiting"かつroomMatchingが一致する部屋のみを処理
             if (roomData.status === "in_progress" && roomData.roomMatching === roomMatching && roomData.player2_ID === playerUUID) {
 
-                document.getElementById('statusMessage').innerText = "マッチングしました！！";
+                document.getElementById('statusMessage').innerText = t('statusMatchingDone');
                 isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
 
                 showMatchLabel();
@@ -787,7 +788,7 @@ function listenForMatches() {
             if (roomData.status === "in_progress" && roomData.roomMatching === roomMatching && roomData.player1_ID === playerUUID) {
 
                 stopHeartbeat(); // 相手が参加し対局開始。waiting用ハートビートは不要
-                document.getElementById('statusMessage').innerText = "マッチングしました！！";
+                document.getElementById('statusMessage').innerText = t('statusMatchingDone');
                 isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
 
                 showMatchLabel();
@@ -805,7 +806,7 @@ async function showMatchLabel() {
 
     const matchLabel = document.getElementById("matchLabel");
 
-    matchLabel.innerHTML = 'マッチングしました！<br>バトル画面に移動します。';
+    matchLabel.innerHTML = t('matchLabelDone');
 
     //フェードイン
     matchLabel.style.display = "block"; //初めに表示状態に
