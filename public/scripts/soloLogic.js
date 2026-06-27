@@ -86,6 +86,8 @@ let soloPlayerTimeLimit = SOLO_TIME_LIMIT;  // プレイヤーの1ターン持�
 let soloCpuTimeLimit    = SOLO_TIME_LIMIT;  // CPUの1ターン持ち時間上限（アベンチュリンで恒久削減）
 let soloCurrentTimeRemaining = SOLO_TIME_LIMIT; // 現在ターンの残り時間
 let soloTimeLimitTimer = null;      // 思考タイマーのID
+let playerTimeoutCount = 0;         // プレイヤーのタイムアウト回数（2回で試合終了）
+let cpuTimeoutCount    = 0;         // CPUのタイムアウト回数（2回で試合終了）
 
 //------------------------------------------------------------------------------------------------
 // 必殺技演出強度に応じたフラッシュ・シェイク・パーティクル（バトル画面と同じ考え方）
@@ -123,6 +125,25 @@ function updateSoloGauge(remaining, limit) {
     gauge.style.width = limit > 0 ? Math.max(0, (remaining / limit) * 100) + '%' : '0%';
 }
 
+// タイムアウト時の共通処理（PvP同様: 2回目で試合終了、1回目はランダム投下）
+async function handlePlayerTimeout() {
+    if (gameOver || turn !== 'player') return;
+    playerTimeoutCount++;
+    if (playerTimeoutCount >= 2) {
+        stopSoloPlayerTimer();
+        gameOver = true;
+        updateSpecialMoveButtonVisibility();
+        await showFinalResult('lose');
+        return;
+    }
+    if (!playerMoveInProgress) {
+        const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+        if (validCols.length > 0) {
+            await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
+        }
+    }
+}
+
 // プレイヤーターン開始時: soloPlayerTimeLimitから毎ターンリセット（PvP同一）
 function startSoloPlayerTimer() {
     if (getCpuDifficulty() !== 'bakatare') return;
@@ -130,15 +151,7 @@ function startSoloPlayerTimer() {
     soloCurrentTimeRemaining = soloPlayerTimeLimit;
     updateSoloGauge(soloCurrentTimeRemaining, soloPlayerTimeLimit);
     if (soloPlayerTimeLimit <= 0) {
-        // 時間制限が0になっていたら即ランダム投下
-        setTimeout(async () => {
-            if (!gameOver && turn === 'player' && !playerMoveInProgress) {
-                const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
-                if (validCols.length > 0) {
-                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
-                }
-            }
-        }, 0);
+        setTimeout(() => handlePlayerTimeout(), 0);
         return;
     }
     soloTimeLimitTimer = setInterval(async () => {
@@ -147,12 +160,7 @@ function startSoloPlayerTimer() {
         if (soloCurrentTimeRemaining <= 0) {
             clearInterval(soloTimeLimitTimer);
             soloTimeLimitTimer = null;
-            if (!gameOver && turn === 'player' && !playerMoveInProgress) {
-                const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
-                if (validCols.length > 0) {
-                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
-                }
-            }
+            await handlePlayerTimeout();
         }
     }, 1000);
 }
@@ -168,14 +176,7 @@ function resumeSoloPlayerTimer() {
     clearInterval(soloTimeLimitTimer);
     updateSoloGauge(soloCurrentTimeRemaining, soloPlayerTimeLimit);
     if (soloCurrentTimeRemaining <= 0) {
-        setTimeout(async () => {
-            if (!gameOver && turn === 'player' && !playerMoveInProgress) {
-                const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
-                if (validCols.length > 0) {
-                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
-                }
-            }
-        }, 0);
+        setTimeout(() => handlePlayerTimeout(), 0);
         return;
     }
     soloTimeLimitTimer = setInterval(async () => {
@@ -184,12 +185,7 @@ function resumeSoloPlayerTimer() {
         if (soloCurrentTimeRemaining <= 0) {
             clearInterval(soloTimeLimitTimer);
             soloTimeLimitTimer = null;
-            if (!gameOver && turn === 'player' && !playerMoveInProgress) {
-                const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
-                if (validCols.length > 0) {
-                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
-                }
-            }
+            await handlePlayerTimeout();
         }
     }, 1000);
 }
@@ -1406,7 +1402,25 @@ async function cpuTurn() {
         const cpuTimedOut = await cpuThinkWithTimer(thinkMs);
 
         if (cpuTimedOut) {
-            // CPU時間切れ → ランダム列に投下
+            cpuTimeoutCount++;
+            if (cpuTimeoutCount >= 2) {
+                // 2回目のタイムアウト: プレイヤーの勝利（PvP同様）
+                gameOver = true;
+                updateSpecialMoveButtonVisibility();
+                if (currentUid) {
+                    try {
+                        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                        newlyUnlocked.forEach((id) => {
+                            showAchievementToast(id);
+                            const unlocked = characterData.find(c => c.requiredAchievementId === id);
+                            if (unlocked) showCharacterUnlockModal(unlocked);
+                        });
+                    } catch (e) { console.error("[Achievement]", e); }
+                }
+                await showFinalResult('win');
+                return;
+            }
+            // 1回目のタイムアウト: ランダム列に投下
             const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
             if (validCols.length > 0) {
                 finalCol = validCols[Math.floor(Math.random() * validCols.length)];
@@ -1570,6 +1584,8 @@ async function resetGame() {
     soloPlayerTimeLimit      = SOLO_TIME_LIMIT;
     soloCpuTimeLimit         = SOLO_TIME_LIMIT;
     soloCurrentTimeRemaining = SOLO_TIME_LIMIT;
+    playerTimeoutCount       = 0;
+    cpuTimeoutCount          = 0;
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
 
     // クロスターンエフェクトをリセット
