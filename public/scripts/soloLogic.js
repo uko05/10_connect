@@ -336,6 +336,55 @@ function scoreWindow(window, color) {
     return 0;
 }
 
+// キャラ別の盤面評価ボーナス（自キャラの必殺技を活かす配置を優遇する）
+function characterBonus(board) {
+    const charaID = cpuChara?.charaID;
+    if (!charaID) return 0;
+    let bonus = 0;
+    switch (charaID) {
+        case '004': // ナヴィア: 必殺技で上3行を消す → 下3行(row3-5)に自石を積み、上3行は避ける
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (board[r][c] === CPU_COLOR)    bonus += r >= 3 ? 4 : -2;
+                    else if (board[r][c] === PLAYER_COLOR) bonus -= r >= 3 ? 1 : 0;
+                }
+            }
+            break;
+        case '003': // アルハイゼン: 中央3列(2,3,4)が消去対象 → 自石は避け、相手石は誘導する
+            for (let r = 0; r < rows; r++) {
+                for (const c of [2, 3, 4]) {
+                    if (board[r][c] === CPU_COLOR)    bonus -= 3;
+                    else if (board[r][c] === PLAYER_COLOR) bonus += 3;
+                }
+            }
+            break;
+        case '007': // キャストリス: 外側4列(0,1,5,6)が消去対象 → 自石は避け、相手石は誘導する
+            for (let r = 0; r < rows; r++) {
+                for (const c of [0, 1, 5, 6]) {
+                    if (board[r][c] === CPU_COLOR)    bonus -= 3;
+                    else if (board[r][c] === PLAYER_COLOR) bonus += 3;
+                }
+            }
+            break;
+        case '011': // ローエン: 下から2段目(row4)を消去 → その行に自石を置かない
+            for (let c = 0; c < cols; c++) {
+                if (board[4][c] === CPU_COLOR)    bonus -= 5;
+                else if (board[4][c] === PLAYER_COLOR) bonus += 5;
+            }
+            break;
+        case '006': // マダム・ヘルタ: ランダム1列を全消し → 自石を1列に集めず拡散させる
+            for (let c = 0; c < cols; c++) {
+                let ownInCol = 0;
+                for (let r = 0; r < rows; r++) {
+                    if (board[r][c] === CPU_COLOR) ownInCol++;
+                }
+                if (ownInCol >= 3) bonus -= (ownInCol - 2) * 5;
+            }
+            break;
+    }
+    return bonus;
+}
+
 function evaluateBoard(board, color) {
     let score = 0;
     const centerCol = Math.floor(cols / 2);
@@ -365,6 +414,7 @@ function evaluateBoard(board, color) {
             score += scoreWindow([board[r][c], board[r + 1][c - 1], board[r + 2][c - 2], board[r + 3][c - 3]], color);
         }
     }
+    score += characterBonus(board);
     return score;
 }
 
