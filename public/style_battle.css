@@ -1514,3 +1514,27 @@ html, body {
     gap: 1px;
   }
 }
+
+/* EN: 必殺技名・内容を各ブレークポイントで1px縮小 */
+html[lang="en"] .abilityName,
+html[lang="en"] .abilityDetail { font-size: 17px; }
+
+@media (max-width: 1180px) and (max-height: 820px) {
+  html[lang="en"] .abilityName,
+  html[lang="en"] .abilityDetail { font-size: 15px; }
+}
+
+@media (max-width: 1024px) and (max-height: 768px) {
+  html[lang="en"] .abilityName,
+  html[lang="en"] .abilityDetail { font-size: 11px; }
+}
+
+@media (max-width: 844px) and (max-height: 390px) {
+  html[lang="en"] .abilityName,
+  html[lang="en"] .abilityDetail { font-size: 11px; }
+}
+
+@media ((max-width: 896px) and (max-height: 414px)), ((max-width: 932px) and (max-height: 430px)) {
+  html[lang="en"] .abilityName,
+  html[lang="en"] .abilityDetail { font-size: 11px; }
+}

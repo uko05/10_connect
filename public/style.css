@@ -1317,3 +1317,7 @@ footer.legal-footer {
     50% { opacity: 0.3; }
   }
 }
+
+/* EN: 必殺技名・内容を1px縮小（キャラ選択画面） */
+html[lang="en"] .abilityName,
+html[lang="en"] .abilityDetail { font-size: 15px; }
