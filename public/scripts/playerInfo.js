@@ -14,6 +14,14 @@ initLang();
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
 
+// 言語切替時にアチーブメント一覧・称号スロットを即時再描画
+document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        renderTitleSlots(latestUserData);
+        renderAchievements();
+    });
+});
+
 // キャラ別アチーブメント（solo_bakatare_XXX / chara_win10_XXX 等）を含むi18n名前解決
 function resolveAchName(achId, jaName) {
     if (!achId) return jaName || '';
