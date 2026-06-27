@@ -81,10 +81,11 @@ let cpuUltCount = 0;
 let abilityInProgress = false;
 let playerMoveInProgress = false; // 連打で複数手が同時に処理されるのを防ぐロック
 let minimaxNodeCount = 0;           // minimax探索ノード数（pickAiColumn毎にリセット）
-const SOLO_TIME_LIMIT = 100;        // BAKATAREお互いの初期思考時間(秒)
-let soloPlayerTimeRemaining = SOLO_TIME_LIMIT;  // プレイヤーの残り思考時間(秒、試合通算)
-let soloCpuTimeRemaining    = SOLO_TIME_LIMIT;  // CPUの残り思考時間(秒、試合通算)
-let soloTimeLimitTimer = null;      // プレイヤー思考タイマーのID
+const SOLO_TIME_LIMIT = 100;        // BAKATAREの1ターン持ち時間初期値(秒)
+let soloPlayerTimeLimit = SOLO_TIME_LIMIT;  // プレイヤーの1ターン持ち時間上限（アベンチュリンで恒久削減）
+let soloCpuTimeLimit    = SOLO_TIME_LIMIT;  // CPUの1ターン持ち時間上限（アベンチュリンで恒久削減）
+let soloCurrentTimeRemaining = SOLO_TIME_LIMIT; // 現在ターンの残り時間
+let soloTimeLimitTimer = null;      // 思考タイマーのID
 
 //------------------------------------------------------------------------------------------------
 // 必殺技演出強度に応じたフラッシュ・シェイク・パーティクル（バトル画面と同じ考え方）
@@ -114,22 +115,36 @@ function getSoloTimeLimitGauge() {
     return document.getElementById('timeLimitGauge');
 }
 
-function updateSoloGauge(remaining) {
+// PvPと同じく remaining/limit の割合でゲージ幅を設定
+function updateSoloGauge(remaining, limit) {
     const gauge = getSoloTimeLimitGauge();
     if (!gauge) return;
     gauge.style.backgroundColor = 'green';
-    gauge.style.width = Math.max(0, (remaining / SOLO_TIME_LIMIT) * 100) + '%';
+    gauge.style.width = limit > 0 ? Math.max(0, (remaining / limit) * 100) + '%' : '0%';
 }
 
-// プレイヤー思考タイマー: 毎秒減算→0でランダム投下
+// プレイヤーターン開始時: soloPlayerTimeLimitから毎ターンリセット（PvP同一）
 function startSoloPlayerTimer() {
     if (getCpuDifficulty() !== 'bakatare') return;
     clearInterval(soloTimeLimitTimer);
-    updateSoloGauge(soloPlayerTimeRemaining);
+    soloCurrentTimeRemaining = soloPlayerTimeLimit;
+    updateSoloGauge(soloCurrentTimeRemaining, soloPlayerTimeLimit);
+    if (soloPlayerTimeLimit <= 0) {
+        // 時間制限が0になっていたら即ランダム投下
+        setTimeout(async () => {
+            if (!gameOver && turn === 'player' && !playerMoveInProgress) {
+                const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+                if (validCols.length > 0) {
+                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
+                }
+            }
+        }, 0);
+        return;
+    }
     soloTimeLimitTimer = setInterval(async () => {
-        soloPlayerTimeRemaining = Math.max(0, soloPlayerTimeRemaining - 1);
-        updateSoloGauge(soloPlayerTimeRemaining);
-        if (soloPlayerTimeRemaining <= 0) {
+        soloCurrentTimeRemaining = Math.max(0, soloCurrentTimeRemaining - 1);
+        updateSoloGauge(soloCurrentTimeRemaining, soloPlayerTimeLimit);
+        if (soloCurrentTimeRemaining <= 0) {
             clearInterval(soloTimeLimitTimer);
             soloTimeLimitTimer = null;
             if (!gameOver && turn === 'player' && !playerMoveInProgress) {
@@ -147,30 +162,31 @@ function stopSoloPlayerTimer() {
     soloTimeLimitTimer = null;
 }
 
-// CPUターン中に思考時間(thinkMs)だけ待機しながらCPU累積タイマーも減算する。
-// CPU累積タイマーが先に0になった場合 true(タイムアウト)を返す。
+// CPUターン: soloCpuTimeLimitからリセットして思考時間(thinkMs)だけ待機。
+// タイムリミット到達時は true(タイムアウト)を返す。PvPと同じくターン毎にゲージリセット。
 function cpuThinkWithTimer(thinkMs) {
-    updateSoloGauge(soloCpuTimeRemaining);
-    if (soloCpuTimeRemaining <= 0) return Promise.resolve(true);  // すでに時間切れ
+    soloCurrentTimeRemaining = soloCpuTimeLimit;
+    updateSoloGauge(soloCurrentTimeRemaining, soloCpuTimeLimit);
+    if (soloCpuTimeLimit <= 0) return Promise.resolve(true);
     if (thinkMs <= 0) return Promise.resolve(false);
 
     return new Promise(resolve => {
         let done = false;
         const cpuTimer = setInterval(() => {
-            soloCpuTimeRemaining = Math.max(0, soloCpuTimeRemaining - 1);
-            updateSoloGauge(soloCpuTimeRemaining);
-            if (soloCpuTimeRemaining <= 0 && !done) {
+            soloCurrentTimeRemaining = Math.max(0, soloCurrentTimeRemaining - 1);
+            updateSoloGauge(soloCurrentTimeRemaining, soloCpuTimeLimit);
+            if (soloCurrentTimeRemaining <= 0 && !done) {
                 done = true;
                 clearInterval(cpuTimer);
                 clearTimeout(thinkTimeout);
-                resolve(true); // タイムアウト
+                resolve(true);
             }
         }, 1000);
         const thinkTimeout = setTimeout(() => {
             if (!done) {
                 done = true;
                 clearInterval(cpuTimer);
-                resolve(false); // 思考完了
+                resolve(false);
             }
         }, thinkMs);
     });
@@ -734,11 +750,10 @@ async function executeAbility(side, charaID) {
         case '008': { // アベンチュリン（ソロ専用）
             const isBakatare = getCpuDifficulty() === 'bakatare';
             if (isBakatare && side === 'player') {
-                soloCpuTimeRemaining = Math.max(0, soloCpuTimeRemaining - 19);
-                updateSoloGauge(soloCpuTimeRemaining);
+                // PvP同様: 相手(CPU)の1ターン持ち時間上限を恒久削減 → 次ターン以降に反映
+                soloCpuTimeLimit = Math.max(0, soloCpuTimeLimit - 19);
             } else if (isBakatare && side === 'cpu') {
-                soloPlayerTimeRemaining = Math.max(0, soloPlayerTimeRemaining - 19);
-                updateSoloGauge(soloPlayerTimeRemaining);
+                soloPlayerTimeLimit = Math.max(0, soloPlayerTimeLimit - 19);
             } else if (side === 'player') {
                 cpuCharge = Math.max(0, cpuCharge - ABEN_CHARGE_PENALTY);
             } else {
@@ -1423,7 +1438,7 @@ async function cpuTurn() {
 function abilityDetailText(chara) {
     if (chara.charaID === '008') {
         if (getCpuDifficulty() === 'bakatare') {
-            return `【BAKATARE専用】相手の累積残り時間を19秒削減する。自分が使うとCPUの残り時間を削減、CPUが使うとプレイヤーの残り時間を削減。残り時間が0になると強制ランダム投下。(${ABEN_MAX_USES}回まで使用可能)`;
+            return `【BAKATARE専用】相手の1ターンの持ち時間上限を19秒恒久削減する（PvP同一仕様）。効果は次のターンから反映。(${ABEN_MAX_USES}回まで使用可能)`;
         }
         return `【ソロモード専用効果】相手の現在のチャージを${ABEN_CHARGE_PENALTY}減少させる。(${ABEN_MAX_USES}回まで使用可能。時間制限がないため元の効果から変更しています)`;
     }
@@ -1518,8 +1533,9 @@ async function resetGame() {
     abilityInProgress = false;
     playerMoveInProgress = false;
     stopSoloPlayerTimer();
-    soloPlayerTimeRemaining = SOLO_TIME_LIMIT;
-    soloCpuTimeRemaining    = SOLO_TIME_LIMIT;
+    soloPlayerTimeLimit      = SOLO_TIME_LIMIT;
+    soloCpuTimeLimit         = SOLO_TIME_LIMIT;
+    soloCurrentTimeRemaining = SOLO_TIME_LIMIT;
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
 
     // クロスターンエフェクトをリセット
