@@ -169,7 +169,6 @@
 
             <div id="turnLabel" class="turn-label"></div>
             <div id="winLabel" class="win-label"></div>
-            <div id="cpuThinkingLabel" class="cpu-thinking-label"></div>
 
             <div id="soloResultPanel">
                 <button id="soloRestartButton" class="solo-result-btn">もう一度</button>
@@ -179,6 +178,20 @@
             <div id="boardWrap">
             <canvas id="connect4Canvas_top" width="770" height="110"></canvas>
             <canvas id="connect4Canvas" width="770" height="660"></canvas>
+            <div id="timeLimitContainer" style="display:none;">
+                <div id="timeLimitGauge"></div>
+                <div class="gauge-tlmarks">
+                    <div class="tlmark" style="left: 10%;"></div>
+                    <div class="tlmark" style="left: 20%;"></div>
+                    <div class="tlmark" style="left: 30%;"></div>
+                    <div class="tlmark" style="left: 40%;"></div>
+                    <div class="tlmark" style="left: 50%;"></div>
+                    <div class="tlmark" style="left: 60%;"></div>
+                    <div class="tlmark" style="left: 70%;"></div>
+                    <div class="tlmark" style="left: 80%;"></div>
+                    <div class="tlmark" style="left: 90%;"></div>
+                </div>
+            </div>
             </div>
 
             <div id="legal-footer">

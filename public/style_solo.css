@@ -41,24 +41,6 @@
     transform: translateY(-1px);
 }
 
-#cpuThinkingLabel {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 95;
-    color: #fff;
-    font-size: 20px;
-    font-weight: bold;
-    text-align: center;
-    background: linear-gradient(90deg, rgba(255, 100, 0, 0.88), rgba(255, 180, 60, 0.88));
-    padding: 10px 22px;
-    border-radius: 10px;
-    pointer-events: none;
-    white-space: nowrap;
-}
-
 @media (max-width: 1024px) {
     #soloResultPanel {
         padding: 10px 16px;
