@@ -4,7 +4,7 @@ import { APP_VERSION } from './version.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
-import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement } from './achievementManager.js';
+import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement, fitChipText } from './achievementManager.js';
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
@@ -118,6 +118,7 @@ function renderTitleSlots(userData) {
         const ach = achId ? ALL_ACHIEVEMENTS.find((a) => a.id === achId) : null;
         bannerEl.className = ach ? `title-slot-banner rarity-${ach.rarity}` : 'title-slot-banner empty';
         bannerEl.textContent = ach ? resolveAchName(ach.id, ach.name) : t('titleSlotEmpty');
+        fitChipText(bannerEl);
     }
 }
 

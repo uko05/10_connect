@@ -194,15 +194,16 @@ function resolveAchTitleName(achId, jaName) {
     return getAchText(achId, 'name') ?? jaName;
 }
 
-function fitChipText(chip) {
-    requestAnimationFrame(() => {
+export function fitChipText(chip) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        chip.style.fontSize = '';
         let size = parseFloat(getComputedStyle(chip).fontSize);
         const minSize = 8;
         while (chip.scrollWidth > chip.clientWidth && size > minSize) {
             size -= 0.5;
             chip.style.fontSize = size + 'px';
         }
-    });
+    }));
 }
 
 export function applyTitleDisplay(element, userData) {

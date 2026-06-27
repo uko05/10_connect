@@ -302,9 +302,7 @@
 }
 
 .battle-title-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   padding: 8px 8px;
   border-radius: 5px;
   font-size: 1.0em;
@@ -316,6 +314,7 @@
   text-overflow: ellipsis;
   box-sizing: border-box;
   width: 100%;
+  min-width: 0;
 }
 
 .battle-title-banner.empty {

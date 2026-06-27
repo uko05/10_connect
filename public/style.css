@@ -370,6 +370,19 @@ header {
     position: sticky;
     top: 0;
     z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: inherit;
+    padding: 4px 0;
+}
+
+.playerinfo-header-title {
+    flex: 1;
+    text-align: center;
+    margin: 0;
+    font-size: 1.3em;
+    font-weight: bold;
 }
 
 /* ===== プレイヤー情報画面 ===== */
@@ -403,9 +416,7 @@ header {
 }
 
 .title-slot-banner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     padding: 8px 8px;
     border-radius: 5px;
     font-size: 1.1em;
@@ -415,6 +426,9 @@ header {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .title-slot-banner.empty {
