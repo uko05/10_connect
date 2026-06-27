@@ -278,6 +278,14 @@ header {
     color: #e67e22;
 }
 
+.cpu-difficulty-radio input[type="radio"][value="bakatare"] {
+    accent-color: #6f42c1;
+}
+
+.cpu-difficulty-label.bakatare {
+    color: #6f42c1;
+}
+
 .status {
     margin-top: 15px;
     font-size: 24px;
