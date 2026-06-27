@@ -81,9 +81,9 @@ let cpuUltCount = 0;
 let abilityInProgress = false;
 let playerMoveInProgress = false; // 連打で複数手が同時に処理されるのを防ぐロック
 let minimaxNodeCount = 0;           // minimax探索ノード数（pickAiColumn毎にリセット）
-let cpuThinkingTimeReduction = 0;   // プレイヤーのアベンチュリンが蓄積したCPU思考時間削減量(ms)
-const SOLO_PLAYER_TIME_LIMIT = 100; // BAKATAREプレイヤーの初期思考時間(秒)
-let soloPlayerTimeRemaining = SOLO_PLAYER_TIME_LIMIT; // 残り思考時間(秒、試合通算)
+const SOLO_TIME_LIMIT = 100;        // BAKATAREお互いの初期思考時間(秒)
+let soloPlayerTimeRemaining = SOLO_TIME_LIMIT;  // プレイヤーの残り思考時間(秒、試合通算)
+let soloCpuTimeRemaining    = SOLO_TIME_LIMIT;  // CPUの残り思考時間(秒、試合通算)
 let soloTimeLimitTimer = null;      // プレイヤー思考タイマーのID
 
 //------------------------------------------------------------------------------------------------
@@ -109,33 +109,33 @@ function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// BAKATAREモード専用: タイムリミットゲージ操作ヘルパー
+// BAKATAREモード専用: タイムリミットゲージ操作ヘルパー（PvP同一仕様）
 function getSoloTimeLimitGauge() {
     return document.getElementById('timeLimitGauge');
 }
 
-function updateSoloPlayerGauge() {
+function updateSoloGauge(remaining) {
     const gauge = getSoloTimeLimitGauge();
     if (!gauge) return;
     gauge.style.backgroundColor = 'green';
-    gauge.style.width = Math.max(0, (soloPlayerTimeRemaining / SOLO_PLAYER_TIME_LIMIT) * 100) + '%';
+    gauge.style.width = Math.max(0, (remaining / SOLO_TIME_LIMIT) * 100) + '%';
 }
 
+// プレイヤー思考タイマー: 毎秒減算→0でランダム投下
 function startSoloPlayerTimer() {
     if (getCpuDifficulty() !== 'bakatare') return;
     clearInterval(soloTimeLimitTimer);
-    updateSoloPlayerGauge();
+    updateSoloGauge(soloPlayerTimeRemaining);
     soloTimeLimitTimer = setInterval(async () => {
         soloPlayerTimeRemaining = Math.max(0, soloPlayerTimeRemaining - 1);
-        updateSoloPlayerGauge();
+        updateSoloGauge(soloPlayerTimeRemaining);
         if (soloPlayerTimeRemaining <= 0) {
             clearInterval(soloTimeLimitTimer);
             soloTimeLimitTimer = null;
             if (!gameOver && turn === 'player' && !playerMoveInProgress) {
                 const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
                 if (validCols.length > 0) {
-                    const col = validCols[Math.floor(Math.random() * validCols.length)];
-                    await handlePlayerDrop(col);
+                    await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
                 }
             }
         }
@@ -147,27 +147,32 @@ function stopSoloPlayerTimer() {
     soloTimeLimitTimer = null;
 }
 
-// BAKATAREモード専用: CPUの思考時間をゲージで表示して待機
-function waitWithCpuThinkingGauge(ms) {
-    const gauge = getSoloTimeLimitGauge();
-    if (!gauge || ms <= 0) {
-        if (gauge) gauge.style.width = '0%';
-        return Promise.resolve();
-    }
+// CPUターン中に思考時間(thinkMs)だけ待機しながらCPU累積タイマーも減算する。
+// CPU累積タイマーが先に0になった場合 true(タイムアウト)を返す。
+function cpuThinkWithTimer(thinkMs) {
+    updateSoloGauge(soloCpuTimeRemaining);
+    if (soloCpuTimeRemaining <= 0) return Promise.resolve(true);  // すでに時間切れ
+    if (thinkMs <= 0) return Promise.resolve(false);
+
     return new Promise(resolve => {
-        const totalMs = ms;
-        let elapsed = 0;
-        gauge.style.backgroundColor = '#ff8800';
-        gauge.style.width = '100%';
-        const interval = setInterval(() => {
-            elapsed += 100;
-            const remaining = Math.max(0, totalMs - elapsed);
-            gauge.style.width = ((remaining / totalMs) * 100) + '%';
-            if (remaining <= 0) {
-                clearInterval(interval);
-                resolve();
+        let done = false;
+        const cpuTimer = setInterval(() => {
+            soloCpuTimeRemaining = Math.max(0, soloCpuTimeRemaining - 1);
+            updateSoloGauge(soloCpuTimeRemaining);
+            if (soloCpuTimeRemaining <= 0 && !done) {
+                done = true;
+                clearInterval(cpuTimer);
+                clearTimeout(thinkTimeout);
+                resolve(true); // タイムアウト
             }
-        }, 100);
+        }, 1000);
+        const thinkTimeout = setTimeout(() => {
+            if (!done) {
+                done = true;
+                clearInterval(cpuTimer);
+                resolve(false); // 思考完了
+            }
+        }, thinkMs);
     });
 }
 
@@ -729,10 +734,11 @@ async function executeAbility(side, charaID) {
         case '008': { // アベンチュリン（ソロ専用）
             const isBakatare = getCpuDifficulty() === 'bakatare';
             if (isBakatare && side === 'player') {
-                cpuThinkingTimeReduction += 19000; // プレイヤー→CPUの思考時間を19秒削減
+                soloCpuTimeRemaining = Math.max(0, soloCpuTimeRemaining - 19);
+                updateSoloGauge(soloCpuTimeRemaining);
             } else if (isBakatare && side === 'cpu') {
-                soloPlayerTimeRemaining = Math.max(0, soloPlayerTimeRemaining - 19); // CPU→プレイヤーの残り時間を19秒削減
-                updateSoloPlayerGauge();
+                soloPlayerTimeRemaining = Math.max(0, soloPlayerTimeRemaining - 19);
+                updateSoloGauge(soloPlayerTimeRemaining);
             } else if (side === 'player') {
                 cpuCharge = Math.max(0, cpuCharge - ABEN_CHARGE_PENALTY);
             } else {
@@ -1347,12 +1353,18 @@ async function cpuTurn() {
         const usesAbility = cpuShouldUseAbility();
         finalCol = hanabiSetupCol >= 0 ? hanabiSetupCol : pickAiColumn();
 
-        const rawMs = Math.min(BAKATARE_THINK_MAX_MS, minimaxNodeCount * BAKATARE_THINK_MS_PER_NODE);
-        const thinkMs = Math.max(0, rawMs - cpuThinkingTimeReduction);
-        cpuThinkingTimeReduction = Math.max(0, cpuThinkingTimeReduction - rawMs);
-        await waitWithCpuThinkingGauge(thinkMs); // PvP同様のゲージで表示
+        const thinkMs = Math.min(BAKATARE_THINK_MAX_MS, minimaxNodeCount * BAKATARE_THINK_MS_PER_NODE);
+        const cpuTimedOut = await cpuThinkWithTimer(thinkMs);
 
-        if (usesAbility) {
+        if (cpuTimedOut) {
+            // CPU時間切れ → ランダム列に投下
+            const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+            if (validCols.length > 0) {
+                finalCol = validCols[Math.floor(Math.random() * validCols.length)];
+            }
+        }
+
+        if (usesAbility && !cpuTimedOut) {
             await useAbility('cpu');
             if (await checkGameEnd()) return;
             await wait(400);
@@ -1411,7 +1423,7 @@ async function cpuTurn() {
 function abilityDetailText(chara) {
     if (chara.charaID === '008') {
         if (getCpuDifficulty() === 'bakatare') {
-            return `【BAKATARE専用】相手の思考時間を19秒削減する（試合累積）。自分が使うとCPUの1手あたりの思考時間プールを削減、CPUが使うとプレイヤーの残り時間を削減。(${ABEN_MAX_USES}回まで使用可能)`;
+            return `【BAKATARE専用】相手の累積残り時間を19秒削減する。自分が使うとCPUの残り時間を削減、CPUが使うとプレイヤーの残り時間を削減。残り時間が0になると強制ランダム投下。(${ABEN_MAX_USES}回まで使用可能)`;
         }
         return `【ソロモード専用効果】相手の現在のチャージを${ABEN_CHARGE_PENALTY}減少させる。(${ABEN_MAX_USES}回まで使用可能。時間制限がないため元の効果から変更しています)`;
     }
@@ -1505,9 +1517,9 @@ async function resetGame() {
     cpuRoundWins = 0;
     abilityInProgress = false;
     playerMoveInProgress = false;
-    cpuThinkingTimeReduction = 0;
     stopSoloPlayerTimer();
-    soloPlayerTimeRemaining = SOLO_PLAYER_TIME_LIMIT;
+    soloPlayerTimeRemaining = SOLO_TIME_LIMIT;
+    soloCpuTimeRemaining    = SOLO_TIME_LIMIT;
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
 
     // クロスターンエフェクトをリセット
