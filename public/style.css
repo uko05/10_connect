@@ -83,7 +83,7 @@ header {
 .modal {
   display: none; /* デフォルトでは非表示 */
   position: fixed;
-  z-index: 1000;
+  z-index: 2000000; /* help-btn(1000000)より高くしてモーダルが必ず前面に出るようにする */
   left: 0;
   top: 0;
   width: 100%;
@@ -1199,7 +1199,6 @@ footer.legal-footer {
   /* header / footer 非表示 */
   header { display: none !important; }
   footer.legal-footer { display: none !important; }
-  #version { display: none !important; }
 
   main{
     margin: 0;
