@@ -1746,9 +1746,17 @@ document.addEventListener('DOMContentLoaded', () => {
     turn = startingSide;
     updateGaugeUI();
     drawBoard();
+
+    // BAKATAREのみ思考ゲージを表示
+    const tlContainer = document.getElementById('timeLimitContainer');
+    if (tlContainer) {
+        tlContainer.style.display = getCpuDifficulty() === 'bakatare' ? 'block' : 'none';
+    }
+
     if (turn === 'player') {
         showTurnLabel('あなたの番');
         dispTopStone();
+        startSoloPlayerTimer();
     } else {
         dispTopStone();
         cpuTurn();
