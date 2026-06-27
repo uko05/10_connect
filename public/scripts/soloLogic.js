@@ -576,6 +576,29 @@ function wouldWinAfterAbility(charaID) {
             for (let c = 0; c < cols; c++) delete sim[`${c}_4`];
             return checkWinInSim(applyGravityToSim(sim));
         }
+        case '002': { // シトラリ：石がある列からランダム3列の最上段を破壊 → C(n,3)全パターン試行
+            const colsWithStones = [];
+            for (let c = 0; c < cols; c++) {
+                for (let r = 0; r < rows; r++) {
+                    if (stones[`${c}_${r}`]) { colsWithStones.push(c); break; }
+                }
+            }
+            if (colsWithStones.length < 3) return false;
+            for (let i = 0; i < colsWithStones.length; i++) {
+                for (let j = i + 1; j < colsWithStones.length; j++) {
+                    for (let k = j + 1; k < colsWithStones.length; k++) {
+                        const sim = {...stones};
+                        for (const c of [colsWithStones[i], colsWithStones[j], colsWithStones[k]]) {
+                            for (let r = 0; r < rows; r++) {
+                                if (sim[`${c}_${r}`]) { delete sim[`${c}_${r}`]; break; }
+                            }
+                        }
+                        if (checkWinInSim(sim)) return true;
+                    }
+                }
+            }
+            return false;
+        }
         default:
             return false;
     }
@@ -595,6 +618,20 @@ function cpuShouldUseAbility() {
     if (cpuChara?.charaID === '005') {
         hanabiSetupCol = findHanabiSetupCol();
         return hanabiSetupCol >= 0;
+    }
+    // シトラリ：各列の最上段に相手の石が多いとき（効果が相手に刺さりやすい）
+    if (cpuChara?.charaID === '002') {
+        let opponentTopCount = 0, occupiedCols = 0;
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < rows; r++) {
+                if (stones[`${c}_${r}`]) {
+                    occupiedCols++;
+                    if (stones[`${c}_${r}`] === PLAYER_COLOR) opponentTopCount++;
+                    break;
+                }
+            }
+        }
+        return occupiedCols >= 3 && opponentTopCount > occupiedCols / 2;
     }
     // 鍾離：自分に即勝ち筋があるときは使わない（封鎖がランダムで自分の勝ち列を潰す恐れ）
     if (cpuChara?.charaID === '012') {
