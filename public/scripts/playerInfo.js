@@ -54,6 +54,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentUid = user.uid;
         await ensureUserDoc(user.uid);
 
+        const uidDisplay = document.getElementById('userIdDisplay');
+        const copyBtn = document.getElementById('copyUserIdButton');
+        if (uidDisplay) uidDisplay.textContent = currentUid;
+        if (copyBtn) {
+            copyBtn.style.display = '';
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(currentUid).then(() => {
+                    const prev = copyBtn.textContent;
+                    copyBtn.textContent = '✓';
+                    setTimeout(() => { copyBtn.textContent = prev; }, 1500);
+                });
+            });
+        }
+
         const myRating = await getUserRating(user.uid);
         latestUserData = myRating || {};
         isDebugUser = (latestUserData.playerName || '').endsWith('@debug');
