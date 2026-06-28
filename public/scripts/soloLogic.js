@@ -1024,19 +1024,8 @@ async function executeAbility(side, charaID) {
                 }
                 await showFinalResult(side === 'player' ? 'win' : 'lose');
             } else {
-                // 3勝未満：盤面はそのまま維持してターンだけ切り替えて続行（マルチと同仕様）
+                // 3勝未満：盤面を維持してスコア演出のみ。ターン切り替えはuseAbility呼び出し元が担う
                 await showRoundResult(side === 'player' ? 'win' : 'lose');
-                turn = side === 'player' ? 'cpu' : 'player';
-                drawBoard();
-                updateGaugeUI();
-                if (turn === 'player') {
-                    showTurnLabel(t('turnPlayer'));
-                    dispTopStone();
-                    startSoloPlayerTimer();
-                } else {
-                    dispTopStone();
-                    await cpuTurn();
-                }
             }
             break;
         }
