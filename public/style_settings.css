@@ -106,12 +106,12 @@
 /* スマホ向け：モーダル内が狭くなりすぎないよう調整 */
 @media (max-width: 1024px) {
   .settings-section h3 {
-    font-size: 15px;
+    font-size: 13px;
   }
 
   .color-swatch {
     min-width: 70px;
-    font-size: 11px;
+    font-size: 9px;
     padding: 6px;
   }
 
@@ -121,12 +121,12 @@
   }
 
   .intensity-radio-group {
-    font-size: 13px;
+    font-size: 11px;
     gap: 10px;
   }
 
   .settings-volume-row {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .leave-btn {

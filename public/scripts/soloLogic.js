@@ -1995,11 +1995,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const voicevolumeSlider = document.getElementById('voicevolumeSlider');
     if (voicevolumeSlider) {
-        voicevolumeSlider.addEventListener('input', (e) => {
+        const voiceHandler = (e) => {
             const v = parseFloat(e.target.value);
             if (playerUltAudio) playerUltAudio.volume = v;
             if (cpuUltAudio) cpuUltAudio.volume = v;
-        });
+            if (playerAttackAudio) playerAttackAudio.volume = v;
+            if (cpuAttackAudio) cpuAttackAudio.volume = v;
+        };
+        voicevolumeSlider.addEventListener('input', voiceHandler);
+        voicevolumeSlider.addEventListener('change', voiceHandler); // iOS Safari対策
     }
 
     if (!initCharacters()) return; // キャラ未選択ならselect.htmlへリダイレクト済み

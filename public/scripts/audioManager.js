@@ -50,13 +50,15 @@ export function initializeAudioPlayback(voiceAudios) {
  */
 export function setupSystemVolumeSlider(slider) {
     if (slider) {
-        slider.addEventListener('input', (event) => {
-            const newVolume = parseFloat(event.target.value); // 数値として取得
-            if (chargeSound) chargeSound.volume = newVolume; // 音量を更新
-            if (moveSound) moveSound.volume = newVolume; // 音量を更新
-            if (highlightSound) highlightSound.volume = newVolume; // 音量を更新
-            if (AbilityStandby) AbilityStandby.volume = newVolume; // 音量を更新
-        });
+        const handler = (event) => {
+            const newVolume = parseFloat(event.target.value);
+            if (chargeSound) chargeSound.volume = newVolume;
+            if (moveSound) moveSound.volume = newVolume;
+            if (highlightSound) highlightSound.volume = newVolume;
+            if (AbilityStandby) AbilityStandby.volume = newVolume;
+        };
+        slider.addEventListener('input', handler);
+        slider.addEventListener('change', handler); // iOS Safari対策
     } else {
         console.error("systemvolumeSlider が見つかりません");
     }

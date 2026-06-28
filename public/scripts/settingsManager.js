@@ -177,16 +177,20 @@ export function bindSettingsUI(root, onColorChange, onLangChange) {
         });
     });
 
-    // 音量スライダー（値を復元 + 変更時に保存）
+    // 音量スライダー（値を復元 + 変更時に保存。changeはiOS Safari対策）
     const sysSlider = root.querySelector('#systemvolumeSlider');
     if (sysSlider) {
         sysSlider.value = currentSettings.systemVolume;
-        sysSlider.addEventListener('input', (e) => setSystemVolume(e.target.value));
+        const sysHandler = (e) => setSystemVolume(e.target.value);
+        sysSlider.addEventListener('input', sysHandler);
+        sysSlider.addEventListener('change', sysHandler);
     }
     const voiceSlider = root.querySelector('#voicevolumeSlider');
     if (voiceSlider) {
         voiceSlider.value = currentSettings.voiceVolume;
-        voiceSlider.addEventListener('input', (e) => setVoiceVolume(e.target.value));
+        const voiceHandler = (e) => setVoiceVolume(e.target.value);
+        voiceSlider.addEventListener('input', voiceHandler);
+        voiceSlider.addEventListener('change', voiceHandler);
     }
 
     // 言語ラジオボタン（TopPageと同一の "lang" キーで共有）

@@ -976,14 +976,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupSystemVolumeSlider(systemvolumeSlider);
 
     if (voicevolumeSlider) {
-        voicevolumeSlider.addEventListener('input', (event) => {
-            const newVolume = parseFloat(event.target.value); // 数値として取得
-            if (selectSound) selectSound.volume = newVolume; // 音量を更新
-            if (pLeft_Attack) pLeft_Attack.volume = newVolume; // 音量を更新
-            if (pRight_Attack) pRight_Attack.volume = newVolume; // 音量を更新
-            if (pLeft_ult) pLeft_ult.volume = newVolume; // 音量を更新
-            if (pRight_ult) pRight_ult.volume = newVolume; // 音量を更新
-        });
+        const voiceHandler = (event) => {
+            const newVolume = parseFloat(event.target.value);
+            if (selectSound) selectSound.volume = newVolume;
+            if (pLeft_Attack) pLeft_Attack.volume = newVolume;
+            if (pRight_Attack) pRight_Attack.volume = newVolume;
+            if (pLeft_ult) pLeft_ult.volume = newVolume;
+            if (pRight_ult) pRight_ult.volume = newVolume;
+        };
+        voicevolumeSlider.addEventListener('input', voiceHandler);
+        voicevolumeSlider.addEventListener('change', voiceHandler); // iOS Safari対策
     } else {
         console.error("voicevolumeSlider が見つかりません");
     }
