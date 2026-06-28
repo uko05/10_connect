@@ -116,7 +116,7 @@ function renderTitleSlots(userData) {
         if (!bannerEl) continue;
         const achId = ids[slot];
         const ach = achId ? ALL_ACHIEVEMENTS.find((a) => a.id === achId) : null;
-        bannerEl.className = ach ? `battle-title-banner rarity-${ach.rarity}` : 'battle-title-banner empty';
+        bannerEl.className = ach ? `title-slot-banner rarity-${ach.rarity}` : 'title-slot-banner empty';
         bannerEl.textContent = ach ? resolveAchName(ach.id, ach.name) : t('titleSlotEmpty');
         fitChipText(bannerEl);
     }
