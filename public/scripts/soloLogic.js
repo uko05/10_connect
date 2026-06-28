@@ -1024,9 +1024,19 @@ async function executeAbility(side, charaID) {
                 }
                 await showFinalResult(side === 'player' ? 'win' : 'lose');
             } else {
-                startingSide = side === 'player' ? 'cpu' : 'player';
+                // 3勝未満：盤面はそのまま維持してターンだけ切り替えて続行（マルチと同仕様）
                 await showRoundResult(side === 'player' ? 'win' : 'lose');
-                await startNextRound();
+                turn = side === 'player' ? 'cpu' : 'player';
+                drawBoard();
+                updateGaugeUI();
+                if (turn === 'player') {
+                    showTurnLabel(t('turnPlayer'));
+                    dispTopStone();
+                    startSoloPlayerTimer();
+                } else {
+                    dispTopStone();
+                    await cpuTurn();
+                }
             }
             break;
         }
