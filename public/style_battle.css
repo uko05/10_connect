@@ -591,6 +591,13 @@ html, body {
     box-sizing: border-box;
 }
 
+#playerInfo,
+#characterInfo {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
 .player-info p {
     margin: 0;
 }
