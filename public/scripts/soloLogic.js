@@ -608,24 +608,19 @@ function wouldWinAfterAbility(charaID) {
     }
 }
 
-// CPUが「不利」と判断する条件：相手に即勝ち筋がある、またはチャージで大きく差をつけられている
-function cpuShouldUseAbility() {
-    if (!abilityAvailable('cpu')) return false;
+// キャラIDごとの発動条件判定（cpuShouldUseAbility・サフェルコピー共用）
+function cpuAbilityConditionByID(charaID) {
     // ケリュドラ：相手に追加手を与えるだけなので使わない
-    if (cpuChara?.charaID === '015') return false;
-    // 能力発動後に即勝ちになるなら最優先で発動
-    if (wouldWinAfterAbility(cpuChara?.charaID)) return true;
+    if (charaID === '015') return false;
     // ホタル・銀狼・アベンチュリン：チャージが溜まったら即使う
-    if (cpuChara?.charaID === '009') return true;
-    if (cpuChara?.charaID === '016') return true;
-    if (cpuChara?.charaID === '008') return true;
-    // 花火：セットアップが成立するときのみ使う（守備目的では使えない）
-    if (cpuChara?.charaID === '005') {
+    if (charaID === '009' || charaID === '016' || charaID === '008') return true;
+    // 花火：セットアップが成立するときのみ使う
+    if (charaID === '005') {
         hanabiSetupCol = findHanabiSetupCol();
         return hanabiSetupCol >= 0;
     }
-    // シトラリ：各列の最上段に相手の石が多いとき（効果が相手に刺さりやすい）
-    if (cpuChara?.charaID === '002') {
+    // シトラリ：各列の最上段に相手の石が多いとき
+    if (charaID === '002') {
         let opponentTopCount = 0, occupiedCols = 0;
         for (let c = 0; c < cols; c++) {
             for (let r = 0; r < rows; r++) {
@@ -638,56 +633,64 @@ function cpuShouldUseAbility() {
         }
         return occupiedCols >= 3 && opponentTopCount > occupiedCols / 2;
     }
-    // 鍾離：自分に即勝ち筋があるときは使わない（封鎖がランダムで自分の勝ち列を潰す恐れ）
-    if (cpuChara?.charaID === '012') {
+    // 鍾離：自分に即勝ち筋があるときは使わない
+    if (charaID === '012') {
         const cpuCanWin = getValidColumns().some(c => wouldWin(c, CPU_COLOR));
         return !cpuCanWin;
     }
-    // ルアン・メェイ：相手の石≥3かつ自分の石≥6のとき（前半〜中盤で変換が刺さりやすく、Phase2で全滅しない）
-    if (cpuChara?.charaID === '010') {
+    // ルアン・メェイ：相手の石≥3かつ自分の石≥6のとき
+    if (charaID === '010') {
         const opponentStones = Object.values(stones).filter(c => c === PLAYER_COLOR).length;
         const ownStones = Object.values(stones).filter(c => c === CPU_COLOR).length;
         return opponentStones >= 3 && ownStones >= 6;
     }
-    // 放浪者：盤面全体に相手石が6個以上（4列×上2個なのでほぼ全体カバー）
-    if (cpuChara?.charaID === '001') {
-        const opp = Object.values(stones).filter(c => c === PLAYER_COLOR).length;
-        return opp >= 6;
+    // 放浪者：盤面全体に相手石が6個以上
+    if (charaID === '001') {
+        return Object.values(stones).filter(c => c === PLAYER_COLOR).length >= 6;
     }
-    // アルハイゼン：中央3列（列2,3,4）に相手石が3個以上（その2列を全削除）
-    if (cpuChara?.charaID === '003') {
+    // アルハイゼン：中央3列（列2,3,4）に相手石が3個以上
+    if (charaID === '003') {
         const opp = Object.keys(stones).filter(k => {
             const col = parseInt(k.split('_')[0]);
             return [2, 3, 4].includes(col) && stones[k] === PLAYER_COLOR;
         }).length;
         return opp >= 3;
     }
-    // ナヴィア：上から3段（row 0,1,2）に相手石が2個以上（横3段を全削除）
-    if (cpuChara?.charaID === '004') {
-        const opp = Object.keys(stones).filter(k => {
-            const row = parseInt(k.split('_')[1]);
-            return row <= 2 && stones[k] === PLAYER_COLOR;
-        }).length;
+    // ナヴィア：上から3段（row 0,1,2）に相手石が2個以上
+    if (charaID === '004') {
+        const opp = Object.keys(stones).filter(k => parseInt(k.split('_')[1]) <= 2 && stones[k] === PLAYER_COLOR).length;
         return opp >= 2;
     }
-    // マダム・ヘルタ：いずれかの列に相手石が3個以上（その列を全削除）
-    if (cpuChara?.charaID === '006') {
+    // マダム・ヘルタ：いずれかの列に相手石が3個以上
+    if (charaID === '006') {
         for (let c = 0; c < cols; c++) {
-            const colOpp = Object.keys(stones).filter(k => k.startsWith(`${c}_`) && stones[k] === PLAYER_COLOR).length;
-            if (colOpp >= 3) return true;
+            if (Object.keys(stones).filter(k => k.startsWith(`${c}_`) && stones[k] === PLAYER_COLOR).length >= 3) return true;
         }
         return false;
     }
-    // キャストリス：端4列（列0,1,5,6）に相手石が4個以上（そのうち3列を全削除）
-    if (cpuChara?.charaID === '007') {
+    // キャストリス：端4列（列0,1,5,6）に相手石が4個以上
+    if (charaID === '007') {
         const opp = Object.keys(stones).filter(k => {
             const col = parseInt(k.split('_')[0]);
             return [0, 1, 5, 6].includes(col) && stones[k] === PLAYER_COLOR;
         }).length;
         return opp >= 4;
     }
+    // デフォルト：相手に即詰め脅威 or チャージ差30以上
     const playerAheadOnCharge = playerCharge > cpuCharge + 30;
     return hasImmediateThreat(PLAYER_COLOR) || playerAheadOnCharge;
+}
+
+function cpuShouldUseAbility() {
+    if (!abilityAvailable('cpu')) return false;
+    // 能力発動後に即勝ちになるなら最優先で発動
+    if (wouldWinAfterAbility(cpuChara?.charaID)) return true;
+    // サフェル：相手キャラの発動条件をそのまま使用（コピー効果なのでタイミングも同じ）
+    if (cpuChara?.charaID === '013') {
+        if (!playerChara || playerChara.charaID === '013') return false; // 相手もサフェルなら不発
+        return cpuAbilityConditionByID(playerChara.charaID);
+    }
+    return cpuAbilityConditionByID(cpuChara?.charaID);
 }
 
 //------------------------------------------------------------------------------------------------
