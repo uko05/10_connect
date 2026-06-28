@@ -994,6 +994,10 @@ details[open] > .achievement-group-header::after {
     align-items: center;   /* ← stretchやめる */
 }
 
+#lobbyTitles .battle-title-banner {
+    font-size: 0.875em;
+}
+
 .lobby-player-left {
     flex: 1;
     min-width: 0;
