@@ -87,7 +87,9 @@ export const ACHIEVEMENT_GROUPS = [
     {
         id: 'match_pattern', name: '決着パターン',
         items: [
-            { id: 'straight_win', rarity: 'bronze', name: '圧勝', condition: '通常対戦をストレート(3-0)で勝利する', check: (ctx) => !!ctx.hadStraightWin },
+            { id: 'straight_win',   rarity: 'bronze', name: '圧勝１', condition: '通常対戦をストレート(3-0)で1回勝利する',  check: (ctx) => !!ctx.hadStraightWin },
+            { id: 'straight_win_5', rarity: 'silver', name: '圧勝２', condition: '通常対戦をストレート(3-0)で5回勝利する',  check: (ctx) => (ctx.straightWinCount || 0) >= 5,  progress: (ctx) => ({ current: Math.min(ctx.straightWinCount || 0, 5),  target: 5  }) },
+            { id: 'straight_win_10', rarity: 'gold',  name: '圧勝３', condition: '通常対戦をストレート(3-0)で10回勝利する', check: (ctx) => (ctx.straightWinCount || 0) >= 10, progress: (ctx) => ({ current: Math.min(ctx.straightWinCount || 0, 10), target: 10 }) },
             { id: 'clean_win', rarity: 'bronze', name: '正々堂々', condition: '離脱・タイムアウトのない試合で勝利する', check: (ctx) => !!ctx.hadCleanWin },
             { id: 'comeback_win', rarity: 'gold', name: '掟破りの奇兵', condition: '0-2の劣勢から3-2で逆転勝利する', check: (ctx) => !!ctx.hadComebackWin },
         ],

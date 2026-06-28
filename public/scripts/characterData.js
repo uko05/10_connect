@@ -217,7 +217,8 @@ export const characterData = [
         voice_select: 'public/scripts/sound/Dorin_select.mp3',
         voice_attack: 'public/scripts/sound/Dorin_attack.mp3',
         voice_ult: 'public/scripts/sound/Dorin_ult.mp3',
-        process: 'ult_durin'
+        process: 'ult_durin',
+        requiredAchievementId: 'straight_win_10',
     },
     {
         src: 'public/chara/Keryu.png',

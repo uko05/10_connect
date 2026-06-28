@@ -34,6 +34,7 @@ const ACH_STATS_DEFAULTS = {
     hadStraightWin: false,
     hadCleanWin: false,
     hadComebackWin: false,
+    straightWinCount: 0,
 };
 
 function loadAchStats(achStats) {
@@ -121,7 +122,10 @@ export async function recordPvpMatchAchievements(uid, {
             if (ultCountThisMatch >= 2) patch.hadDoubleUltWin = true;
             if (ultCountThisMatch >= 5) patch.hadFiveUltWin = true;
             if (ultCountThisMatch >= 5 && myCharaId === '015') patch.hadCeryluaUlt5Win = true;
-            if (isStraightWin) patch.hadStraightWin = true;
+            if (isStraightWin) {
+                patch.hadStraightWin = true;
+                patch.straightWinCount = (currentStats.straightWinCount || 0) + 1;
+            }
             if (isCleanWin) patch.hadCleanWin = true;
             if (isComebackWin) patch.hadComebackWin = true;
         }
