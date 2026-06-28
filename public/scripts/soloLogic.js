@@ -48,7 +48,7 @@ let startingSide = 'player'; // 各ラウンドの先攻
 
 // 鍾離：列封鎖のクロスターン状態
 let zhongliBlockedCols = [];
-let zhongliReblockPending = false;
+let zhongliReblockRemaining = 0;
 let zhongliCasterSide = null;
 let zhongliBlockOverlays = [];
 
@@ -140,7 +140,7 @@ async function handlePlayerTimeout() {
         return;
     }
     if (!playerMoveInProgress) {
-        const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+        const validCols = getValidColumns().filter(c => zhongliCasterSide !== 'cpu' || !zhongliBlockedCols.includes(c));
         if (validCols.length > 0) {
             await handlePlayerDrop(validCols[Math.floor(Math.random() * validCols.length)]);
         }
@@ -471,10 +471,11 @@ function pickAiColumn() {
     const board = boardFromStones();
     const depth = getCpuSearchDepth();
     const result = minimax(board, depth, -Infinity, Infinity, true);
-    // 鍾離の封鎖列を考慮：AIがブロック列を選んだ場合は次善の列を選ぶ
-    const validNonBlocked = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+    // 鍾離の封鎖列を考慮：プレイヤー発動時のみCPUに封鎖適用
+    const isZhongliBlockedForCpu = (c) => zhongliCasterSide === 'player' && zhongliBlockedCols.includes(c);
+    const validNonBlocked = getValidColumns().filter(c => !isZhongliBlockedForCpu(c));
     if (validNonBlocked.length === 0) return getValidColumns()[0]; // 全列封鎖（理論上ありえない）
-    if (result.column !== undefined && !zhongliBlockedCols.includes(result.column) && getDropRow(result.column) >= 0) {
+    if (result.column !== undefined && !isZhongliBlockedForCpu(result.column) && getDropRow(result.column) >= 0) {
         return result.column;
     }
     return validNonBlocked[0];
@@ -614,9 +615,10 @@ function cpuShouldUseAbility() {
     if (cpuChara?.charaID === '015') return false;
     // 能力発動後に即勝ちになるなら最優先で発動
     if (wouldWinAfterAbility(cpuChara?.charaID)) return true;
-    // ホタル・銀狼：チャージが溜まったら即使う
+    // ホタル・銀狼・アベンチュリン：チャージが溜まったら即使う
     if (cpuChara?.charaID === '009') return true;
     if (cpuChara?.charaID === '016') return true;
+    if (cpuChara?.charaID === '008') return true;
     // 花火：セットアップが成立するときのみ使う（守備目的では使えない）
     if (cpuChara?.charaID === '005') {
         hanabiSetupCol = findHanabiSetupCol();
@@ -790,8 +792,8 @@ function removeZhongliBlockOverlay() {
 
 // 鍾離：自分のターン開始時に自動再封鎖を確認する
 function zhongliPreTurnCheck(side) {
-    if (!zhongliReblockPending || zhongliCasterSide !== side) return;
-    zhongliReblockPending = false;
+    if (zhongliReblockRemaining <= 0 || zhongliCasterSide !== side) return;
+    zhongliReblockRemaining--;
     const validCols = getValidColumns();
     const picked = getRandomElements(validCols, Math.min(2, validCols.length));
     zhongliBlockedCols = picked;
@@ -800,17 +802,14 @@ function zhongliPreTurnCheck(side) {
 
 // 鍾離：相手がターンを終えたあとの封鎖解除・継続を判定する
 function zhongliPostOpponentDrop() {
-    if (zhongliBlockedCols.length === 0 && !zhongliReblockPending) return;
-    if (zhongliReblockPending) {
-        // 相手1回目ターン終了→ブロック一時解除（次の自分ターンで再封鎖）
-        zhongliBlockedCols = [];
-        removeZhongliBlockOverlay();
-    } else {
-        // 相手2回目ターン終了（再封鎖後）→ 完全解除
-        zhongliBlockedCols = [];
+    if (zhongliBlockedCols.length === 0 && zhongliReblockRemaining <= 0) return;
+    zhongliBlockedCols = [];
+    removeZhongliBlockOverlay();
+    if (zhongliReblockRemaining <= 0) {
+        // 全サイクル終了 → 完全解除
         zhongliCasterSide = null;
-        removeZhongliBlockOverlay();
     }
+    // reblockRemaining > 0 なら次の自分ターン開始時に zhongliPreTurnCheck が再封鎖する
 }
 
 // ドゥリン：ターン開始時の自動破壊（awaitが必要なため async）
@@ -965,11 +964,11 @@ async function executeAbility(side, charaID) {
             }
             break;
         }
-        case '012': { // 鍾離：ランダム2列を封鎖
+        case '012': { // 鍾離：相手だけランダム2列を封鎖（3ターン繰り返し）
             const validColsZ = getValidColumns();
             const picked = getRandomElements(validColsZ, Math.min(2, validColsZ.length));
             zhongliBlockedCols = picked;
-            zhongliReblockPending = true;
+            zhongliReblockRemaining = 2; // 初期封鎖後さらに2回再封鎖 = 合計3ターン
             zhongliCasterSide = side;
             showZhongliBlockOverlay();
             await wait(600);
@@ -1459,7 +1458,7 @@ async function startNextRound() {
 
     // クロスターンエフェクトをリセット
     zhongliBlockedCols = [];
-    zhongliReblockPending = false;
+    zhongliReblockRemaining = 0;
     zhongliCasterSide = null;
     removeZhongliBlockOverlay();
     durinAutoDeletePending = false;
@@ -1491,7 +1490,7 @@ async function handlePlayerDrop(column) {
     if (gameOver || turn !== 'player' || abilityInProgress || playerMoveInProgress) return;
     if (column < 0 || column >= cols) return;
     if (getDropRow(column) < 0) return; // 満杯の列は無視
-    if (zhongliBlockedCols.includes(column)) return; // 鍾離：封鎖中の列には投下不可
+    if (zhongliCasterSide === 'cpu' && zhongliBlockedCols.includes(column)) return; // 鍾離：相手(cpu)発動時のみ封鎖
 
     playerMoveInProgress = true;
     stopSoloPlayerTimer(); // 石を落とした瞬間にタイマーを止める
@@ -1511,7 +1510,7 @@ async function handlePlayerDrop(column) {
             cerluaActive = false;
             cerluaCasterSide = null;
             const extraCol = getDropRow(column) >= 0 ? column
-                : getValidColumns().find(c => !zhongliBlockedCols.includes(c)) ?? -1;
+                : getValidColumns().find(c => zhongliCasterSide !== 'cpu' || !zhongliBlockedCols.includes(c)) ?? -1;
             if (extraCol >= 0) await dropAt(extraCol, droppedColor);
         }
 
@@ -1578,7 +1577,7 @@ async function cpuTurn() {
                 return;
             }
             // 1回目のタイムアウト: ランダム列に投下
-            const validCols = getValidColumns().filter(c => !zhongliBlockedCols.includes(c));
+            const validCols = getValidColumns().filter(c => zhongliCasterSide !== 'player' || !zhongliBlockedCols.includes(c));
             if (validCols.length > 0) {
                 finalCol = validCols[Math.floor(Math.random() * validCols.length)];
             }
@@ -1611,7 +1610,7 @@ async function cpuTurn() {
         cerluaActive = false;
         cerluaCasterSide = null;
         const extraCol = getDropRow(finalCol) >= 0 ? finalCol
-            : getValidColumns().find(c => !zhongliBlockedCols.includes(c)) ?? -1;
+            : getValidColumns().find(c => zhongliCasterSide !== 'player' || !zhongliBlockedCols.includes(c)) ?? -1;
         if (extraCol >= 0) await dropAt(extraCol, droppedColor);
     }
 
@@ -1754,7 +1753,7 @@ async function resetGame() {
 
     // クロスターンエフェクトをリセット
     zhongliBlockedCols = [];
-    zhongliReblockPending = false;
+    zhongliReblockRemaining = 0;
     zhongliCasterSide = null;
     removeZhongliBlockOverlay();
     durinAutoDeletePending = false;

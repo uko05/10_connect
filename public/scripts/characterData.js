@@ -177,7 +177,7 @@ export const characterData = [
         charge: 11,
         chargeMax: 200,
         Ability: '天星',
-        AbilityDetail: '【封鎖】石を投下できる列からランダムに2列を選択し封鎖する。次の相手ターン終了まで、お互いにその列に石を投下できない。次の自分のターン開始時にも再度発動する（列は再抽選）。(5ターン目から発動可能)',
+        AbilityDetail: '【封鎖】石を投下できる列からランダムに2列を選択し相手のみ封鎖する。自分はその列に投下可能。次の自分のターン開始時にも再度発動する（列は再抽選）。この効果を3回繰り返す。(5ターン目から発動可能)',
         AbilityUseTurn: 5,
         AbilityCutImage: 'public/chara/ult_Shori.png',
         voice_select: 'public/scripts/sound/Shori_select.wav',

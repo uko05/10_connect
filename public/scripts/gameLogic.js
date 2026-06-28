@@ -123,7 +123,7 @@ let matchType = "ranked"; // "ranked" | "private"
 
 // PvP クロスターンエフェクト状態
 let pvpZhongliBlocked = null;   // 鍾離：封鎖列 [col, col] | null
-let pvpZhongliTurnsLeft = 0;    // 残りターン数（2=phase1, 1=phase2）
+let pvpZhongliTurnsLeft = 0;    // 残りターン数（3→2→1→0で解除）
 let pvpZhongliCasterColor = null;
 let pvpZhongliOverlays = [];
 let pvpDurinPending = false;    // ドゥリン：次の自分ターン自動破壊
@@ -1769,8 +1769,8 @@ function findAvailableRow(column, stonesData) {
 // attackType: 1=通常, 2=必殺技等, 3=時間切れ
 async function dropStone(column, attackType = 1) {
 
-  // 鍾離封鎖中の列には投下不可
-  if (pvpZhongliBlocked && pvpZhongliBlocked.includes(column)) return;
+  // 鍾離封鎖中の列には投下不可（相手が発動した場合のみ自分に適用）
+  if (pvpZhongliBlocked && pvpZhongliBlocked.includes(column) && pvpZhongliCasterColor !== playerLeft_Color) return;
 
   let color = playerLeft_Color;
   if (changeStone > 0) {
@@ -3983,10 +3983,20 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
             }
         }
 
-        // ② 鍾離：ターン開始時の封鎖処理
+        // ② 鍾離：ターン開始時の封鎖処理（相手3ターン封鎖→自分のターン毎に再抽選）
         if (pvpZhongliBlocked !== null && playerLeft_Color === pvpZhongliCasterColor) {
-            if (pvpZhongliTurnsLeft === 2) {
-                // 相手1回目終了 → 自動再封鎖（2列再抽選）
+            if (pvpZhongliTurnsLeft === 3) {
+                // 相手1回目終了 → 再封鎖（2列再抽選）
+                const newCols = pvpGetNonFullCols(2);
+                pvpZhongliBlocked = newCols;
+                pvpZhongliTurnsLeft = 2;
+                await updateDoc(firestoreRoomDocRef, {
+                    zhongliBlocked: newCols,
+                    zhongliTurnsLeft: 2
+                });
+                updateZhongliBlockOverlays();
+            } else if (pvpZhongliTurnsLeft === 2) {
+                // 相手2回目終了 → 再封鎖（2列再抽選）
                 const newCols = pvpGetNonFullCols(2);
                 pvpZhongliBlocked = newCols;
                 pvpZhongliTurnsLeft = 1;
@@ -3996,7 +4006,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 });
                 updateZhongliBlockOverlays();
             } else if (pvpZhongliTurnsLeft === 1) {
-                // 相手2回目終了 → 封鎖解除
+                // 相手3回目終了 → 封鎖解除
                 pvpZhongliBlocked = null;
                 pvpZhongliTurnsLeft = 0;
                 pvpZhongliCasterColor = null;
@@ -4108,7 +4118,7 @@ async function ult_zhongli() {
         // 非満杯列からランダムに2列選択して封鎖
         const nonFullCols = pvpGetNonFullCols(2);
         pvpZhongliBlocked = nonFullCols;
-        pvpZhongliTurnsLeft = 2; // 相手1ターン（phase1）+相手2ターン（phase2）
+        pvpZhongliTurnsLeft = 3; // 相手3ターン封鎖
         pvpZhongliCasterColor = playerLeft_Color;
 
         await updateDoc(firestoreRoomDocRef, {
