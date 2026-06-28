@@ -1939,6 +1939,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     initLang();
 
+    // 言語切替時: キャラ名・必殺技・称号を即時更新
+    document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (playerChara) displayCharaPanel('player', playerChara);
+            if (cpuChara) displayCharaPanel('cpu', cpuChara);
+        });
+    });
+
     const systemvolumeSlider = document.getElementById('systemvolumeSlider');
     setupSystemVolumeSlider(systemvolumeSlider);
 

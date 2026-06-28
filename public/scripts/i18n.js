@@ -84,6 +84,8 @@ const dict = {
     charaUnlockSub: "を解放しました！",
     charaUnlockHint: "タップ / クリックで閉じる",
     newCharBadge: "新キャラ解放！",
+    achUnlocked: "解放",
+    charaInfoLabel: "▼キャラクター情報▼",
   },
   en: {
     pageTitle: "GK: Connect Battle",
@@ -167,6 +169,8 @@ const dict = {
     charaUnlockSub: " has been unlocked!",
     charaUnlockHint: "Tap / Click to close",
     newCharBadge: "New Character!",
+    achUnlocked: "Unlocked",
+    charaInfoLabel: "▼ Character Info ▼",
   },
 };
 

@@ -134,7 +134,7 @@ function renderAchievements() {
 
     const items = getAchievementViewModel(latestUserData);
     const unlockedCount = items.filter((a) => a.unlocked).length;
-    if (summary) summary.textContent = `${unlockedCount} / ${items.length} 解放`;
+    if (summary) summary.textContent = `${unlockedCount} / ${items.length} ${t('achUnlocked')}`;
 
     const equippedInSlot = (latestUserData.equippedTitles || [])[currentSlot] || null;
 
