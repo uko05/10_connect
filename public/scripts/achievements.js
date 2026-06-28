@@ -34,12 +34,12 @@ export const ACHIEVEMENT_GROUPS = [
     {
         id: 'rank', name: 'ランク到達',
         items: [
-            { id: 'rank_silver', rarity: 'bronze', name: 'Silver', condition: 'レート1400以上に到達する', check: (ctx) => ctx.maxRatingReached >= 1400, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 1400 }) },
-            { id: 'rank_gold', rarity: 'bronze', name: 'Gold', condition: 'レート1600以上に到達する', check: (ctx) => ctx.maxRatingReached >= 1600, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 1600 }) },
-            { id: 'rank_platinum', rarity: 'silver', name: 'Platinum', condition: 'レート1800以上に到達する', check: (ctx) => ctx.maxRatingReached >= 1800, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 1800 }) },
-            { id: 'rank_diamond', rarity: 'silver', name: 'Diamond', condition: 'レート2000以上に到達する', check: (ctx) => ctx.maxRatingReached >= 2000, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 2000 }) },
-            { id: 'rank_legend', rarity: 'gold', name: 'Legend', condition: 'レート2200以上に到達する', check: (ctx) => ctx.maxRatingReached >= 2200, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 2200 }) },
-            { id: 'rank_bakata_legend', rarity: 'legend', name: 'Bakata Legend', condition: 'レート2500以上に到達する', check: (ctx) => ctx.maxRatingReached >= 2500, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 2500 }) },
+            { id: 'rank_silver', rarity: 'bronze', name: 'シルバー', condition: 'レート1400以上に到達する', check: (ctx) => ctx.maxRatingReached >= 1400, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 1400 }) },
+            { id: 'rank_gold', rarity: 'bronze', name: 'ゴールド', condition: 'レート1600以上に到達する', check: (ctx) => ctx.maxRatingReached >= 1600, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 1600 }) },
+            { id: 'rank_platinum', rarity: 'silver', name: 'プラチナ', condition: 'レート1800以上に到達する', check: (ctx) => ctx.maxRatingReached >= 1800, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 1800 }) },
+            { id: 'rank_diamond', rarity: 'silver', name: 'ダイヤモンド', condition: 'レート2000以上に到達する', check: (ctx) => ctx.maxRatingReached >= 2000, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 2000 }) },
+            { id: 'rank_legend', rarity: 'gold', name: 'レジェンド', condition: 'レート2200以上に到達する', check: (ctx) => ctx.maxRatingReached >= 2200, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 2200 }) },
+            { id: 'rank_bakata_legend', rarity: 'legend', name: 'バカタレレジェンド', condition: 'レート2500以上に到達する', check: (ctx) => ctx.maxRatingReached >= 2500, progress: (ctx) => ({ current: ctx.maxRatingReached, target: 2500 }) },
         ],
     },
     {
