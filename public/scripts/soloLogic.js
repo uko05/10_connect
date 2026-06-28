@@ -11,7 +11,7 @@ import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from ".
 import { characterData } from "./characterData.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
-import { recordSoloWin, applyTitleDisplay } from "./achievementManager.js";
+import { recordSoloWin, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
 import { getUserRating } from "./eloRating.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
@@ -1936,16 +1936,13 @@ document.addEventListener('DOMContentLoaded', () => {
         drawBoard();
         dispTopStone();
         applyPaneColors();
+    }, () => {
+        if (playerChara) displayCharaPanel('player', playerChara);
+        if (cpuChara) displayCharaPanel('cpu', cpuChara);
+        refreshTitleDisplay(document.getElementById('playerTitles_1'));
+        refreshTitleDisplay(document.getElementById('playerTitles_2'));
     });
     initLang();
-
-    // 言語切替時: キャラ名・必殺技・称号を即時更新
-    document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (playerChara) displayCharaPanel('player', playerChara);
-            if (cpuChara) displayCharaPanel('cpu', cpuChara);
-        });
-    });
 
     const systemvolumeSlider = document.getElementById('systemvolumeSlider');
     setupSystemVolumeSlider(systemvolumeSlider);
