@@ -47,6 +47,20 @@ import { showAchievementToast, showCharacterUnlockModal } from "./achievementToa
 // バージョン表示
 document.getElementById('version').textContent = APP_VERSION;
 
+// 必殺技名・内容を高さ内に収まるようフォントサイズを自動縮小
+function fitAbilityText(el) {
+    if (!el) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.fontSize = '';
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        const minSize = 7;
+        while (el.scrollHeight > el.clientHeight && size > minSize) {
+            size -= 0.5;
+            el.style.fontSize = size + 'px';
+        }
+    }));
+}
+
 //------------------------------------------------------------------------------------------------
 const topCanvas = document.getElementById("connect4Canvas_top");
 const canvas = document.getElementById('connect4Canvas');
@@ -479,7 +493,9 @@ async function dispP1Info(charaInfo, player_Name) {
     document.getElementById('charge_1').innerText = playerLeft_chargeNum;
     document.getElementById('Ability_1').innerText = getCharaText(charaInfo.charaID, 'Ability') ?? charaInfo.Ability;
     document.getElementById('AbilityDetail_1').innerText = getCharaText(charaInfo.charaID, 'AbilityDetail') ?? charaInfo.AbilityDetail;
-    
+    fitAbilityText(document.getElementById('Ability_1'));
+    fitAbilityText(document.getElementById('AbilityDetail_1'));
+
     document.getElementById('chargeGageNow_1').innerText = 0; // チャージ量を表示
     document.getElementById('chargeGageMax_1').innerText = charaInfo.chargeMax; // チャージ量を表示
     
@@ -617,7 +633,9 @@ async function dispP2Info(charaInfo, player_Name) {
     document.getElementById('charge_2').innerText = playerRight_chargeNum;
     document.getElementById('Ability_2').innerText = getCharaText(charaInfo.charaID, 'Ability') ?? charaInfo.Ability;
     document.getElementById('AbilityDetail_2').innerText = getCharaText(charaInfo.charaID, 'AbilityDetail') ?? charaInfo.AbilityDetail;
-        
+    fitAbilityText(document.getElementById('Ability_2'));
+    fitAbilityText(document.getElementById('AbilityDetail_2'));
+
     document.getElementById('chargeGageNow_2').innerText = 0; // チャージ量を表示
     document.getElementById('chargeGageMax_2').innerText = charaInfo.chargeMax; // チャージ量を表示
     
@@ -784,17 +802,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const n = document.getElementById('charaID_1');
                 if (n) n.innerText = getCharaText(charaInfo1.charaID, 'name') ?? charaInfo1.name;
                 const a = document.getElementById('Ability_1');
-                if (a) a.innerText = getCharaText(charaInfo1.charaID, 'Ability') ?? charaInfo1.Ability;
+                if (a) { a.innerText = getCharaText(charaInfo1.charaID, 'Ability') ?? charaInfo1.Ability; fitAbilityText(a); }
                 const d = document.getElementById('AbilityDetail_1');
-                if (d) d.innerText = getCharaText(charaInfo1.charaID, 'AbilityDetail') ?? charaInfo1.AbilityDetail;
+                if (d) { d.innerText = getCharaText(charaInfo1.charaID, 'AbilityDetail') ?? charaInfo1.AbilityDetail; fitAbilityText(d); }
             }
             if (charaInfo2) {
                 const n = document.getElementById('charaID_2');
                 if (n) n.innerText = getCharaText(charaInfo2.charaID, 'name') ?? charaInfo2.name;
                 const a = document.getElementById('Ability_2');
-                if (a) a.innerText = getCharaText(charaInfo2.charaID, 'Ability') ?? charaInfo2.Ability;
+                if (a) { a.innerText = getCharaText(charaInfo2.charaID, 'Ability') ?? charaInfo2.Ability; fitAbilityText(a); }
                 const d = document.getElementById('AbilityDetail_2');
-                if (d) d.innerText = getCharaText(charaInfo2.charaID, 'AbilityDetail') ?? charaInfo2.AbilityDetail;
+                if (d) { d.innerText = getCharaText(charaInfo2.charaID, 'AbilityDetail') ?? charaInfo2.AbilityDetail; fitAbilityText(d); }
             }
             applyTitleDisplay(document.getElementById('playerTitles_1'), cachedLeftRating);
             applyTitleDisplay(document.getElementById('playerTitles_2'), cachedRightRating);
