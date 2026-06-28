@@ -228,6 +228,7 @@ export function applyTitleDisplay(element, userData) {
         if (ach) {
             chip.className = `battle-title-banner rarity-${ach.rarity}`;
             chip.textContent = resolveAchTitleName(ach.id, ach.name);
+            chip.dataset.achId = ach.id;
         } else {
             chip.className = 'battle-title-banner empty';
             chip.textContent = t('titleSlotEmpty');
@@ -235,4 +236,16 @@ export function applyTitleDisplay(element, userData) {
         element.appendChild(chip);
         fitChipText(chip);
     }
+}
+
+// 言語切替時専用：既存チップのテキストのみ直接更新（DOM再生成なし）
+export function refreshTitleDisplay(element) {
+    if (!element) return;
+    element.querySelectorAll('.battle-title-banner[data-ach-id]').forEach(chip => {
+        const ach = ALL_ACHIEVEMENTS.find(a => a.id === chip.dataset.achId);
+        if (ach) chip.textContent = resolveAchTitleName(ach.id, ach.name);
+    });
+    element.querySelectorAll('.battle-title-banner.empty').forEach(chip => {
+        chip.textContent = t('titleSlotEmpty');
+    });
 }

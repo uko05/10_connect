@@ -40,7 +40,7 @@ import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getClickMode } from "./settingsManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
-import { recordPvpMatchAchievements, applyTitleDisplay } from "./achievementManager.js";
+import { recordPvpMatchAchievements, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
 
@@ -810,8 +810,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const d = document.getElementById('AbilityDetail_2');
             if (d) { d.innerText = getCharaText(charaInfo2.charaID, 'AbilityDetail') ?? charaInfo2.AbilityDetail; fitAbilityText(d); }
         }
-        applyTitleDisplay(document.getElementById('playerTitles_1'), cachedLeftRating);
-        applyTitleDisplay(document.getElementById('playerTitles_2'), cachedRightRating);
+        refreshTitleDisplay(document.getElementById('playerTitles_1'));
+        refreshTitleDisplay(document.getElementById('playerTitles_2'));
     });
     initLang();
 
