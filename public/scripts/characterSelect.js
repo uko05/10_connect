@@ -30,6 +30,19 @@ setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('settingsModal'));
 initLang();
 
+function fitAbilityText(el) {
+    if (!el) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.fontSize = '';
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        const minSize = 7;
+        while (el.scrollHeight > el.clientHeight && size > minSize) {
+            size -= 0.5;
+            el.style.fontSize = size + 'px';
+        }
+    }));
+}
+
 // アチーブメント名を現在の言語で返すヘルパー
 function getAchName(achId, jaLabel) {
     if (!achId) return jaLabel || '';
@@ -283,6 +296,8 @@ function displayCharacterInfo(character) {
     document.getElementById('characterCharge').innerText = character.charge;
     document.getElementById('Ability').innerText = getCharaText(character.charaID, 'Ability') ?? character.Ability;
     document.getElementById('AbilityDetail').innerText = getCharaText(character.charaID, 'AbilityDetail') ?? character.AbilityDetail;
+    fitAbilityText(document.getElementById('Ability'));
+    fitAbilityText(document.getElementById('AbilityDetail'));
     document.getElementById('charaID').value = character.charaID;
 }
 
