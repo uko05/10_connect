@@ -649,6 +649,43 @@ function cpuShouldUseAbility() {
         const ownStones = Object.values(stones).filter(c => c === CPU_COLOR).length;
         return opponentStones >= 3 && ownStones >= 6;
     }
+    // 放浪者：盤面全体に相手石が6個以上（4列×上2個なのでほぼ全体カバー）
+    if (cpuChara?.charaID === '001') {
+        const opp = Object.values(stones).filter(c => c === PLAYER_COLOR).length;
+        return opp >= 6;
+    }
+    // アルハイゼン：中央3列（列2,3,4）に相手石が3個以上（その2列を全削除）
+    if (cpuChara?.charaID === '003') {
+        const opp = Object.keys(stones).filter(k => {
+            const col = parseInt(k.split('_')[0]);
+            return [2, 3, 4].includes(col) && stones[k] === PLAYER_COLOR;
+        }).length;
+        return opp >= 3;
+    }
+    // ナヴィア：上から3段（row 0,1,2）に相手石が2個以上（横3段を全削除）
+    if (cpuChara?.charaID === '004') {
+        const opp = Object.keys(stones).filter(k => {
+            const row = parseInt(k.split('_')[1]);
+            return row <= 2 && stones[k] === PLAYER_COLOR;
+        }).length;
+        return opp >= 2;
+    }
+    // マダム・ヘルタ：いずれかの列に相手石が3個以上（その列を全削除）
+    if (cpuChara?.charaID === '006') {
+        for (let c = 0; c < cols; c++) {
+            const colOpp = Object.keys(stones).filter(k => k.startsWith(`${c}_`) && stones[k] === PLAYER_COLOR).length;
+            if (colOpp >= 3) return true;
+        }
+        return false;
+    }
+    // キャストリス：端4列（列0,1,5,6）に相手石が4個以上（そのうち3列を全削除）
+    if (cpuChara?.charaID === '007') {
+        const opp = Object.keys(stones).filter(k => {
+            const col = parseInt(k.split('_')[0]);
+            return [0, 1, 5, 6].includes(col) && stones[k] === PLAYER_COLOR;
+        }).length;
+        return opp >= 4;
+    }
     const playerAheadOnCharge = playerCharge > cpuCharge + 30;
     return hasImmediateThreat(PLAYER_COLOR) || playerAheadOnCharge;
 }
