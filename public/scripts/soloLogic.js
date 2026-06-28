@@ -64,6 +64,8 @@ let playerChara = null;
 let cpuChara = null;
 let playerUltAudio = null;
 let cpuUltAudio = null;
+let playerAttackAudio = null;
+let cpuAttackAudio = null;
 let hanabiSetupCol = -1; // 花火CPUセットアップ列（-1=なし）
 let currentUid = null; // アチーブメント記録用（認証は裏で進める。対局の進行はブロックしない）
 authReady.then(async (user) => {
@@ -1328,6 +1330,8 @@ async function dropAt(column, role) {
     stones[`${column}_${row}`] = role;
     moveSound.currentTime = 0;
     moveSound.play().catch(() => {});
+    const attackAudio = role === PLAYER_COLOR ? playerAttackAudio : cpuAttackAudio;
+    if (attackAudio) { attackAudio.currentTime = 0; attackAudio.play().catch(() => {}); }
     await animateStoneDrop(column, row, role);
     return true;
 }
@@ -1694,12 +1698,16 @@ function initCharacters() {
     displayCharaPanel('cpu', cpuChara);
     applyPaneColors();
 
-    // ult音声 Audio オブジェクトを生成
+    // 音声 Audio オブジェクトを生成
     const voiceVol = parseFloat(document.getElementById('voicevolumeSlider')?.value ?? 0.2);
     playerUltAudio = new Audio(playerChara.voice_ult);
     playerUltAudio.volume = voiceVol;
     cpuUltAudio = new Audio(cpuChara.voice_ult);
     cpuUltAudio.volume = voiceVol;
+    playerAttackAudio = new Audio(playerChara.voice_attack);
+    playerAttackAudio.volume = voiceVol;
+    cpuAttackAudio = new Audio(cpuChara.voice_attack);
+    cpuAttackAudio.volume = voiceVol;
 
     return true;
 }

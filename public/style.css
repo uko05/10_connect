@@ -1075,6 +1075,8 @@ details[open] > .achievement-group-header::after {
     box-sizing: border-box; /* パディングとボーダーを幅に含める */
     text-align: left; /* 左揃え */
     height: 30px; /* 高さ */
+    display: flex;
+    align-items: center;
 }
 
 /* キャラ名 + CT + チャージ量を1行に並べる */
