@@ -792,32 +792,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 石カラー変更時に即座に盤面を再描画
         init_drawBoard(true);
         disp_TopStone(turn, nowCol);
+    }, () => {
+        // 言語切替時: キャラ名・必殺技・称号を即時更新（applyLangの直後に確実に実行）
+        if (charaInfo1) {
+            const n = document.getElementById('charaID_1');
+            if (n) n.innerText = getCharaText(charaInfo1.charaID, 'name') ?? charaInfo1.name;
+            const a = document.getElementById('Ability_1');
+            if (a) { a.innerText = getCharaText(charaInfo1.charaID, 'Ability') ?? charaInfo1.Ability; fitAbilityText(a); }
+            const d = document.getElementById('AbilityDetail_1');
+            if (d) { d.innerText = getCharaText(charaInfo1.charaID, 'AbilityDetail') ?? charaInfo1.AbilityDetail; fitAbilityText(d); }
+        }
+        if (charaInfo2) {
+            const n = document.getElementById('charaID_2');
+            if (n) n.innerText = getCharaText(charaInfo2.charaID, 'name') ?? charaInfo2.name;
+            const a = document.getElementById('Ability_2');
+            if (a) { a.innerText = getCharaText(charaInfo2.charaID, 'Ability') ?? charaInfo2.Ability; fitAbilityText(a); }
+            const d = document.getElementById('AbilityDetail_2');
+            if (d) { d.innerText = getCharaText(charaInfo2.charaID, 'AbilityDetail') ?? charaInfo2.AbilityDetail; fitAbilityText(d); }
+        }
+        applyTitleDisplay(document.getElementById('playerTitles_1'), cachedLeftRating);
+        applyTitleDisplay(document.getElementById('playerTitles_2'), cachedRightRating);
     });
     initLang();
-
-    // 言語切替時: キャラ名・必殺技・称号を即時更新
-    document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (charaInfo1) {
-                const n = document.getElementById('charaID_1');
-                if (n) n.innerText = getCharaText(charaInfo1.charaID, 'name') ?? charaInfo1.name;
-                const a = document.getElementById('Ability_1');
-                if (a) { a.innerText = getCharaText(charaInfo1.charaID, 'Ability') ?? charaInfo1.Ability; fitAbilityText(a); }
-                const d = document.getElementById('AbilityDetail_1');
-                if (d) { d.innerText = getCharaText(charaInfo1.charaID, 'AbilityDetail') ?? charaInfo1.AbilityDetail; fitAbilityText(d); }
-            }
-            if (charaInfo2) {
-                const n = document.getElementById('charaID_2');
-                if (n) n.innerText = getCharaText(charaInfo2.charaID, 'name') ?? charaInfo2.name;
-                const a = document.getElementById('Ability_2');
-                if (a) { a.innerText = getCharaText(charaInfo2.charaID, 'Ability') ?? charaInfo2.Ability; fitAbilityText(a); }
-                const d = document.getElementById('AbilityDetail_2');
-                if (d) { d.innerText = getCharaText(charaInfo2.charaID, 'AbilityDetail') ?? charaInfo2.AbilityDetail; fitAbilityText(d); }
-            }
-            applyTitleDisplay(document.getElementById('playerTitles_1'), cachedLeftRating);
-            applyTitleDisplay(document.getElementById('playerTitles_2'), cachedRightRating);
-        });
-    });
 
     // Auth完了を待機（Security Rulesで auth != null が必要）
     try {
@@ -1334,8 +1330,24 @@ async function watchRoomUpdates() {
             playerRight_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
             
             // ターン変化検知（クロスターンエフェクト用）
-            const turnJustChangedToMe = (pvpPrevTurn !== data.turn && data.turn === player_info);
+            const turnJustChanged = (pvpPrevTurn !== data.turn);
+            const turnJustChangedToMe = (turnJustChanged && data.turn === player_info);
             pvpPrevTurn = data.turn;
+
+            // 銀狼ULT等による直接ポイント加算をターン変更時に同期（checkWin非経由の加点）
+            if (turnJustChanged) {
+                const serverRed = data.red_Win ?? 0;
+                const serverYellow = data.yellow_Win ?? 0;
+                if (serverRed > red_Win || serverYellow > yellow_Win) {
+                    red_Win = Math.max(red_Win, serverRed);
+                    yellow_Win = Math.max(yellow_Win, serverYellow);
+                    if (playerLeft_Color === 'red') {
+                        updateWinLabels(red_Win, yellow_Win);
+                    } else {
+                        updateWinLabels(yellow_Win, red_Win);
+                    }
+                }
+            }
 
             // クロスターンエフェクト状態をFirestoreから同期
             pvpZhongliBlocked = data.zhongliBlocked || null;
@@ -1350,21 +1362,6 @@ async function watchRoomUpdates() {
             stonesData = data.stones || {};
             turn = data.turn;
             changeStone = data.changeStone;
-
-            // 銀狼ULT等による直接ポイント加算を相手側クライアントに同期
-            {
-                const serverRed = data.red_Win ?? 0;
-                const serverYellow = data.yellow_Win ?? 0;
-                if (serverRed > red_Win || serverYellow > yellow_Win) {
-                    red_Win = Math.max(red_Win, serverRed);
-                    yellow_Win = Math.max(yellow_Win, serverYellow);
-                    if (playerLeft_Color === 'red') {
-                        updateWinLabels(red_Win, yellow_Win);
-                    } else {
-                        updateWinLabels(yellow_Win, red_Win);
-                    }
-                }
-            }
 
             if (!ultAfter) init_drawBoard();
             updateGauge();
@@ -4233,10 +4230,13 @@ async function ult_silverwolf() {
             await handleBO3Final(winningColor, "normal", { isStraightWin, isComebackWin: false });
             displayVictory(winningColor);
         } else {
-            // 3ポイント未満：勝利数のみFirestoreに同期し、盤面はそのまま継続
+            // 3ポイント未満：勝利数とターンをFirestoreに同期し、盤面はそのまま継続
+            const nextTurn = turn === 'P1' ? 'P2' : 'P1';
+            turn = nextTurn;
             await updateDoc(firestoreRoomDocRef, {
                 red_Win: red_Win,
-                yellow_Win: yellow_Win
+                yellow_Win: yellow_Win,
+                turn: nextTurn
             });
         }
     } catch (error) {

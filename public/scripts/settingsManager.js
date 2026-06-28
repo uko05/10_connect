@@ -146,7 +146,7 @@ export function getVoiceVolume() {
  * @param {Document|HTMLElement} root - モーダルのルート要素（document可）
  * @param {function} [onColorChange] - 石カラー変更時に呼ばれるコールバック（再描画用）
  */
-export function bindSettingsUI(root, onColorChange) {
+export function bindSettingsUI(root, onColorChange, onLangChange) {
     // 色スウォッチ
     const swatchButtons = root.querySelectorAll(".color-swatch");
     swatchButtons.forEach(btn => {
@@ -195,7 +195,10 @@ export function bindSettingsUI(root, onColorChange) {
     langRadios.forEach(radio => {
         radio.checked = radio.value === currentLang;
         radio.addEventListener("change", () => {
-            if (radio.checked) applyLang(radio.value);
+            if (radio.checked) {
+                applyLang(radio.value);
+                if (onLangChange) onLangChange(radio.value);
+            }
         });
     });
 }
