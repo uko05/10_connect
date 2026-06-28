@@ -1350,7 +1350,22 @@ async function watchRoomUpdates() {
             stonesData = data.stones || {};
             turn = data.turn;
             changeStone = data.changeStone;
-            
+
+            // 銀狼ULT等による直接ポイント加算を相手側クライアントに同期
+            {
+                const serverRed = data.red_Win ?? 0;
+                const serverYellow = data.yellow_Win ?? 0;
+                if (serverRed > red_Win || serverYellow > yellow_Win) {
+                    red_Win = Math.max(red_Win, serverRed);
+                    yellow_Win = Math.max(yellow_Win, serverYellow);
+                    if (playerLeft_Color === 'red') {
+                        updateWinLabels(red_Win, yellow_Win);
+                    } else {
+                        updateWinLabels(yellow_Win, red_Win);
+                    }
+                }
+            }
+
             if (!ultAfter) init_drawBoard();
             updateGauge();
             
@@ -4218,9 +4233,11 @@ async function ult_silverwolf() {
             await handleBO3Final(winningColor, "normal", { isStraightWin, isComebackWin: false });
             displayVictory(winningColor);
         } else {
-            // ラウンド+1として次ラウンドへ（発動者がボードリセットを担当）
-            startP = player_info === 'P1' ? 'P2' : 'P1'; // 負けた側（相手）が次ラウンド先攻
-            await deleteStonesAndUpdate(); // 内部でred_Win, yellow_Winを書き込む
+            // 3ポイント未満：勝利数のみFirestoreに同期し、盤面はそのまま継続
+            await updateDoc(firestoreRoomDocRef, {
+                red_Win: red_Win,
+                yellow_Win: yellow_Win
+            });
         }
     } catch (error) {
         console.error("銀狼LV.999の必殺技処理中にエラーが発生しました:", error);
