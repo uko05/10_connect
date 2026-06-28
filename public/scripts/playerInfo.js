@@ -61,9 +61,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             copyBtn.style.display = '';
             copyBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(currentUid).then(() => {
-                    const prev = copyBtn.textContent;
                     copyBtn.textContent = '✓';
-                    setTimeout(() => { copyBtn.textContent = prev; }, 1500);
+                    setTimeout(() => { copyBtn.textContent = 'コピー'; }, 1500);
                 });
             });
         }
