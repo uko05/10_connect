@@ -466,15 +466,6 @@ async function displayThumbnails() {
 
     playerColor = playerLeft_Color;
          
-    // Firestoreのリスナーを追加
-    const roomRef = doc(db, "rooms", roomID); // roomIDが適切に設定されていることを確認
-    onSnapshot(roomRef, (doc) => {
-        const data = doc.data();
-        if (data) {
-            handleRoomUpdate(); // rooms更新時に石を反映
-        }
-    });
-
     // 最後にルーム情報を再取得するクエリを設定
     const myroom = query(
         roomsRef,
@@ -2071,21 +2062,6 @@ function findAvailableRowFromStones(column, stones) {
     if (!stones[`${column}_${r}`]) return r;
   }
   return -1;
-}
-
-//--------------------------------------------------------------------------------
-
-// 3. roomsが更新されたときに動く処理
-function handleRoomUpdate() {
-
-    // 最新のstonesデータから石を落とすアニメーションを実行
-    for (let key in stonesData) {
-        const [column, row] = key.split('_').map(Number);
-        const playerColor = stonesData[key];
-
-        // アニメーションで石を落とす
-        animateStoneDrop(column, row, playerColor);
-    }
 }
 
 // 石が落ちるアニメーションを実行する関数
