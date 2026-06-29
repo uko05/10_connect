@@ -1280,9 +1280,10 @@ async function watchRoomUpdates() {
             turn = data.turn; // ② resetTimeLimit 内の isTurnPlayer() が正しいターンで判定できるよう先に更新
 
             // 初回ロード時はタイマーリセットしない
+            // ハートビート等でturnCountが変わらない更新ではリセットしない（タイマー誤リセット防止）
             if (isInitialLoad) {
                 isInitialLoad = false;
-            } else {
+            } else if (data.turnCount !== turnCount) {
                 // ② TimeLimit・turn 更新後にリセット（正しい値でタイマーが再開される）
                 resetTimeLimit();
                 // すでにハイライトが存在する場合は削除
