@@ -1536,8 +1536,13 @@ async function watchRoomUpdates() {
                     }
                 }
 
+                // P1/P2 両方でローカルの turn を次ラウンドの先攻に更新する。
+                // P2 は onSnapshot(turnCount:1) を winningflg=1 でスキップするため、
+                // そこで turn が更新されず石が置けない状態になるのを防ぐ。
+                turn = startP;
                 stonesData = {};
                 disp_DeleteStone();
+                resetTimeLimit();
                 showTurnLabel();
                 disp_TopStone(turn, nowCol);
                 init_drawBoard();
