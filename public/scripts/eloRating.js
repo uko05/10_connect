@@ -156,14 +156,12 @@ export async function applyRatingDisplay(element, userData, badgeElement, rankNa
 export async function writeBO3Result(roomDocRef, {
     winnerUid,
     resultType,
-    matchType,
     p1CharaId,
     p2CharaId
 }) {
     await updateDoc(roomDocRef, {
         winnerUid,
         resultType,
-        matchType,
         p1CharaId,
         p2CharaId,
         bo3Final: true,

@@ -99,10 +99,12 @@ service cloud.firestore {
           || resource.data.rated == request.resource.data.rated
         );
 
-      // 削除はP1（rooms作成者）、または30秒以上ハートビートが無いwaiting中の不在部屋なら誰でも許可（自浄用）
+      // 削除はP1/P2（参加者）、または30秒以上ハートビートが無いwaiting中の不在部屋なら誰でも許可（自浄用）
+      // P1が退出した場合にP2がrooms削除を担当できるようP2も許可する
       allow delete: if request.auth != null
         && (
           resource.data.player1_ID == request.auth.uid
+          || resource.data.player2_ID == request.auth.uid
           || (
             resource.data.status == "waiting"
             && "player1_LastActive" in resource.data

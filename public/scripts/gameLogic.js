@@ -2733,8 +2733,9 @@ function displayMatchDraw() {
 // resultType: "normal" | "leave" | "timeout"
 // matchFlags: { isStraightWin, isComebackWin } - "normal"決着時のみ意味を持つ
 async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
-    // P2はレート処理に関与しない（P1のみが全責務を持つ）
-    if (player_info !== "P1") {
+    // leave（退出）はP1が退出している可能性があるため残ったプレイヤーが担当。
+    // それ以外（通常・タイムアウト）はP1のみが全責務を持つ（二重実行防止）。
+    if (resultType !== "leave" && player_info !== "P1") {
         console.log("[Rating] P2: レート処理はP1に委任");
         return;
     }
@@ -2758,11 +2759,10 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
     console.log("[Rating] handleBO3Final:", { winningColor, resultType, matchType, winnerUid, p1Uid, p2Uid });
 
     try {
-        // 1. roomsに結果フィールドを書き込み（P1のみ）
+        // 1. roomsに結果フィールドを書き込み
         await writeBO3Result(firestoreRoomDocRef, {
             winnerUid,
             resultType,
-            matchType,
             p1CharaId,
             p2CharaId
         });
