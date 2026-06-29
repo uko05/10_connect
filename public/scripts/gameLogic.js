@@ -1278,14 +1278,16 @@ async function watchRoomUpdates() {
             } else if (data.turnCount === turnCount) {
                 return;
             }
-            // showWinner等の非同期処理中にonSnapshotが再発火しても早期returnできるよう先に更新
-            turnCount = data.turnCount;
 
             // ラウンドリセット処理中（showWinner + deleteStonesAndUpdate 実行中）は再入をスキップ。
-            // winningflg=0 への解除は deleteStonesAndUpdate 完了後のみ行う。
+            // ★ turnCount の更新は winningflg===0 のときだけ行う。
+            //   winningflg===1 中にスキップした onSnapshot（例: turnCount:1）は
+            //   turnCount_local を変えずに保持し、winningflg=0 になった後に
+            //   改めて「turnCount が変わった通知」として正常処理させるため。
             if (winningflg === 1) {
                 return;
             }
+            turnCount = data.turnCount;
 
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
