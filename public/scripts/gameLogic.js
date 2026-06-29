@@ -837,7 +837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         handleMoveColumn(event);
     });
     topCanvas.addEventListener("mousemove", (event) => {
-        if (isMoving) handleMoveColumnSilent(event);
+        handleMoveColumnSilent(event); // クリックなしでもハイライト追従
     });
     topCanvas.addEventListener("mouseup", () => { isMoving = false; });
 
@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     canvas.addEventListener("mousemove", (event) => {
-        if (!selectedCharacter && isMoving) handleMoveColumnSilent(event);
+        if (!selectedCharacter) handleMoveColumnSilent(event); // クリックなしでもハイライト追従
     });
     canvas.addEventListener("mouseup", () => { isMoving = false; });
 
@@ -2124,23 +2124,30 @@ function updateGauge() {
     if (playerLeft_ChargeNow >= 150) {
         gauge1.style.backgroundColor = "#f00"; // 最大で赤
     } else if (playerLeft_ChargeNow >= 75) {
-        gauge1.style.backgroundColor = "#ffbb00"; 
+        gauge1.style.backgroundColor = "#ffbb00";
     } else if (playerLeft_ChargeNow < 75) {
         gauge1.style.backgroundColor = "#1eff00";
     }
-    
+
+    // CT150以上でキャラアイコンを強調表示
+    const thumb1 = document.getElementById('thumbnailContainerP1');
+    if (thumb1) thumb1.classList.toggle('ult-ready', playerLeft_ChargeNow >= 150);
+
     const gauge2 = document.getElementById('playerGauge2');
     document.getElementById('chargeGageNow_2').innerText = playerRight_ChargeNow; // チャージ量を表示
     const heightPercent2 = Math.min((playerRight_ChargeNow / 200) * 100, 100); // 最大で100%まで
     gauge2.style.height = heightPercent2 + "%";
-    
+
     if (playerRight_ChargeNow >= 150) {
         gauge2.style.backgroundColor = "#f00"; // 最大で赤
     } else if (playerRight_ChargeNow >= 75) {
-        gauge2.style.backgroundColor = "#ffbb00"; 
+        gauge2.style.backgroundColor = "#ffbb00";
     } else if (playerRight_ChargeNow < 75) {
         gauge2.style.backgroundColor = "#1eff00";
     }
+
+    const thumb2 = document.getElementById('thumbnailContainerP2');
+    if (thumb2) thumb2.classList.toggle('ult-ready', playerRight_ChargeNow >= 150);
 }
 
 //------------------------------------------------------------------------------------------------

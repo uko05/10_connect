@@ -760,6 +760,17 @@ details[open] > .achievement-group-header::after {
     gap: 5px; /* サムネイル間のスペース（隙間を半分に） */
 }
 
+@keyframes ult-ready-pulse {
+    0%, 100% { box-shadow: 0 0 0px 0px rgba(255, 50, 50, 0); }
+    50%       { box-shadow: 0 0 16px 6px rgba(255, 80, 0, 0.85); }
+}
+
+.thumbnail-container.ult-ready img {
+    animation: ult-ready-pulse 1s ease-in-out infinite;
+    border-radius: 6px;
+    outline: 2px solid rgba(255, 120, 0, 0.9);
+}
+
 .charalist {
     display: flex; /* フレックスボックスで子要素を横並び */
     flex-direction: column; /* 縦に並べる */

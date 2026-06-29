@@ -1316,6 +1316,12 @@ function updateGaugeUI() {
     g2.style.height = Math.min((cpuCharge / 200) * 100, 100) + '%';
     g2.style.backgroundColor = cpuCharge >= 150 ? '#f00' : cpuCharge >= 75 ? '#ffbb00' : '#1eff00';
 
+    // CT150以上でキャラアイコンを強調表示
+    const thumb1 = document.getElementById('thumbnailContainerP1');
+    if (thumb1) thumb1.classList.toggle('ult-ready', playerCharge >= 150);
+    const thumb2 = document.getElementById('thumbnailContainerP2');
+    if (thumb2) thumb2.classList.toggle('ult-ready', cpuCharge >= 150);
+
     updateSpecialMoveButtonVisibility();
 }
 
