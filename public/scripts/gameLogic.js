@@ -1281,6 +1281,23 @@ async function watchRoomUpdates() {
             // showWinner等の非同期処理中にonSnapshotが再発火しても早期returnできるよう先に更新
             turnCount = data.turnCount;
 
+            // ラウンドリセット待機中（winningflg=1）の処理
+            // 非ターンプレイヤー（P2）がdeleteStonesAndUpdateを完了するまでP1は石を置けない状態を維持する。
+            // turnCount:1 の受信でリセット完了と判断し、画面を更新してwinnigflgを解除する。
+            if (winningflg === 1) {
+                if (data.turnCount === 1) {
+                    winningflg = 0;
+                    stonesData = data.stones || {};
+                    turn = data.turn;
+                    init_drawBoard();
+                    showTurnLabel();
+                    disp_TopStone(data.turn, nowCol);
+                    createMemoryMarks();
+                    if (!ultAfter) loadTimeRemaining();
+                }
+                return;
+            }
+
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
 
@@ -1518,24 +1535,28 @@ async function watchRoomUpdates() {
             
             // ターンプレイヤーのみ処理を行う（二重更新対策）
             if (result.red || result.yellow) {
-            
+
                 console.log("●●●●●●●●●●●");
-                
+
                 if (!isTurnPlayer()) {
+                    // 非ターンプレイヤー（石を置いた側）がFirestoreのstonesをリセットする
                     await deleteStonesAndUpdate();
                     console.log("Roomsコレクション石初期化");
+                    stonesData = {};
+                    disp_DeleteStone();
+                    showTurnLabel();
+                    disp_TopStone(turn, nowCol);
+                    init_drawBoard();
+                    winningflg = 0; // Firestore更新完了後にリセット
+                } else {
+                    // ターンプレイヤー（次に石を置く側）はwinnigflg=1を維持する。
+                    // onSnapshotでturnCount:1（deleteStonesAndUpdate完了）を受け取ってから0にする。
+                    stonesData = {}; // ローカル描画用クリア（Firestoreはまだ更新されていない）
+                    disp_DeleteStone();
                 }
-                disp_DeleteStone();
-                
-                showTurnLabel();
-                disp_TopStone(turn, nowCol);
-                init_drawBoard();
-                
-                // 画面リセットしたのでフラグを戻す。
-                winningflg = 0;
-                
+
                 console.log("〇〇〇〇〇〇〇〇〇〇〇");
-                
+
             } else {
                 // クロスターンエフェクトを処理（勝利なしのターン切替時）
                 await processPvpCrossTurnEffects(turnJustChangedToMe);
