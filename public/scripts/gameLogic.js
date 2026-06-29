@@ -1271,6 +1271,14 @@ async function watchRoomUpdates() {
               return;
             }
 
+            // ハートビート等でturnCountが変わらない更新はゲーム処理を全スキップ
+            // （showTurnLabel/resetTimeLimit/init_drawBoard等の誤発火を防止）
+            if (isInitialLoad) {
+                isInitialLoad = false;
+            } else if (data.turnCount === turnCount) {
+                return;
+            }
+
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
 
@@ -1279,17 +1287,9 @@ async function watchRoomUpdates() {
             playerRight_TimeLimit = player_info === 'P1' ? data.player2_TimeLimit : data.player1_TimeLimit;
             turn = data.turn; // ② resetTimeLimit 内の isTurnPlayer() が正しいターンで判定できるよう先に更新
 
-            // 初回ロード時はタイマーリセットしない
-            // ハートビート等でturnCountが変わらない更新ではリセットしない（タイマー誤リセット防止）
-            if (isInitialLoad) {
-                isInitialLoad = false;
-            } else if (data.turnCount !== turnCount) {
-                // ② TimeLimit・turn 更新後にリセット（正しい値でタイマーが再開される）
-                resetTimeLimit();
-                // すでにハイライトが存在する場合は削除
-                if (highlightedColumn) {
-                    highlightedColumn.remove();
-                }
+            resetTimeLimit();
+            if (highlightedColumn) {
+                highlightedColumn.remove();
             }
             
             // 相手がULTを使ったときにカットインだけでも出したいなぁ
