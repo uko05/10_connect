@@ -1522,12 +1522,20 @@ async function watchRoomUpdates() {
                 return; // この後の処理をスキップ
             }
             
-            // ラウンドリセット処理（P1/P2 両方が実行 — isTurnPlayer判定の不確かさを排除）
+            // ラウンドリセット処理（P1 のみ Firestore 書き込み — 両方が書くと競合で失敗しエラーを飲み込みwinningflg=0→石残存→再checkWin となる）
             if (result.red || result.yellow) {
 
                 console.log("●●●●●●●●●●●");
 
-                await deleteStonesAndUpdate();
+                if (player_info === 'P1') {
+                    try {
+                        await deleteStonesAndUpdate();
+                    } catch (error) {
+                        console.error("[ラウンドリセット] Firestore 書き込み失敗。winningflg=1 を維持:", error);
+                        return; // winningflg = 1 のまま（再入防止）
+                    }
+                }
+
                 stonesData = {};
                 disp_DeleteStone();
                 showTurnLabel();
@@ -1604,6 +1612,7 @@ async function deleteStonesAndUpdate() {
         }
     } catch (error) {
         console.error("Firestoreの更新に失敗しました:", error);
+        throw error; // 呼び出し元で winningflg=1 を維持させるため伝播
     }
     console.log("・deleteStonesAndUpdate");
 }
