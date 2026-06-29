@@ -1278,6 +1278,8 @@ async function watchRoomUpdates() {
             } else if (data.turnCount === turnCount) {
                 return;
             }
+            // showWinner等の非同期処理中にonSnapshotが再発火しても早期returnできるよう先に更新
+            turnCount = data.turnCount;
 
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
             playerRight_ChargeNow = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
@@ -1352,7 +1354,6 @@ async function watchRoomUpdates() {
             pvpCerluaActive = data.cerluaActive || false;
             pvpCerluaCasterColor = data.cerluaCasterColor || null;
 
-            turnCount = data.turnCount;
             stonesData = data.stones || {};
             turn = data.turn;
             changeStone = data.changeStone;
@@ -1593,9 +1594,9 @@ async function deleteStonesAndUpdate() {
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             // ドキュメントが存在する場合は updateDoc または setDoc を実行
-            querySnapshot.forEach(async (docSnapshot) => {
+            for (const docSnapshot of querySnapshot.docs) {
                 await updateDoc(docSnapshot.ref, updates);
-            });
+            }
             console.log("ゲージがリセットされました。次の試合に移行します。");
         } else {
             console.log("該当の roomID のドキュメントが存在しません。");
