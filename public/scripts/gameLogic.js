@@ -1281,20 +1281,9 @@ async function watchRoomUpdates() {
             // showWinner等の非同期処理中にonSnapshotが再発火しても早期returnできるよう先に更新
             turnCount = data.turnCount;
 
-            // ラウンドリセット待機中（winningflg=1）の処理
-            // 非ターンプレイヤー（P2）がdeleteStonesAndUpdateを完了するまでP1は石を置けない状態を維持する。
-            // turnCount:1 の受信でリセット完了と判断し、画面を更新してwinnigflgを解除する。
+            // ラウンドリセット処理中（showWinner + deleteStonesAndUpdate 実行中）は再入をスキップ。
+            // winningflg=0 への解除は deleteStonesAndUpdate 完了後のみ行う。
             if (winningflg === 1) {
-                if (data.turnCount === 1) {
-                    winningflg = 0;
-                    stonesData = data.stones || {};
-                    turn = data.turn;
-                    init_drawBoard();
-                    showTurnLabel();
-                    disp_TopStone(data.turn, nowCol);
-                    createMemoryMarks();
-                    if (!ultAfter) loadTimeRemaining();
-                }
                 return;
             }
 
@@ -1533,27 +1522,18 @@ async function watchRoomUpdates() {
                 return; // この後の処理をスキップ
             }
             
-            // ターンプレイヤーのみ処理を行う（二重更新対策）
+            // ラウンドリセット処理（P1/P2 両方が実行 — isTurnPlayer判定の不確かさを排除）
             if (result.red || result.yellow) {
 
                 console.log("●●●●●●●●●●●");
 
-                if (!isTurnPlayer()) {
-                    // 非ターンプレイヤー（石を置いた側）がFirestoreのstonesをリセットする
-                    await deleteStonesAndUpdate();
-                    console.log("Roomsコレクション石初期化");
-                    stonesData = {};
-                    disp_DeleteStone();
-                    showTurnLabel();
-                    disp_TopStone(turn, nowCol);
-                    init_drawBoard();
-                    winningflg = 0; // Firestore更新完了後にリセット
-                } else {
-                    // ターンプレイヤー（次に石を置く側）はwinnigflg=1を維持する。
-                    // onSnapshotでturnCount:1（deleteStonesAndUpdate完了）を受け取ってから0にする。
-                    stonesData = {}; // ローカル描画用クリア（Firestoreはまだ更新されていない）
-                    disp_DeleteStone();
-                }
+                await deleteStonesAndUpdate();
+                stonesData = {};
+                disp_DeleteStone();
+                showTurnLabel();
+                disp_TopStone(turn, nowCol);
+                init_drawBoard();
+                winningflg = 0;
 
                 console.log("〇〇〇〇〇〇〇〇〇〇〇");
 
