@@ -1540,6 +1540,7 @@ async function watchRoomUpdates() {
 
                 turn = startP;
                 stonesData = {};
+                turnCount = 1;
                 disp_DeleteStone();
                 resetTimeLimit();
                 showTurnLabel();
