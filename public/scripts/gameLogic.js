@@ -1524,23 +1524,20 @@ async function watchRoomUpdates() {
                 return; // この後の処理をスキップ
             }
             
-            // ラウンドリセット処理（P1 のみ Firestore 書き込み — 両方が書くと競合で失敗しエラーを飲み込みwinningflg=0→石残存→再checkWin となる）
+            // ラウンドリセット処理（P1/P2 両方が実行）
+            // 連続ポイントの根本原因は turnCount の早期更新だったため（v1.25.6 で修正済み）、
+            // 「P1 のみ書き込み」制限は不要。両方が書いても Firestore ルールは通る。
             if (result.red || result.yellow) {
 
                 console.log("●●●●●●●●●●●");
 
-                if (player_info === 'P1') {
-                    try {
-                        await deleteStonesAndUpdate();
-                    } catch (error) {
-                        console.error("[ラウンドリセット] Firestore 書き込み失敗。winningflg=1 を維持:", error);
-                        return; // winningflg = 1 のまま（再入防止）
-                    }
+                try {
+                    await deleteStonesAndUpdate();
+                } catch (error) {
+                    console.error("[ラウンドリセット] Firestore 書き込み失敗。winningflg=1 を維持:", error);
+                    return; // winningflg = 1 のまま（再入防止）
                 }
 
-                // P1/P2 両方でローカルの turn を次ラウンドの先攻に更新する。
-                // P2 は onSnapshot(turnCount:1) を winningflg=1 でスキップするため、
-                // そこで turn が更新されず石が置けない状態になるのを防ぐ。
                 turn = startP;
                 stonesData = {};
                 disp_DeleteStone();
