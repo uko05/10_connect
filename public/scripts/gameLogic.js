@@ -2788,7 +2788,9 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
             winnerUid,
             resultType,
             p1CharaId,
-            p2CharaId
+            p2CharaId,
+            redWin: red_Win,
+            yellowWin: yellow_Win
         });
         console.log("[Rating] writeBO3Result 完了");
 

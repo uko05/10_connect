@@ -79,13 +79,12 @@ service cloud.firestore {
         && request.resource.data.player2_UltCount is int && request.resource.data.player2_UltCount >= resource.data.player2_UltCount && request.resource.data.player2_UltCount <= resource.data.player2_UltCount + 1
         && request.resource.data.player1_TimeoutCount is int && request.resource.data.player1_TimeoutCount >= resource.data.player1_TimeoutCount && request.resource.data.player1_TimeoutCount <= resource.data.player1_TimeoutCount + 1
         && request.resource.data.player2_TimeoutCount is int && request.resource.data.player2_TimeoutCount >= resource.data.player2_TimeoutCount && request.resource.data.player2_TimeoutCount <= resource.data.player2_TimeoutCount + 1
-        // BO3確定（bo3Final）は resultType が valid な試合終了値を持つ書き込みのみ許可
-        // resource.data.red_Win == 3 でのチェックは「最終ラウンドで deleteStonesAndUpdate が走る前に
-        // writeBO3Result が呼ばれる」ため常に2以下になり拒否される。
-        // winnerUid 制約（参加者のみ）・bo3Final 凍結・rated 巻き戻し防止の各チェックで不正を防止。
+        // BO3確定（bo3Final）は書き込みリクエスト内の red_Win/yellow_Win が 3 の場合のみ許可
+        // writeBO3Result() が red_Win: 3 を含めて書き込むため request.resource.data を参照する
+        // （resource.data.red_Win は最終ラウンドで deleteStonesAndUpdate が未実行のため常に2以下）
         && (
           !("bo3Final" in request.resource.data) || request.resource.data.bo3Final != true
-          || request.resource.data.resultType in ["normal", "leave", "timeout"]
+          || request.resource.data.red_Win == 3 || request.resource.data.yellow_Win == 3
         )
         // 確定後は決着フィールドを凍結
         && (

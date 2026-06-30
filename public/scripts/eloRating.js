@@ -157,13 +157,17 @@ export async function writeBO3Result(roomDocRef, {
     winnerUid,
     resultType,
     p1CharaId,
-    p2CharaId
+    p2CharaId,
+    redWin,
+    yellowWin
 }) {
     await updateDoc(roomDocRef, {
         winnerUid,
         resultType,
         p1CharaId,
         p2CharaId,
+        red_Win: redWin,
+        yellow_Win: yellowWin,
         bo3Final: true,
         rated: false,
         finishedAt: serverTimestamp()
