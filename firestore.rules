@@ -60,7 +60,8 @@ service cloud.firestore {
         && request.resource.data.player1_Color == resource.data.player1_Color
         && request.resource.data.player2_Color == resource.data.player2_Color
         && request.resource.data.roomID == resource.data.roomID
-        && request.resource.data.matchType == resource.data.matchType
+        // matchType は v1.24.5 以降のドキュメントに存在しない場合があるため "in" でガード
+        && (!("matchType" in resource.data) || request.resource.data.matchType == resource.data.matchType)
         // 値の型・範囲チェック（チャージ・タイマー・状態の異常値書き込みを防止）
         && request.resource.data.player1_ChargeNow is int && request.resource.data.player1_ChargeNow >= 0 && request.resource.data.player1_ChargeNow <= 200
         && request.resource.data.player2_ChargeNow is int && request.resource.data.player2_ChargeNow >= 0 && request.resource.data.player2_ChargeNow <= 200
