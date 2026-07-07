@@ -44,11 +44,14 @@ export function calcFitScale(baseWidth, baseHeight, containerEl) {
  * @returns {function} setupLayout - 手動で再計算を呼ぶための関数
  */
 export function setupScaledLayout(wrapId, baseWidth, baseHeight, onScale) {
+    let bw = baseWidth;
+    let bh = baseHeight;
+
     function setupLayout() {
         const wrap = document.getElementById(wrapId);
         if (!wrap) return;
         const container = wrap.parentElement;
-        const scale = calcFitScale(baseWidth, baseHeight, container);
+        const scale = calcFitScale(bw, bh, container);
         wrap.style.transform = `scale(${scale})`;
         if (onScale) onScale(scale);
     }
@@ -61,6 +64,13 @@ export function setupScaledLayout(wrapId, baseWidth, baseHeight, onScale) {
         window.visualViewport.addEventListener('resize', setupLayout);
         window.visualViewport.addEventListener('scroll', setupLayout);
     }
+
+    // サイズ変更時に basWidth/baseHeight を更新して再計算
+    setupLayout.updateSize = (newW, newH) => {
+        bw = newW;
+        bh = newH;
+        setupLayout();
+    };
 
     return setupLayout;
 }

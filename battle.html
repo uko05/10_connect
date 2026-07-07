@@ -203,6 +203,13 @@
                 <p id="returnMessage" style="margin-top: 10px;">8秒後にキャラ選択画面に戻ります。</p>
             </div>
 
+            <div id="boardSizeSelector" class="board-size-selector">
+                <span class="board-size-label">盤面</span>
+                <label><input type="radio" name="boardSize" value="80"> 小</label>
+                <label><input type="radio" name="boardSize" value="95"> 中</label>
+                <label><input type="radio" name="boardSize" value="110" checked> 大</label>
+            </div>
+
             <div id="boardWrap">
             <canvas id="connect4Canvas_top" width="770" height="110"></canvas>
             <canvas id="connect4Canvas" width="770" height="660"></canvas>

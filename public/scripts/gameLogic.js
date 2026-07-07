@@ -206,7 +206,7 @@ let initialTouchY = 0; // 変数を初期化
 const ctx = canvas.getContext('2d');
 const rows = 6;
 const cols = 7;
-const cellSize = 110; // セルのサイズ
+let cellSize = 110; // セルのサイズ（PC版ではラジオボタンで変更可能）
 let boardScale = 1; // 盤面の表示スケール（setupStageLayout で更新）
 let nowCol = 3;
 
@@ -991,20 +991,54 @@ function initializeAudioPlayback() {
 // スマホ時はCSS実寸レイアウト（transform:scale不使用）で盤面を最大化
 const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
 let refreshBoardLayout; // 手動再計算用
+
+// PC版: localStorage から保存済みサイズを復元
+if (!isMobileLayout) {
+    const saved = parseInt(localStorage.getItem('boardSize'));
+    if (saved === 80 || saved === 95 || saved === 110) cellSize = saved;
+}
+
 if (isMobileLayout) {
     // スマホ: CSS実寸でレイアウト（transform:scaleを使わない）
-    // bufferWidth=770, bufferHeight=660, topCanvasBufferH=110, timerBaseH=30
     // 全体アスペクト比 770:(110+660+30)=770:800
-    refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 30, (scale) => {
+    refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, cellSize, 30, (scale) => {
         boardScale = scale;
     });
 } else {
-    // PC: transform:scale + 固定baseHeight
-    const baseH = 110 + 660 + 30;
-    refreshBoardLayout = setupScaledLayout('boardWrap', cellSize * cols, baseH, (scale) => {
+    // PC: transform:scale + 動的baseHeight
+    refreshBoardLayout = setupScaledLayout('boardWrap', cellSize * cols, cellSize + cellSize * rows + 30, (scale) => {
         boardScale = scale;
     });
 }
+
+// PC版の盤面サイズ変更
+function changeBoardSize(newCellSize) {
+    if (isMobileLayout) return;
+    cellSize = newCellSize;
+    canvas.width = cellSize * cols;
+    canvas.height = cellSize * rows;
+    topCanvas.width = cellSize * cols;
+    topCanvas.height = cellSize;
+    if (refreshBoardLayout.updateSize) {
+        refreshBoardLayout.updateSize(cellSize * cols, cellSize + cellSize * rows + 30);
+    }
+    init_drawBoard();
+    disp_TopStone(turn, nowCol);
+    localStorage.setItem('boardSize', newCellSize);
+}
+
+// ラジオボタン初期化（PC版のみ）
+function initBoardSizeSelector() {
+    if (isMobileLayout) return;
+    // ラジオボタンの初期選択を復元
+    document.querySelectorAll('input[name="boardSize"]').forEach(radio => {
+        if (parseInt(radio.value) === cellSize) radio.checked = true;
+        radio.addEventListener('change', (e) => {
+            changeBoardSize(parseInt(e.target.value));
+        });
+    });
+}
+initBoardSizeSelector();
 
 //------------------------------------------------------------------------------------------------
 

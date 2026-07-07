@@ -23,7 +23,7 @@ const ctx = canvas.getContext('2d');
 
 const rows = 6;
 const cols = 7;
-const cellSize = 110;
+let cellSize = 110; // PC版ではラジオボタンで変更可能
 
 const PLAYER_COLOR = 'red';
 const CPU_COLOR = 'yellow';
@@ -2016,13 +2016,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // レイアウト（バトル画面と同じスケーリング方式）
     const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
+
+    // PC版: localStorage から保存済みサイズを復元
+    if (!isMobileLayout) {
+        const saved = parseInt(localStorage.getItem('boardSize'));
+        if (saved === 80 || saved === 95 || saved === 110) cellSize = saved;
+    }
+
+    let soloScaledLayout;
     if (isMobileLayout) {
-        setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 30, (scale) => {
+        setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, cellSize, 30, (scale) => {
             boardScale = scale;
         });
     } else {
-        setupScaledLayout('boardWrap', cellSize * cols, 110 + cellSize * rows + 30, (scale) => {
+        soloScaledLayout = setupScaledLayout('boardWrap', cellSize * cols, cellSize + cellSize * rows + 30, (scale) => {
             boardScale = scale;
+        });
+    }
+
+    // PC版の盤面サイズ変更
+    function changeBoardSize(newCellSize) {
+        if (isMobileLayout) return;
+        cellSize = newCellSize;
+        canvas.width = cellSize * cols;
+        canvas.height = cellSize * rows;
+        topCanvas.width = cellSize * cols;
+        topCanvas.height = cellSize;
+        if (soloScaledLayout && soloScaledLayout.updateSize) {
+            soloScaledLayout.updateSize(cellSize * cols, cellSize + cellSize * rows + 30);
+        }
+        init_drawBoard();
+        localStorage.setItem('boardSize', newCellSize);
+    }
+
+    // ラジオボタン初期化（PC版のみ）
+    if (!isMobileLayout) {
+        document.querySelectorAll('input[name="boardSize"]').forEach(radio => {
+            if (parseInt(radio.value) === cellSize) radio.checked = true;
+            radio.addEventListener('change', (e) => {
+                changeBoardSize(parseInt(e.target.value));
+            });
         });
     }
 
