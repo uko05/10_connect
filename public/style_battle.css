@@ -1552,36 +1552,42 @@ html[lang="en"] .abilityDetail { font-size: 17px; }
 
 /* 盤面サイズ選択（PC版のみ表示） */
 .board-size-selector {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    justify-content: center;
+    padding: 4px 0 6px;
+    font-size: 13px;
+    color: #ccc;
+    /* boardWrap の transform スタッキングより前面・boardWrap のレイアウト外に固定 */
+    position: relative;
+    z-index: 10;
 }
 
-@media (min-width: 1025px) {
+.board-size-label {
+    font-size: 12px;
+    color: #999;
+    margin-right: 2px;
+}
+
+.board-size-selector label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.board-size-selector input[type="radio"] {
+    cursor: pointer;
+    accent-color: #f0a500;
+    width: 14px;
+    height: 14px;
+}
+
+/* スマホでは非表示 */
+@media (max-width: 1024px) {
     .board-size-selector {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        justify-content: center;
-        padding: 4px 0 6px;
-        font-size: 13px;
-        color: #ccc;
-    }
-    .board-size-label {
-        font-size: 12px;
-        color: #999;
-        margin-right: 2px;
-    }
-    .board-size-selector label {
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        user-select: none;
-    }
-    .board-size-selector input[type="radio"] {
-        cursor: pointer;
-        accent-color: #f0a500;
-        width: 14px;
-        height: 14px;
+        display: none;
     }
 }
 
