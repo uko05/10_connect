@@ -18,9 +18,12 @@
     <link rel="icon" sizes="512x512" href="public/scripts/favicon_io/android-chrome-512x512.png">
 </head>
 <body class="simple-page">
-    <span id="uko-account-status-slot" style="position:fixed; top:120px; right:20px; z-index:1000000;"></span>
-    <!-- 設定ボタン -->
-    <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
+    <!-- 設定ボタン（このページには「あそびかた」ボタンが無いため、それ用に空けてあった上の隙間を詰めてtop:10pxに。
+         ログイン状態バッジを左に並べる） -->
+    <div style="position:fixed; top:10px; right:20px; z-index:1000000; display:flex; align-items:center; gap:8px;">
+      <span id="uko-account-status-slot"></span>
+      <button id="settingsButton" class="settings-btn" style="position:static;" aria-label="設定">⚙</button>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal">

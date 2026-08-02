@@ -31,14 +31,16 @@
 </script>
 </head>
 <body>
-    <span id="uko-account-status-slot" style="position:fixed; top:120px; right:20px; z-index:1000000;"></span>
     <header>
         <h1 data-i18n="pageTitle">原壊：コネクトバトル</h1>
     </header>
 
     <main>
-     <!-- ヘルプボタン -->
-    <button id="helpButton" class="help-btn" data-i18n="helpBtn">あそびかた</button>
+     <!-- ヘルプボタン（ログイン状態バッジをあそびかたの左に並べる） -->
+    <div style="position:fixed; top:10px; right:20px; z-index:1000000; display:flex; align-items:center; gap:8px;">
+      <span id="uko-account-status-slot"></span>
+      <button id="helpButton" class="help-btn" style="position:static;" data-i18n="helpBtn">あそびかた</button>
+    </div>
 
     <!-- 設定ボタン -->
     <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
