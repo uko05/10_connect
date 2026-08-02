@@ -1,9 +1,10 @@
 // playerInfo.js - プレイヤー情報画面（レート・アチーブメント・称号の表示）
-import { authReady, getSharedUserId } from './firebaseConfig.js';
+import { authReady, getSharedUserId, db } from './firebaseConfig.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { APP_VERSION } from './version.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName, syncSharedUserId } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
-import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
+import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement, fitChipText } from './achievementManager.js';
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
@@ -45,7 +46,7 @@ document.getElementById('backToHubButton').addEventListener('click', () => {
 let currentUid = null;
 let latestUserData = {};
 let currentSlot = 0; // 称号スロット（0=アチーブメント1, 1=アチーブメント2）。タブで切り替える
-let isDebugUser = false;    // playerName が @debug で終わる場合だけ true
+let isDebugUser = false;    // 管理画面でロール「デバッガー」+「コネクトバトル」を付与された場合だけ true
 let isBakatareUser = false; // playerName が ばかたれ@ で始まる場合だけ true（新キャラ解放アチーブのみデバッグ可）
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -70,8 +71,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const myRating = await getUserRating(user.uid);
         latestUserData = myRating || {};
-        isDebugUser = (latestUserData.playerName || '').endsWith('@debug');
         isBakatareUser = (latestUserData.playerName || '').startsWith('ばかたれ@');
+
+        const roleSnap = await getDoc(doc(db, 'sharedUserRoles', getSharedUserId()));
+        isDebugUser = !!(roleSnap.exists() && roleSnap.data().debugConnect);
 
         const nameInput = document.getElementById('playerInfoNameInput');
         if (nameInput) nameInput.value = latestUserData.playerName || '';
@@ -347,15 +350,5 @@ document.getElementById('savePlayerNameButton').addEventListener('click', async 
         renderTitleSlots(latestUserData);
         renderAchievements();
         showAchievementToast('bakatare_tester');
-    }
-
-    // @debug末尾：フルデバッグアチーブを解放
-    if (nameInput.value.trim().endsWith('@debug')) {
-        isDebugUser = true;
-        await debugForceUnlockAchievement(currentUid, DEBUG_ACHIEVEMENT.id);
-        latestUserData = (await getUserRating(currentUid)) || {};
-        renderTitleSlots(latestUserData);
-        renderAchievements();
-        showAchievementToast(DEBUG_ACHIEVEMENT.id);
     }
 });
