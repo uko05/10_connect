@@ -64,7 +64,7 @@ function findNewlyUnlocked(ctx, unlockedIds) {
 // users/{uid} を読み、patchFn(currentStats) が返すパッチをachStatsにマージし、
 // 新たに解放されたアチーブメントを反映してまとめて書き込む。戻り値は新規解放分のID配列。
 async function applyAchStatsPatch(uid, patchFn) {
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(db, "connectUsers", uid);
     const snap = await getDoc(userRef);
     const userData = snap.exists() ? snap.data() : {};
     const currentStats = loadAchStats(userData.achStats);
@@ -148,7 +148,7 @@ export function getAchievementViewModel(userData) {
 // 両スロットに同じアチーブメントを設定することも可能。
 // 戻り値は更新後のequippedTitles配列。
 export async function setEquippedTitle(uid, slotIndex, achId) {
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(db, "connectUsers", uid);
     const snap = await getDoc(userRef);
     const userData = snap.exists() ? snap.data() : {};
     const current = Array.isArray(userData.equippedTitles) && userData.equippedTitles.length === 2
@@ -166,7 +166,7 @@ export async function setEquippedTitle(uid, slotIndex, achId) {
 // @debug ユーザーの playerInfo 画面からのみ呼ばれる想定。
 
 export async function debugForceUnlockAchievement(uid, achId) {
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(db, "connectUsers", uid);
     const snap = await getDoc(userRef);
     const userData = snap.exists() ? snap.data() : {};
     const current = userData.achievements || [];
@@ -176,7 +176,7 @@ export async function debugForceUnlockAchievement(uid, achId) {
 }
 
 export async function debugForceResetAchievement(uid, achId) {
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(db, "connectUsers", uid);
     const snap = await getDoc(userRef);
     const userData = snap.exists() ? snap.data() : {};
     const updated = (userData.achievements || []).filter(id => id !== achId);

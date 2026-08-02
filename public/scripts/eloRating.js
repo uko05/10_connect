@@ -36,7 +36,7 @@ function getK(matchCount) {
 // users/{uid} 初回作成（Auth成功時に呼ぶ）
 // ────────────────────────────
 export async function ensureUserDoc(uid) {
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(db, "connectUsers", uid);
     const snap = await getDoc(userRef);
     if (!snap.exists()) {
         await setDoc(userRef, {
@@ -57,10 +57,25 @@ export async function ensureUserDoc(uid) {
 }
 
 // ────────────────────────────
+// sharedUserId(うこ氏サイト群共通ID)を自分のusersドキュメントに反映
+// ※ 対戦相手など「自分以外」のuidに対しては絶対に呼ばないこと
+//   （自分のlocalStorageの値を他人のドキュメントに書き込んでしまうため）
+// ────────────────────────────
+export async function syncSharedUserId(uid, sharedUserId) {
+    if (!sharedUserId) return;
+    try {
+        const userRef = doc(db, "connectUsers", uid);
+        await updateDoc(userRef, { sharedUserId });
+    } catch (e) {
+        console.warn("[Rating] sharedUserId の同期に失敗:", e);
+    }
+}
+
+// ────────────────────────────
 // ユーザーのレート情報を取得
 // ────────────────────────────
 export async function getUserRating(uid) {
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(db, "connectUsers", uid);
     const snap = await getDoc(userRef);
     if (!snap.exists()) return null;
     return snap.data();
@@ -73,7 +88,7 @@ export async function savePlayerName(uid, playerName) {
     const trimmed = (playerName || "").trim().slice(0, 20); // 念のため長さを制限
     if (!trimmed) return;
     try {
-        const userRef = doc(db, "users", uid);
+        const userRef = doc(db, "connectUsers", uid);
         await updateDoc(userRef, { playerName: trimmed });
     } catch (e) {
         console.warn("[Rating] プレイヤー名の保存に失敗:", e);
@@ -85,7 +100,7 @@ export async function savePlayerName(uid, playerName) {
 // ────────────────────────────
 export async function getUserRank(rating) {
     try {
-        const usersRef = collection(db, "users");
+        const usersRef = collection(db, "connectUsers");
 
         // 自分より上の人数
         const aboveQuery = query(usersRef, where("rating", ">", rating));
@@ -220,8 +235,8 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
             console.log("[Rating] 勝者:", winnerUid, "敗者:", loserUid, "resultType:", resultType);
 
             // ── 3. users読み取り ──
-            const winnerRef = doc(db, "users", winnerUid);
-            const loserRef = doc(db, "users", loserUid);
+            const winnerRef = doc(db, "connectUsers", winnerUid);
+            const loserRef = doc(db, "connectUsers", loserUid);
             const winnerSnap = await transaction.get(winnerRef);
             const loserSnap = await transaction.get(loserRef);
             console.log("[Rating] Users存在チェック:", { winner: winnerSnap.exists(), loser: loserSnap.exists() });
@@ -240,12 +255,12 @@ export async function executeRatingTransaction(roomDocRef, p1Uid, p2Uid) {
             let p1StatsRef, p2StatsRef, p1StatsSnap, p2StatsSnap;
             if (p1CharaId === p2CharaId) {
                 // 同一キャラ：1doc
-                p1StatsRef = doc(db, "charaStats", p1CharaId);
+                p1StatsRef = doc(db, "connectCharaStats", p1CharaId);
                 p1StatsSnap = await transaction.get(p1StatsRef);
             } else {
                 // 別キャラ：2doc
-                p1StatsRef = doc(db, "charaStats", p1CharaId);
-                p2StatsRef = doc(db, "charaStats", p2CharaId);
+                p1StatsRef = doc(db, "connectCharaStats", p1CharaId);
+                p2StatsRef = doc(db, "connectCharaStats", p2CharaId);
                 p1StatsSnap = await transaction.get(p1StatsRef);
                 p2StatsSnap = await transaction.get(p2StatsRef);
             }
@@ -361,7 +376,7 @@ export async function deleteRoomAfterRating(roomDocRef) {
 // getRoomDocRef — roomID（カスタムUUID）からFirestore doc refを取得
 // ────────────────────────────
 export async function getRoomDocRef(roomID) {
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
     const snap = await getDocs(q);
     if (snap.empty) return null;

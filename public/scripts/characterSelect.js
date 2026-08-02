@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { db, auth, authReady } from "./firebaseConfig.js"; //firebaseの設定ファイル
+import { db, auth, authReady, getSharedUserId } from "./firebaseConfig.js"; //firebaseの設定ファイル
 import {
     getFirestore,
     collection,
@@ -19,7 +19,7 @@ import {
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { setupScaledLayout } from './layoutScaler.js';
-import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './eloRating.js';
+import { ensureUserDoc, getUserRating, getUserRank, savePlayerName, syncSharedUserId } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume } from './settingsManager.js';
@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const user = await authReady;
         currentUid = user.uid;
         await ensureUserDoc(user.uid);
+        syncSharedUserId(user.uid, getSharedUserId());
         console.log("[characterSelect] Auth ready, uid:", user.uid);
 
         // ロビーにレート・称号表示
@@ -500,7 +501,7 @@ document.querySelectorAll('.thumbnail').forEach(thumbnail => {
 //自分のIDを持つデータを削除する関数
 async function removePlayerFromRoom(generatedId) {
 
-    const roomRef = query(collection(db, "rooms"), where("player1_ID", "==", generatedId));
+    const roomRef = query(collection(db, "connectRooms"), where("player1_ID", "==", generatedId));
 
     const roomSnapshot = await getDocs(roomRef);
 
@@ -649,7 +650,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
     }
 
     //ルームを検索する。条件はステータスがwaitingかつ部屋指定用の合言葉が同じ（未入力の場合はNull）
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const myroom = query(
         roomsRef,
         where("status", "==", "waiting"),
@@ -779,7 +780,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
 //プレイヤーが待機リストに入ったときのリスナー処理
 function listenForMatches() {
 
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const playerName = document.getElementById('playerName').value;
     const charaID = document.getElementById('charaID').value;
 

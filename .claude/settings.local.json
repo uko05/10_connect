@@ -39,7 +39,9 @@
       "Bash(pkill -f \"http.server 8765\")",
       "Skill(update-config)",
       "Skill(run)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "PowerShell(firebase deploy *)",
+      "PowerShell(cd \"E:\\\\20_GitHub\\\\10_connect\"; \\(Get-Content \"public/style_battle.css\"\\).Count)"
     ]
   }
 }

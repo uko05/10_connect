@@ -206,7 +206,7 @@ let initialTouchY = 0; // 変数を初期化
 const ctx = canvas.getContext('2d');
 const rows = 6;
 const cols = 7;
-const cellSize = 110; // セルのサイズ
+let cellSize = 110; // セルのサイズ（PC版はラジオボタンで変更可能）
 let boardScale = 1; // 盤面の表示スケール（setupStageLayout で更新）
 let nowCol = 3;
 
@@ -308,7 +308,7 @@ async function displayThumbnails() {
     const player_UUID = getUUIDFromCookie(); 
       
     // ルームを検索する。
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const myroom1 = query(
         roomsRef,
         where("player1_ID", "==", player_UUID)
@@ -666,7 +666,7 @@ window.addEventListener("beforeunload", notifyLeaveOnExit);
 window.addEventListener("pagehide", notifyLeaveOnExit);
 
 async function updateLeaveRooms() {
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const q = query(
         roomsRef,
         where("roomID", "==", roomID),
@@ -750,7 +750,7 @@ document.addEventListener('visibilitychange', () => {
 async function deleteRoomByRoomID() {
     try {
         // rooms コレクションを参照
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
 
         // 条件に一致するクエリを作成
         const q = query(roomsRef, where("roomID", "==", roomID));
@@ -991,18 +991,47 @@ function initializeAudioPlayback() {
 // スマホ時はCSS実寸レイアウト（transform:scale不使用）で盤面を最大化
 const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
 let refreshBoardLayout; // 手動再計算用
+
+// PC版: localStorage から保存済みサイズを復元
+if (!isMobileLayout) {
+    const saved = parseInt(localStorage.getItem('boardSize'));
+    if (saved === 80 || saved === 95 || saved === 110) cellSize = saved;
+}
+
 if (isMobileLayout) {
     // スマホ: CSS実寸でレイアウト（transform:scaleを使わない）
-    // bufferWidth=770, bufferHeight=660, topCanvasBufferH=110, timerBaseH=30
     // 全体アスペクト比 770:(110+660+30)=770:800
     refreshBoardLayout = setupMobileBoardLayout('boardWrap', cellSize * cols, cellSize * rows, 110, 30, (scale) => {
         boardScale = scale;
     });
 } else {
-    // PC: transform:scale + 固定baseHeight
-    const baseH = 110 + 660 + 30;
-    refreshBoardLayout = setupScaledLayout('boardWrap', cellSize * cols, baseH, (scale) => {
+    // PC: transform:scale + 動的baseHeight
+    refreshBoardLayout = setupScaledLayout('boardWrap', cellSize * cols, cellSize + cellSize * rows + 30, (scale) => {
         boardScale = scale;
+    });
+}
+
+// PC版の盤面サイズ変更
+function changeBoardSize(newCellSize) {
+    if (isMobileLayout) return;
+    cellSize = newCellSize;
+    canvas.width = cellSize * cols;
+    canvas.height = cellSize * rows;
+    topCanvas.width = cellSize * cols;
+    topCanvas.height = cellSize;
+    if (refreshBoardLayout.updateSize) {
+        refreshBoardLayout.updateSize(cellSize * cols, cellSize + cellSize * rows + 30);
+    }
+    init_drawBoard();
+    disp_TopStone(turn, nowCol);
+    localStorage.setItem('boardSize', newCellSize);
+}
+
+// ラジオボタン初期化（PC版のみ）
+if (!isMobileLayout) {
+    document.querySelectorAll('input[name="boardSize"]').forEach(radio => {
+        if (parseInt(radio.value) === cellSize) radio.checked = true;
+        radio.addEventListener('change', (e) => changeBoardSize(parseInt(e.target.value)));
     });
 }
 
@@ -1172,7 +1201,7 @@ function checkAndToastNewAchievements(myRating) {
 }
 
 async function watchRoomUpdates() {
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
 
     onSnapshot(q, async (snapshot) => {
@@ -1584,7 +1613,7 @@ async function deleteStonesAndUpdate() {
     pvpCerluaActive = false;
     pvpCerluaCasterColor = null;
 
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
     const updates = {
         stones: {},                  // stonesのリセット
@@ -1843,7 +1872,7 @@ function isTurnPlayerUltVoice() {
 //async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNum, normalAttack = true) {
 //
 //    // rooms コレクションから roomID フィールドで一致するドキュメントを取得
-//    const roomsRef = collection(db, "rooms");
+//    const roomsRef = collection(db, "connectRooms");
 //    const q = query(roomsRef, where("roomID", "==", roomID));  // roomIDが一致するドキュメントを検索
 //    const querySnapshot = await getDocs(q);
 //    let p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount;
@@ -1908,7 +1937,7 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
     return;
   }
   
-  const roomsRef = collection(db, "rooms");
+  const roomsRef = collection(db, "connectRooms");
   const q = query(roomsRef, where("roomID", "==", roomID));
   const querySnapshot = await getDocs(q);
   
@@ -1990,7 +2019,7 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 // 戻り値: true=書き込みした / false=書き込み無し（ターン不一致・満杯・room無し等）
 async function updateRoomWithStone_timeoutTx(column, playerColor) {
   try {
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
     const qs = await getDocs(q);
 
@@ -2105,7 +2134,7 @@ function animateStoneDrop(column, row, playerColor) {
 
 // 部屋のドキュメントを取得する関数
 async function getRoomDocument() {
-    querySnapshot = await getDocs(collection(db, "rooms")); // dbを利用
+    querySnapshot = await getDocs(collection(db, "connectRooms")); // dbを利用
     
     playerLeft_ChargeNow = querySnapshot.docs[0].player1_ChargeNow;
     playerRight_ChargeNow = querySnapshot.docs[0].player2_ChargeNow;
@@ -2635,7 +2664,7 @@ function createMemoryMarks() {
 async function recordTimeoutOncePerTurn() {
   if (!roomID) return;
 
-  const roomRef = doc(db, "rooms", roomID);
+  const roomRef = doc(db, "connectRooms", roomID);
 
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(roomRef);
@@ -2665,7 +2694,7 @@ async function recordTimeoutOncePerTurn() {
 
 async function getRandomEmptyColumn() {
     // rooms コレクションから roomID フィールドで一致するドキュメントを取得
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const q = query(roomsRef, where("roomID", "==", roomID)); // roomIDが一致するドキュメントを検索
     
     const querySnapshot = await getDocs(q);
@@ -3285,7 +3314,7 @@ async function ult_randomVerticalAllDelete(){
 async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
     try {
         // Firestoreからデータ取得
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         const querySnapshot = await getDocs(q);
 
@@ -3352,7 +3381,7 @@ async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
 async function deleteStones(stonesToDelete) {
 
     try {
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         const querySnapshot = await getDocs(q);
 
@@ -3371,7 +3400,7 @@ async function deleteStones(stonesToDelete) {
             });   
                     
             // Firestoreのデータを更新
-            const roomDocRef = doc(db, "rooms", roomDoc.id);
+            const roomDocRef = doc(db, "connectRooms", roomDoc.id);
             await updateDoc(roomDocRef, { 
                 player1_ChargeNow: p1_chargeNow,
                 player2_ChargeNow: p2_chargeNow,
@@ -3454,7 +3483,7 @@ async function getRandomTopStones(count) {
             return null;
         }
 
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         const querySnapshot = await getDocs(q);
 
@@ -3512,7 +3541,7 @@ async function ult_downThinkingTime() {
   console.log("[ULT] アベンチュリンの必殺技発動！ player_info=", player_info);
 
   try {
-    const roomsRef = collection(db, "rooms");
+    const roomsRef = collection(db, "connectRooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) return;
@@ -3531,7 +3560,7 @@ async function ult_downThinkingTime() {
       const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
 
       // ② 相手側の TimeLimit だけを減らす（自分側は絶対に触らない）
-      const roomDocRef = doc(db, "rooms", roomDoc.id);
+      const roomDocRef = doc(db, "connectRooms", roomDoc.id);
       if (player_info === "P1") {
         // 自分がP1 → 相手はP2 → player2_TimeLimit を減らす
         const p2_Time = Math.max(0, (roomData.player2_TimeLimit ?? 100) - 19);
@@ -3583,7 +3612,7 @@ async function ult_randomAbility(){
     console.log("花火の必殺技発動！");
     
     try {
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         
         // getDocs に await を追加
@@ -3595,7 +3624,7 @@ async function ult_randomAbility(){
             const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
             // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
             const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
-            const roomDocRef = doc(db, "rooms", roomDoc.id);
+            const roomDocRef = doc(db, "connectRooms", roomDoc.id);
 
             // 更新
             changeStone = roomData.changeStone === 0 ? 2 : 3;
@@ -3629,7 +3658,7 @@ async function ult_madness() {
 //    console.log("ルアンママの必殺技発動！");
 //    try {
 //        // Firestoreから石の情報を取得
-//        const roomsRef = collection(db, "rooms");
+//        const roomsRef = collection(db, "connectRooms");
 //        const q = query(roomsRef, where("roomID", "==", roomID));
 //        const querySnapshot = await getDocs(q);
 //
@@ -3676,7 +3705,7 @@ async function changeStonesColor(stonesData, redChangeStones, yellowChangeStones
 
 // Firestoreに新しいstonesDataを更新する関数
 async function updateRoomWithNewStones(roomDocId, stonesData, p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount) {
-    const roomDocRef = doc(db, "rooms", roomDocId);
+    const roomDocRef = doc(db, "connectRooms", roomDocId);
 
     // バッチ処理で更新
     const batch = writeBatch(db);
@@ -3717,7 +3746,7 @@ async function ult_CntUP() {
     console.log("[ult_CntUP] 必殺技使用回数をカウントアップ", { player_info, turn });
 
     try {
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         const querySnapshot = await getDocs(q);
 
@@ -3736,7 +3765,7 @@ async function ult_CntUP() {
                 firestoreP2: roomData.player2_UltCount,
             });
 
-            const roomDocRef = doc(db, "rooms", roomDoc.id);
+            const roomDocRef = doc(db, "connectRooms", roomDoc.id);
             await updateDoc(roomDocRef, {
                 player1_UltCount: p1_UltCount,
                 player2_UltCount: p2_UltCount
@@ -3752,7 +3781,7 @@ async function ult_CntUP() {
 async function ult_ruanMei() {
     console.log("ルアン・メェイの必殺技発動！");
     try {
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         const querySnapshot = await getDocs(q);
 
@@ -3787,7 +3816,7 @@ async function ult_ruanMei() {
 
         // Phase 1 をFirestoreへ書き込み（チャージ消費もここで処理）
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
-        const roomDocRef = doc(db, "rooms", roomDoc.id);
+        const roomDocRef = doc(db, "connectRooms", roomDoc.id);
         await updateDoc(roomDocRef, {
             player1_ChargeNow: p1_chargeNow,
             player2_ChargeNow: p2_chargeNow,
@@ -3958,7 +3987,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
     try {
         // ① ドゥリン：自分のターン開始時に自動破壊
         if (pvpDurinPending && playerLeft_Color === pvpDurinCasterColor) {
-            const roomsRef = collection(db, "rooms");
+            const roomsRef = collection(db, "connectRooms");
             const q = query(roomsRef, where("roomID", "==", roomID));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
@@ -3976,7 +4005,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                     await wait(400);
                     await animateGravitySmooth(localStones, toDelete);
                 }
-                await updateDoc(doc(db, "rooms", roomDoc.id), {
+                await updateDoc(doc(db, "connectRooms", roomDoc.id), {
                     stones: localStones,
                     durinPending: false,
                     durinCasterColor: null
@@ -4036,7 +4065,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 }
             }
 
-            const roomsRef = collection(db, "rooms");
+            const roomsRef = collection(db, "connectRooms");
             const q = query(roomsRef, where("roomID", "==", roomID));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty && lastVictimCol >= 0) {
@@ -4052,7 +4081,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                     const extraRow = findAvailableRow(extraCol, localStones);
                     if (extraRow >= 0) {
                         localStones[`${extraCol}_${extraRow}`] = { color: victimColor, turnCount: turnCount - 1 };
-                        await updateDoc(doc(db, "rooms", roomDoc.id), {
+                        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
                             stones: localStones,
                             cerluaActive: false,
                             cerluaCasterColor: null
@@ -4079,7 +4108,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
 async function ult_lowen() {
     console.log("ローエンの必殺技発動！");
     try {
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) return;
@@ -4102,7 +4131,7 @@ async function ult_lowen() {
         await wait(400);
         await animateGravitySmooth(localStones, keysToDelete);
 
-        const roomDocRef = doc(db, "rooms", roomDoc.id);
+        const roomDocRef = doc(db, "connectRooms", roomDoc.id);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         await updateDoc(roomDocRef, {
             player1_ChargeNow: p1_chargeNow,
@@ -4160,7 +4189,7 @@ async function ult_saphel() {
 async function ult_durin() {
     console.log("ドゥリンの必殺技発動！");
     try {
-        const roomsRef = collection(db, "rooms");
+        const roomsRef = collection(db, "connectRooms");
         const q = query(roomsRef, where("roomID", "==", roomID));
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) return;
@@ -4182,7 +4211,7 @@ async function ult_durin() {
             await animateGravitySmooth(localStones, toDelete);
         }
 
-        const roomDocRef = doc(db, "rooms", roomDoc.id);
+        const roomDocRef = doc(db, "connectRooms", roomDoc.id);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         await updateDoc(roomDocRef, {
             player1_ChargeNow: p1_chargeNow,

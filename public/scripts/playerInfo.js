@@ -1,7 +1,7 @@
 // playerInfo.js - プレイヤー情報画面（レート・アチーブメント・称号の表示）
-import { authReady } from './firebaseConfig.js';
+import { authReady, getSharedUserId } from './firebaseConfig.js';
 import { APP_VERSION } from './version.js';
-import { ensureUserDoc, getUserRating, getUserRank, savePlayerName } from './eloRating.js';
+import { ensureUserDoc, getUserRating, getUserRank, savePlayerName, syncSharedUserId } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS, DEBUG_ACHIEVEMENT } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement, fitChipText } from './achievementManager.js';
@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const user = await authReady;
         currentUid = user.uid;
         await ensureUserDoc(user.uid);
+        syncSharedUserId(user.uid, getSharedUserId());
 
         const uidDisplay = document.getElementById('userIdDisplay');
         const copyBtn = document.getElementById('copyUserIdButton');
