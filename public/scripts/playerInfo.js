@@ -74,7 +74,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         isBakatareUser = (latestUserData.playerName || '').startsWith('ばかたれ@');
 
         const roleSnap = await getDoc(doc(db, 'sharedUserRoles', getSharedUserId()));
-        isDebugUser = !!(roleSnap.exists() && roleSnap.data().debugConnect);
+        // 管理者はデバッガーの上位ロールなので、admin/debugger いずれの role でもデバッグ扱いにする
+        // (14_GenshinOmikuji/script.js の loadDebuggerRole と同じ扱い)
+        if (roleSnap.exists()) {
+            const roleData = roleSnap.data();
+            isDebugUser = roleData.role === 'admin' || roleData.role === 'debugger' || !!roleData.debugConnect;
+        }
 
         const nameInput = document.getElementById('playerInfoNameInput');
         if (nameInput) nameInput.value = latestUserData.playerName || '';
