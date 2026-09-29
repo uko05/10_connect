@@ -31,7 +31,7 @@ There is no build step, no npm, and no test suite. Files are served directly.
 1. **`index.html`** + `public/scripts/main.js` — Hub screen (landing page). Three entry points: CPU対戦 → `select.html?mode=cpu`, マッチング対戦 → `select.html?mode=match`, プレイヤー情報 → `playerInfo.html`.
 2. **`select.html`** + `public/scripts/characterSelect.js` — Character selection, shared by both modes. Reads `?mode=` to show/hide the solo-difficulty block vs. the matching/passphrase block. Manages matchmaking via the `rooms` Firestore collection. Has a back button to the hub.
 3. **`solo.html`** + `public/scripts/soloLogic.js` — CPU battle (no Firestore, no rating impact by design).
-4. **`battle.html`** + `public/scripts/gameLogic.js` — Core PvP game engine (~3000 lines). Canvas rendering, turn logic, win detection, ability system, real-time Firestore sync.
+4. **`battle.html`** + `public/scripts/gameLogic.js` — Core PvP game engine (~3900 lines). Canvas rendering, turn logic, win detection, ability system, real-time Firestore sync.
 5. **`playerInfo.html`** + `public/scripts/playerInfo.js` — Rating/rank display; future home for the achievement gallery and title selection.
 
 ### Key Modules
@@ -41,15 +41,36 @@ There is no build step, no npm, and no test suite. Files are served directly.
 - **`public/scripts/gameLogic.js`** — Game engine entry point. Key functions:
   - `init_drawBoard()` — Render canvas board
   - `dropStone(col)` — Place piece and check results
-  - `checkWin()` — 4-in-a-row detection
+  - `checkWin()` — 4-in-a-row detection (thin wrapper; the logic lives in `winCheck.js`)
+  - `roomQuery()` — the query for this match's room (use it instead of rebuilding `where("roomID", ...)`)
   - `updateGauge()` — Ultimate ability charge meter
   - `handleRoomUpdate()` — Firestore real-time listener for game state sync
   - `ult_*()` functions — Character-specific ability implementations (stone deletion, color inversion, turn manipulation)
 
 ### Firestore Collections
 
-- **`waitingPlayers`** — Matchmaking queue (uuid, playerName, charaID, passphrase, timestamp)
-- **`rooms`** — Active game sessions (players, stone positions as `col_row` keys, turn state, win counts, ability flags)
+Firebase project is `genshin-bakatare01` (shared with the other uko05 sites; see DESIGN.md). Rules live in
+`24_AccountCenter/firestore.rules`, Cloud Functions in `24_AccountCenter/functions/`.
+
+- **`connectRooms`** — Active game sessions (players, stone positions as `col_row` keys, turn state, win counts).
+  Character-specific ability state (Zhongli block, Durin, Cerydra, Silver Wolf, ...) lives in ONE map field
+  **`abilityState`** — write it with dot paths (`'abilityState.xxx'`) via `updateDoc`. Adding a new stateful
+  character needs no rules change.
+- **`connectUsers`** — Rating/achievements. Clients may only update their OWN doc, and can never change
+  `rating`/`matchCount`/`winCount`/`charaWins`/`lastMatchAt`.
+- **`connectCharaStats`** / **`connectMatches`** — Server-only. `connectMatches/{roomDocId}` is one record per
+  ranked match (charas, ratings before/after, rank tiers, winner, resultType, score) for balance analysis.
+
+### Ranked rating flow (server-side since v1.28.0)
+
+1. On BO3 end the reporter (P1, or the remaining player on `leave`) writes `bo3Final:true, rated:false, winnerUid, resultType`.
+2. Cloud Function `connectRateMatch` (`24_AccountCenter/functions/connect.js`) validates the result
+   (score vs. winner, loser inactivity for leave/timeout, max 3 rated matches per pair per 24h),
+   updates ratings/stats, writes `connectMatches`, then sets `rated:true` + `ratingResult` on the room.
+3. Each client waits for that (`recordMyAchievementsWhenRated`) and records ONLY its own achievements.
+   The result screen waits for it (max 20s) before navigating away. The reporter deletes the room afterwards.
+
+Never reintroduce client-side rating writes — the rules will reject them.
 
 ### Game Mechanics
 

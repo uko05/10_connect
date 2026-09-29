@@ -305,8 +305,6 @@ async function displayThumbnails() {
     systemvolumeSlider = document.getElementById('systemvolumeSlider');
     voicevolumeSlider = document.getElementById('voicevolumeSlider');
     
-    console.log("システム音量スライダー:", systemvolumeSlider);
-    console.log("ボイス音量スライダー:", voicevolumeSlider);
     
     // UUIDの取得
     const player_UUID = getUUIDFromCookie(); 
@@ -439,7 +437,6 @@ async function displayThumbnails() {
             ensureUserDoc(playerLeft_ID),
             ensureUserDoc(playerRight_ID)
         ]);
-        console.log("[gameLogic] 両プレイヤーの users doc 保証完了");
     } catch (e) {
         console.error("[gameLogic] ensureUserDoc 失敗:", e);
     }
@@ -469,11 +466,7 @@ async function displayThumbnails() {
     playerColor = playerLeft_Color;
          
     // 最後にルーム情報を再取得するクエリを設定
-    const myroom = query(
-        roomsRef,
-        where("roomID", "==", roomID)
-    );
-    querySnapshot = await getDocs(myroom);
+    querySnapshot = await getDocs(roomQuery());
 }
 
 // 自分のキャラ情報を表示する関数
@@ -514,7 +507,6 @@ async function dispP1Info(charaInfo, player_Name) {
         
         // 現在のキャラクターを選択/解除
         selectedCharacter = selectedCharacter ? false : true;
-        console.log("selectedCharacter:", selectedCharacter);
 
         // selectedCharacter の状態に応じてエフェクトを適用または解除
         if (selectedCharacter) {
@@ -656,8 +648,6 @@ async function dispP2Info(charaInfo, player_Name) {
 function notifyLeaveOnExit() {
     try {
         updateLeaveRooms();
-        //resetTimeLimit();
-        //clearTimeRemaining();
     } catch (error) {
         console.error("エラー発生:", error);
     }
@@ -683,9 +673,6 @@ async function updateLeaveRooms() {
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-            console.log(
-                "該当の roomID のドキュメントが存在しない、または status が in_progress ではありません。"
-            );
             return;
         }
 
@@ -694,7 +681,6 @@ async function updateLeaveRooms() {
         );
         await Promise.all(updatePromises);
 
-        console.log("すべてのドキュメントの更新が完了しました。");
     } catch (error) {
         console.error("Firestoreの更新に失敗しました:", error);
     }
@@ -722,7 +708,6 @@ function startHeartbeat() {
     enemyStaleCheckIntervalId = setInterval(() => {
         if (isMatchFinalized || leaveAlreadyTriggered || enemyLastActiveMs == null) return;
         if (Date.now() - enemyLastActiveMs > STALE_THRESHOLD_MS) {
-            console.log("[heartbeat] 相手の生存時刻が古いため離脱とみなします");
             leaveAlreadyTriggered = true;
             updateLeaveRooms();
         }
@@ -751,24 +736,18 @@ document.addEventListener('visibilitychange', () => {
 
 async function deleteRoomByRoomID() {
     try {
-        // rooms コレクションを参照
-        const roomsRef = collection(db, "connectRooms");
-
-        // 条件に一致するクエリを作成
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
 
         // クエリを実行してドキュメントを取得
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-            console.log("No matching room found for roomID:", roomID);
             return; // 該当ドキュメントがない場合は終了
         }
 
         // クエリ結果のドキュメントを削除
         querySnapshot.forEach(async (doc) => {
             await deleteDoc(doc.ref);
-            console.log(`Room with roomID: ${roomID} deleted successfully`);
         });
     } catch (error) {
         console.error("Error deleting room by roomID:", error);
@@ -811,7 +790,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Auth完了を待機（Security Rulesで auth != null が必要）
     try {
         await authReady;
-        console.log("[gameLogic] Auth ready");
     } catch (error) {
         console.error("[gameLogic] Auth failed:", error);
     }
@@ -959,7 +937,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     loadTimeRemaining(); // 残り時間をローカルストレージから復元
-    console.log("初期処理:", timeRemaining);
     timeLimitTimer = setInterval(updateTimeLimit, 1000); // タイマーを開始
     
     // 初回クリックで音声を初期化
@@ -1137,13 +1114,6 @@ function getColumnFromEvent(event) {
 
     // デバッグログ（スマホ時のみ）
     if (isMobileLayout) {
-        console.log('[Column Debug]', {
-            clientX,
-            rectLeft: rect.left,
-            rectWidth: rect.width,
-            boardScale,
-            col,
-        });
     }
     return col;
 }
@@ -1187,13 +1157,11 @@ function moveStoneToColumn(col) {
 //------------------------------------------------------------------------------------------------
 
 async function watchRoomUpdates() {
-    const roomsRef = collection(db, "connectRooms");
-    const q = query(roomsRef, where("roomID", "==", roomID));
+    const q = roomQuery();
 
     onSnapshot(q, async (snapshot) => {
         if (snapshot.empty) {
             // P2: ドキュメント削除を検知（P1がTransaction後に削除）
-            console.log("[watchRoom] Room document deleted");
             return;
         }
 
@@ -1213,7 +1181,6 @@ async function watchRoomUpdates() {
             if (data.status === "leave") {
                 if (isMatchFinalized) return;
                 isMatchFinalized = true;
-                console.log("対戦相手が部屋を離れました。試合を中断します。");
 
                 // レーティング更新（leave扱い：自分が勝者）
                 await handleBO3Final(playerLeft_Color, "leave");
@@ -1238,7 +1205,6 @@ async function watchRoomUpdates() {
             if (enemyTimeout >= 2) {
               if (isMatchFinalized) return;
               isMatchFinalized = true;
-              console.log("相手が2回時間切れ。勝利として終了します。");
               // レーティング更新（timeout扱い：自分が勝者）
               await handleBO3Final(playerLeft_Color, "timeout");
               displayVictory(playerLeft_Color);
@@ -1248,7 +1214,6 @@ async function watchRoomUpdates() {
             if (myTimeout >= 2) {
               if (isMatchFinalized) return;
               isMatchFinalized = true;
-              console.log("自分が2回時間切れ。敗北として終了します。");
               // レーティング更新（timeout扱い：相手が勝者）
               await handleBO3Final(playerRight_Color, "timeout");
               displayVictory(playerRight_Color);
@@ -1299,17 +1264,11 @@ async function watchRoomUpdates() {
             // 相手がULTを使ったときにカットインだけでも出したいなぁ
             let check_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
             
-            console.log("▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼");
-            console.log("現在のターン数：", data.turnCount);
-            console.log("ターンプレイヤー：", data.turn);
-            console.log("必殺技判定　前：", check_UltCount);
-            console.log("必殺技判定　後：", playerRight_UltCount);
             
             if (playerRight_UltCount === check_UltCount) {
             
             } else {
                 if (onlyCutIn == 0) {
-                    console.log("★相手が必殺技を使いました。");
                     // カットイン終了後に必殺技の関数を実行
                     isTurnPlayerUltVoice();
                     disp_TopStone(turn, nowCol);
@@ -1322,7 +1281,6 @@ async function watchRoomUpdates() {
 
                 } else {
                     onlyCutIn = 0;
-                    console.log("●自分が必殺技を使いました。");
                 }
             }
             playerRight_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
@@ -1366,8 +1324,6 @@ async function watchRoomUpdates() {
             // 全てのフィールドが埋まっているときはランダムな列を削除する
             handleFullBoard(stonesData);
 
-            console.log("カットインフラグ：", onlyCutIn);
-            console.log("ターンフラグ：", isTurnPlayer());
             
             let stoneUpdated = false;
             
@@ -1388,7 +1344,6 @@ async function watchRoomUpdates() {
                   if (pRight_Attack) {
                     pRight_Attack.currentTime = 0;
                     pRight_Attack.play().then(() => {
-                      console.log('[Voice] 相手攻撃ボイス再生成功', { src: pRight_Attack.src, turn, color });
                     }).catch((err) => {
                       console.warn('[Voice] 相手攻撃ボイス再生失敗', { err: err.message, src: pRight_Attack.src, turn, color });
                     });
@@ -1407,15 +1362,12 @@ async function watchRoomUpdates() {
             
             if ((result.red || result.yellow)) {
             
-                console.log("↓↓↓↓↓↓↓↓↓↓↓");
-                console.log("勝利判定①");
                 
                 // 勝敗ラベル表示中は石を落とせないようにフラグを立てる。
                 winningflg = 1;
                 
                 if (result.red && result.yellow) {
 
-                    console.log("◆判定:引き分け");
 
                     // ◆引き分け
                     await Promise.all([
@@ -1436,7 +1388,6 @@ async function watchRoomUpdates() {
                     
                 } else if (result.red && !result.yellow) {
                 
-                    console.log("◆判定:赤勝利");
                     
                     // ◆赤が勝ち
                     await highlightWinningCells(result.red);
@@ -1455,7 +1406,6 @@ async function watchRoomUpdates() {
                     }
                 } else if (!result.red && result.yellow) {
                 
-                    console.log("◆判定:黄色勝利");
                     
                     // ◆黄が勝ち   
                     await highlightWinningCells(result.yellow);
@@ -1481,27 +1431,21 @@ async function watchRoomUpdates() {
                 // 勝利したときのラベル表示（YOU WIN:YOU LOSE）
                 await showWinner(result);
                 
-                console.log("↑↑↑↑↑↑↑↑↑↑↑");
             } 
             
             if (red_Win === 3 || yellow_Win === 3) {
                 // 二重発火防止
                 if (isMatchFinalized) {
-                    console.log("[BO3] Already finalized, skipping");
                     return;
                 }
                 isMatchFinalized = true;
 
-                console.log("◆◆◆◆◆◆◆◆◆◆◆");
-                console.log("勝利判定②（BO3確定）");
 
                 // 引き分けで両者同時に3点到達（マッチドロー）
                 if (red_Win === 3 && yellow_Win === 3) {
-                    console.log("◆判定:マッチドロー（3-3）");
                     resetTimeLimit();
                     await handleBO3MatchDraw();
                     displayMatchDraw();
-                    console.log("◆◆◆◆◆◆◆◆◆◆◆");
                     return;
                 }
 
@@ -1514,7 +1458,6 @@ async function watchRoomUpdates() {
 
                 displayVictory(winningColor); // 勝利画面を表示
                 resetTimeLimit();
-                console.log("◆◆◆◆◆◆◆◆◆◆◆");
                 return; // この後の処理をスキップ
             }
             
@@ -1523,7 +1466,6 @@ async function watchRoomUpdates() {
             // 「P1 のみ書き込み」制限は不要。両方が書いても Firestore ルールは通る。
             if (result.red || result.yellow) {
 
-                console.log("●●●●●●●●●●●");
 
                 try {
                     await deleteStonesAndUpdate();
@@ -1542,7 +1484,6 @@ async function watchRoomUpdates() {
                 init_drawBoard();
                 winningflg = 0;
 
-                console.log("〇〇〇〇〇〇〇〇〇〇〇");
 
             } else {
                 // クロスターンエフェクトを処理（勝利なしのターン切替時）
@@ -1560,7 +1501,6 @@ async function watchRoomUpdates() {
             createMemoryMarks();  // メモリ線を作成
             //updateTimeLimit();    // タイムリミットの更新開始
 
-            console.log("▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲");
             
         });
     });
@@ -1578,8 +1518,7 @@ async function deleteStonesAndUpdate() {
     pvpCerluaActive = false;
     pvpCerluaCasterColor = null;
 
-    const roomsRef = collection(db, "connectRooms");
-    const q = query(roomsRef, where("roomID", "==", roomID));
+    const q = roomQuery();
     const updates = {
         stones: {},                  // stonesのリセット
         turnCount: 1,                // ターンカウントのリセット
@@ -1605,15 +1544,12 @@ async function deleteStonesAndUpdate() {
             for (const docSnapshot of querySnapshot.docs) {
                 await updateDoc(docSnapshot.ref, updates);
             }
-            console.log("ゲージがリセットされました。次の試合に移行します。");
         } else {
-            console.log("該当の roomID のドキュメントが存在しません。");
         }
     } catch (error) {
         console.error("Firestoreの更新に失敗しました:", error);
         throw error; // 呼び出し元で winningflg=1 を維持させるため伝播
     }
-    console.log("・deleteStonesAndUpdate");
 }
 
 // 2秒待つ関数
@@ -1621,52 +1557,6 @@ function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-//// ターンを表示するための関数
-//async function showTurnLabel() {
-//    
-//    const turnLabel = document.getElementById("turnLabel");
-//    let turnlbl = null;
-//
-//    if (isTurnPlayer()) {
-//        turnlbl = "自分のターン";
-//
-//        if (turn === startP) {
-//            // 赤側グラデーション
-//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
-//        } else {
-//            // 黄色側グラデーション
-//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
-//        }
-//    } else {
-//        turnlbl = "相手のターン";
-//
-//        if (turn === startP) {
-//            // 赤側グラデーション
-//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 0, 0, 0.8), rgba(255, 100, 100, 0.8))";
-//        } else {
-//            // 黄色側グラデーション
-//            turnLabel.style.background = "linear-gradient(90deg, rgba(255, 255, 0, 0.8), rgba(255, 200, 50, 0.8))";
-//        }
-//    }
-//
-//    turnLabel.innerHTML = `${turnlbl} <br> ${turnCount}ターン目`;
-//
-//    // フェードイン
-//    turnLabel.style.display = "block"; // 初めに表示状態に
-//    setTimeout(() => {
-//        turnLabel.style.opacity = 1; // 透明度を1にしてフェードイン
-//    }, 10); // 少し遅れて実行（レイアウトを反映させるため）
-//
-//    // 3秒後にフェードアウト
-//    setTimeout(() => {
-//        turnLabel.style.opacity = 0; // 透明度を0にしてフェードアウト
-//    }, 1000); // 1秒後にフェードアウト
-//
-//    // フェードアウト後に完全に非表示
-//    setTimeout(() => {
-//        turnLabel.style.display = "none"; // 透明度が0になったら非表示
-//    }, 1500); // フェードアウト後に少し待ってから非表示
-//}
 
 // ターンを表示するための関数
 // hex色("#rrggbb")をrgba()文字列に変換する（設定で選んだ石カラーをグラデーションに反映するため）
@@ -1752,12 +1642,10 @@ function checkIfAllColumnsFull(stonesData) {
 
 function handleFullBoard(stonesData) {
     if (checkIfAllColumnsFull(stonesData)) {
-        console.log("すべての列が埋まりました。特定の処理を実行します。");
         ult_randomVerticalAllDelete();
         return;
         
     } else {
-        console.log("まだ空いている列があります。");
     }
 }
 
@@ -1802,7 +1690,6 @@ async function dropStone(column, attackType = 1) {
 
   } else {
     if (ultAfter) {
-      console.log("ultAfterを通常に戻しました。");
       ultAfter = false;
     }
   }
@@ -1834,66 +1721,6 @@ function isTurnPlayerUltVoice() {
     }
 }
 
-//async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNum, normalAttack = true) {
-//
-//    // rooms コレクションから roomID フィールドで一致するドキュメントを取得
-//    const roomsRef = collection(db, "connectRooms");
-//    const q = query(roomsRef, where("roomID", "==", roomID));  // roomIDが一致するドキュメントを検索
-//    const querySnapshot = await getDocs(q);
-//    let p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount;
-//    let isturn = turn === 'P1' ? 'P2' : 'P1';
-//    
-//    if (querySnapshot.empty) {
-//        return; // データが見つからない場合は処理を中断
-//    }
-//
-//    // ドキュメントが見つかった場合のみ更新処理を実行
-//    querySnapshot.forEach(async (doc) => {
-//        // ドキュメントデータを取得
-//        const roomData = doc.data();
-//        
-//        if(!normalAttack) {
-//            // ULT攻撃
-//            console.log("●必殺技攻撃", player_info);
-//            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // roomData を渡す
-//            [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
-//            changeStone = roomData.changeStone;
-//            
-//            // ホタル専用の処理
-//            if (playerLeft_CharaID === '009') isturn = isturn === 'P1' ? 'P2' : 'P1';
-//            
-//        } else if(ultAfter) {
-//            // 必殺技直後の通常攻撃
-//            console.log("●必殺技直後の通常攻撃", player_info);
-//            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData); // roomData を渡す
-//            [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
-//            changeStone = roomData.changeStone > 0 ? roomData.changeStone - 1 : 0;
-//            
-//        } else {
-//            // 通常攻撃
-//            console.log("●通常攻撃", player_info);
-//            [p1_chargeNow, p2_chargeNow] = await getcharge(roomData); // roomData を渡す
-//            [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
-//            changeStone = roomData.changeStone > 0 ? roomData.changeStone - 1 : 0;
-//            
-//        }
-//        // Firestoreに更新処理を実行
-//        await updateDoc(doc.ref, {
-//            player1_ChargeNow: p1_chargeNow,
-//            player1_UltCount: p1_UltCount,
-//            player2_ChargeNow: p2_chargeNow,
-//            player2_UltCount: p2_UltCount,
-//            [`stones.${column}_${row}`]: {
-//                color: playerColor,
-//                turnCount: turnCount // ターン情報を追加
-//            },
-//            turn: isturn,
-//            turnCount: turnCount + 1, // 現在のターン数を更新
-//            changeStone: changeStone
-//        });
-//        
-//    });
-//}
 
 async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNum, attackType) {
 
@@ -1902,8 +1729,7 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
     return;
   }
   
-  const roomsRef = collection(db, "connectRooms");
-  const q = query(roomsRef, where("roomID", "==", roomID));
+  const q = roomQuery();
   const querySnapshot = await getDocs(q);
   
   if (querySnapshot.empty) return;
@@ -1923,7 +1749,6 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 
     if (attackType === 2) {
       // ULT攻撃
-      console.log("●必殺技攻撃", player_info);
 
       [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
       // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
@@ -1937,7 +1762,6 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 
     } else if (ultAfter) {
       // 必殺技直後の通常攻撃
-      console.log("●必殺技直後の通常攻撃", player_info);
 
       [p1_chargeNow, p2_chargeNow] = await getcharge(roomData);
       [p1_UltCount, p2_UltCount] = await getUltCount(roomData);
@@ -1984,8 +1808,7 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 // 戻り値: true=書き込みした / false=書き込み無し（ターン不一致・満杯・room無し等）
 async function updateRoomWithStone_timeoutTx(column, playerColor) {
   try {
-    const roomsRef = collection(db, "connectRooms");
-    const q = query(roomsRef, where("roomID", "==", roomID));
+    const q = roomQuery();
     const qs = await getDocs(q);
 
     if (qs.empty) {
@@ -2035,15 +1858,6 @@ async function updateRoomWithStone_timeoutTx(column, playerColor) {
       const timeoutField =
         (player_info === "P1") ? "player1_TimeoutCount" : "player2_TimeoutCount";
 
-      console.log("[timeoutTx] 更新実行", {
-        column,
-        row,
-        color: playerColor,
-        currentTurnCount,
-        nextTurn,
-        nextChangeStone,
-        timeoutField,
-      });
 
       tx.update(roomRef, {
         [`stones.${column}_${row}`]: {
@@ -2059,7 +1873,6 @@ async function updateRoomWithStone_timeoutTx(column, playerColor) {
       didUpdate = true;
     });
 
-    console.log("[timeoutTx] runTransaction 完了", { didUpdate });
     return didUpdate;
 
   } catch (e) {
@@ -2206,7 +2019,6 @@ function disp_TopStone(turn, col) {
     );
     topCtx.fill();
     topCtx.closePath();
-    console.log("・disp_TopStone");
 }
 
 // 背景を描画する関数（Firestoreのデータを使用して石も描画）
@@ -2237,7 +2049,6 @@ async function init_drawBoard(allstones = false) {
             }
         }
     }
-    console.log("・init_drawBoard");
 }
 
 function drawPiece(column, y, color) {
@@ -2253,11 +2064,9 @@ function backcolor_player(turn) {
 
     // 背景色を変更
     if (playerColor === 'red') {
-        console.log('先行なので赤色');
         leftPane.style.backgroundColor = '#ffe5e5'; // 赤色に変更
         rightPane.style.backgroundColor = '#ffffe5'; // 黄色に変更
     } else {
-        console.log('後攻なので黄色');
         leftPane.style.backgroundColor = '#ffffe5'; // 黄色に変更
         rightPane.style.backgroundColor = '#ffe5e5'; // 赤色に変更
     }
@@ -2270,6 +2079,11 @@ function getUUIDFromCookie() {
     
     // UUIDが見つかった場合に値を返す
     return uuidCookie ? uuidCookie.split("=")[1] : null;
+}
+
+// この試合の部屋(connectRooms の roomID 一致)を探すクエリ。以前は同じ2行が各所に重複していた。
+function roomQuery() {
+    return query(collection(db, "connectRooms"), where("roomID", "==", roomID));
 }
 
 // charaIDに一致するキャラ情報を取得する関数
@@ -2396,17 +2210,12 @@ async function showWinner(result) {
 function loadTimeRemaining() {
     const savedTime = localStorage.getItem("timeRemaining");
     const savedTimestamp = localStorage.getItem("lastTimestamp");
-    console.log("▲ローカルストレージから残り時間を取得:", savedTime);
-    console.log("△ローカルストレージから残り時間を取得:", savedTimestamp);
     
     if (savedTime !== null && savedTimestamp !== null) {
         const elapsed = Math.floor((Date.now() - parseInt(savedTimestamp, 10)) / 1000);
         timeRemaining = Math.max(0, parseInt(savedTime, 10) - elapsed);
-        console.log("変数チェック①:", elapsed);
-        console.log("変数チェック①:", timeRemaining);
     } else {
         timeRemaining = timeLimit;
-        console.log("変数チェック②:", timeRemaining);
     }
     if (timeRemaining >= 100) timeRemaining = 100;
 
@@ -2416,7 +2225,6 @@ function loadTimeRemaining() {
       timeRemaining = timeLimit;
       saveTimeRemaining();
     }
-    console.log("◇ローカルストレージから残り時間を取得:", timeRemaining);
     
 }
 
@@ -2428,7 +2236,6 @@ function saveTimeRemaining() {
 
 // ローカルストレージの残り時間関連データを削除
 function clearTimeRemaining() {
-    console.log("ローカルストレージの残り時間関連データを削除:", timeRemaining);
     
     localStorage.removeItem("timeRemaining"); // 残り時間データを削除
     localStorage.removeItem("lastTimestamp"); // タイムスタンプデータを削除
@@ -2454,11 +2261,9 @@ async function updateTimeLimit() {
          // → 5秒の猶予後にFirestore更新がなければ相手切断とみなす
          if (!isTurnPlayer()) {
            timeLimitGauge.style.width = "0%";
-           console.log("[Timeout] 相手ターンでタイムアウト。5秒の猶予タイマー開始");
            disconnectTimer = setTimeout(async () => {
                if (isMatchFinalized) return;
                isMatchFinalized = true;
-               console.log("[Timeout] 猶予タイマー満了。相手切断として処理");
                await handleBO3Final(playerLeft_Color, "timeout");
                displayVictory(playerLeft_Color);
            }, 5000);
@@ -2497,7 +2302,6 @@ function resetTimeLimit() {
     if (disconnectTimer) {
         clearTimeout(disconnectTimer);
         disconnectTimer = null;
-        console.log("[resetTimeLimit] 猶予タイマーをキャンセル");
     }
 
     // 既存のタイマーがあれば停止
@@ -2509,14 +2313,6 @@ function resetTimeLimit() {
     // ■■■■■2026/01/10　修正前 timeLimit = isTurnPlayer() ? playerRight_TimeLimit : playerLeft_TimeLimit;
     timeLimit = isTurnPlayer() ? playerLeft_TimeLimit : playerRight_TimeLimit;
 
-    console.log("[resetTimeLimit]", {
-        isTurnPlayer: isTurnPlayer(),
-        playerLeft_TimeLimit,
-        playerRight_TimeLimit,
-        timeLimit,
-        turn,
-        player_info,
-    });
     
     // 残り時間を初期値に戻す
     timeRemaining = timeLimit;
@@ -2576,8 +2372,7 @@ async function recordTimeoutOncePerTurn() {
 
 async function getRandomEmptyColumn() {
     // rooms コレクションから roomID フィールドで一致するドキュメントを取得
-    const roomsRef = collection(db, "connectRooms");
-    const q = query(roomsRef, where("roomID", "==", roomID)); // roomIDが一致するドキュメントを検索
+    const q = roomQuery(); // roomIDが一致するドキュメントを検索
     
     const querySnapshot = await getDocs(q);
 
@@ -2611,7 +2406,6 @@ async function getRandomEmptyColumn() {
     });
 
     if (emptyColumns.length === 0) {
-        console.log("すべての列が埋まっています");
         return null; // 空いている列がない場合
     }
 
@@ -2625,7 +2419,6 @@ async function getRandomEmptyColumn() {
 // マッチドロー（3-3同時到達）：レート変動なし、rooms削除のみ（P1のみ実行）
 async function handleBO3MatchDraw() {
     if (player_info !== "P1") {
-        console.log("[Rating] P2: マッチドロー後処理はP1に委任");
         return;
     }
     if (!firestoreRoomDocRef) {
@@ -2634,7 +2427,6 @@ async function handleBO3MatchDraw() {
     }
     try {
         await deleteRoomAfterRating(firestoreRoomDocRef);
-        console.log("[Rating] マッチドロー：rooms削除完了");
     } catch (error) {
         console.error("[Rating] マッチドロー rooms削除失敗:", error);
     }
@@ -2847,7 +2639,6 @@ async function fetchAndAnimateRating(element, retryCount = 0) {
 
         // トランザクション未完了の場合リトライ
         if (newRating === myPreRating && retryCount < MAX_RETRY) {
-            console.log(`[Rating] レート未更新、リトライ ${retryCount + 1}/${MAX_RETRY}`);
             setTimeout(() => fetchAndAnimateRating(element, retryCount + 1), RETRY_DELAY);
             return;
         }
@@ -2944,7 +2735,6 @@ async function getcharge(data, normalAttack = true) {
     
     if(!normalAttack) {
         // ULT攻撃
-        console.log("●必殺技攻撃", player_info);
         if (player_info === 'P1') {
             playerLeft_ChargeNow = playerLeft_ChargeNow - 150;
             playerRight_ChargeNow = data.player2_ChargeNow;
@@ -2963,7 +2753,6 @@ async function getcharge(data, normalAttack = true) {
         
     } else if(ultAfter) {
         // 必殺技直後の通常攻撃
-        console.log("●必殺技直後の通常攻撃", player_info);
         if (player_info === 'P1') {
             p1_chargeNow = playerLeft_ChargeNow;
             p2_chargeNow = playerRight_ChargeNow;
@@ -2977,7 +2766,6 @@ async function getcharge(data, normalAttack = true) {
         
     } else {
         // 通常攻撃
-        console.log("●通常攻撃", player_info);
         if (player_info === 'P1') {
             playerLeft_ChargeNow = Math.min(playerLeft_ChargeNow + chargeNum, 200);
             playerRight_ChargeNow = data.player2_ChargeNow;
@@ -3001,8 +2789,6 @@ async function getcharge(data, normalAttack = true) {
     if (p2_chargeNow < 0) {
         p2_chargeNow = 0;
     }
-    console.log("◇ゲージ取得1：", p1_chargeNow);
-    console.log("◇ゲージ取得2：", p2_chargeNow);
     return [p1_chargeNow, p2_chargeNow];  
 }
 
@@ -3013,11 +2799,6 @@ async function getUltCount(data, normalAttack = true) {
     const ultCnt = normalAttack ? 0 : 1;
 
     if (ultCnt > 0) {
-        console.log("[getUltCount] UltCount +1 加算実行", {
-            caller: new Error().stack?.split('\n')[2]?.trim(),
-            player_info,
-            before: playerLeft_UltCount,
-        });
     }
 
     if (player_info === 'P1') {
@@ -3057,9 +2838,7 @@ function toggleSpecialMoveButton(show) {
 //------------------------------------------------------------------------------------------------
 
 async function invokeAbility(functionName) {
-    console.log("invokeAbility:", functionName);
     if (typeof abilities[functionName] === "function") {
-        console.log("必殺技実行");
         
         ult_CntUP();
         
@@ -3070,7 +2849,6 @@ async function invokeAbility(functionName) {
         await showCutIn();
 
         abilities[functionName](); // 関数を動的に呼び出す
-        console.log("必殺技でドキュメントを更新しました。");
     } else {
         console.error(`Function ${functionName} is not defined in abilities module`);
     }
@@ -3141,7 +2919,6 @@ function showCutIn() {
 // ホタル
 async function ult_randomVertical1Drop(){
     nowCol = await getRandomEmptyColumn();
-    console.log("ホタルの必殺技発動！:", nowCol);
     dropStone(nowCol, 2);
 }
 
@@ -3150,7 +2927,6 @@ async function ult_randomVertical1Drop(){
 // セノ
 async function ult_randomCenter2Delete(){
     const randomStones = getRandomTwoNumbers();
-    console.log("セノの必殺技発動！:", randomStones);
     
     const stonesToDelete = await getStonesToDelete(randomStones, 6);
 
@@ -3173,7 +2949,6 @@ function getRandomThreeNumbers() {
 
 async function ult_allTopDelete(){
     const randomStones = await getRandomTopStones(4);
-    console.log("アルベドの必殺技発動！:", randomStones);
     
     const stonesToDelete = await getStonesToDelete(randomStones, 2);
 
@@ -3186,7 +2961,6 @@ async function ult_allTopDelete(){
 
 async function ult_random3TopDelete(){
     const randomStones = await getRandomTopStones(3);
-    console.log("八重神子の必殺技発動！:", randomStones);
     
     const stonesToDelete = await getStonesToDelete(randomStones);
 
@@ -3199,7 +2973,6 @@ async function ult_random3TopDelete(){
 
 async function ult_randomVerticalAllDelete(){
     const randomStones = await getRandomTopStones(1);
-    console.log("ヘルタの必殺技発動！:", randomStones);
     
     const stonesToDelete = await getStonesToDelete(randomStones, 6);
 
@@ -3213,8 +2986,7 @@ async function ult_randomVerticalAllDelete(){
 async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
     try {
         // Firestoreからデータ取得
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
@@ -3225,7 +2997,6 @@ async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
         const roomDoc = querySnapshot.docs[0];
         const roomData = roomDoc.data();
         const stonesData = roomData.stones || {};
-        console.log("現在のstonesDataのキー:", Object.keys(stonesData)); // デバッグ用
 
         const stonesToDelete = [];
 
@@ -3240,7 +3011,6 @@ async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
                 for (let currentRow = 0; currentRow <= 5; currentRow++) {
                     const key = `${column}_${currentRow}`;
                     stonesToDelete.push(key);
-                    console.log(`6指定: 列 ${column} の削除対象座標 ${key}`);
                 }
             } else {
                 // 指定された座標から下方向に指定数分の座標を取得
@@ -3251,15 +3021,12 @@ async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
                     const key = `${column}_${currentRow}`;
                     if (stonesData[key] || numberOfRowsToDelete === 6) {
                         stonesToDelete.push(key);
-                        console.log(`通常指定: 削除対象座標 ${key}`);
                     } else {
-                        console.log(`通常指定: 石が存在しない座標 ${key}`);
                     }
                 }
             }
         }
 
-        console.log("削除対象のキー一覧:", stonesToDelete);
 
         // 列番号で昇順にソート
         stonesToDelete.sort((a, b) => {
@@ -3268,7 +3035,6 @@ async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
             return colA - colB;
         });
 
-        console.log("ソート後の削除対象のキー一覧:", stonesToDelete);
 
         return stonesToDelete;
     } catch (error) {
@@ -3280,8 +3046,7 @@ async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
 async function deleteStones(stonesToDelete) {
 
     try {
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         const querySnapshot = await getDocs(q);
 
         querySnapshot.forEach(async (roomDoc) => {
@@ -3382,8 +3147,7 @@ async function getRandomTopStones(count) {
             return null;
         }
 
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
@@ -3410,7 +3174,6 @@ async function getRandomTopStones(count) {
                 selectedColumns.push(randomColumn);
             }
         }
-        console.log("・selectedColumns:", selectedColumns);
 
         // 選択した列の一番上の石を取得
         const result = [];
@@ -3420,7 +3183,6 @@ async function getRandomTopStones(count) {
                 result.push({ column: parseInt(col), row: topRow });
             }
         });
-        console.log("・result:", result);
 
         return result;
     } catch (error) {
@@ -3437,22 +3199,15 @@ function getTopStoneInColumn(stonesData, column) {
 //------------------------------------------------------------------------------------------------
 
 async function ult_downThinkingTime() {
-  console.log("[ULT] アベンチュリンの必殺技発動！ player_info=", player_info);
 
   try {
-    const roomsRef = collection(db, "connectRooms");
-    const q = query(roomsRef, where("roomID", "==", roomID));
+    const q = roomQuery();
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) return;
 
     for (const roomDoc of querySnapshot.docs) {
       const roomData = roomDoc.data();
 
-      console.log("[ULT] Firestore読取値:", {
-        p1_TimeLimit: roomData.player1_TimeLimit,
-        p2_TimeLimit: roomData.player2_TimeLimit,
-        player_info,
-      });
 
       const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
       // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ（normalAttack=true で加算しない）
@@ -3469,7 +3224,6 @@ async function ult_downThinkingTime() {
           player2_ChargeNow: p2_chargeNow,
           player2_TimeLimit: p2_Time,
         });
-        console.log("[ULT] 相手(P2)の思考時間を減少:", { before: roomData.player2_TimeLimit, after: p2_Time });
       } else {
         // 自分がP2 → 相手はP1 → player1_TimeLimit を減らす
         const p1_Time = Math.max(0, (roomData.player1_TimeLimit ?? 100) - 19);
@@ -3479,9 +3233,7 @@ async function ult_downThinkingTime() {
           player2_ChargeNow: p2_chargeNow,
           player1_TimeLimit: p1_Time,
         });
-        console.log("[ULT] 相手(P1)の思考時間を減少:", { before: roomData.player1_TimeLimit, after: p1_Time });
       }
-      console.log("[ULT] ローカル変数:", { playerLeft_TimeLimit, playerRight_TimeLimit });
     }
   } catch (error) {
     console.error("[ULT] 思考時間更新でエラー:", error);
@@ -3492,7 +3244,6 @@ async function ult_downThinkingTime() {
 
 async function ult_Top2Delete() {    
     const stonesToDelete = await getTop2Stones();
-    console.log("雷電将軍の必殺技発動！：", stonesToDelete);
 
     // 石をハイライト
     highlightStones(stonesToDelete, 100);
@@ -3508,11 +3259,9 @@ async function getTop2Stones() {
 //------------------------------------------------------------------------------------------------
 
 async function ult_randomAbility(){
-    console.log("花火の必殺技発動！");
     
     try {
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         
         // getDocs に await を追加
         const querySnapshot = await getDocs(q);
@@ -3544,7 +3293,6 @@ async function ult_randomAbility(){
 async function ult_madness() {
 
     const randomStones = getRandomThreeNumbers();
-    console.log("キャストリスの必殺技発動！:", randomStones);
     
     const stonesToDelete = await getStonesToDelete(randomStones, 6);
 
@@ -3554,47 +3302,6 @@ async function ult_madness() {
     // 石を削除
     deleteStones(stonesToDelete);
     
-//    console.log("ルアンママの必殺技発動！");
-//    try {
-//        // Firestoreから石の情報を取得
-//        const roomsRef = collection(db, "connectRooms");
-//        const q = query(roomsRef, where("roomID", "==", roomID));
-//        const querySnapshot = await getDocs(q);
-//
-//        if (querySnapshot.empty) {
-//            console.error("Room not found.");
-//            return;
-//        }
-//
-//        const roomDoc = querySnapshot.docs[0];
-//        const roomData = roomDoc.data();
-//        const stonesData = roomData.stones || {};
-//        console.log("現在のstonesData:", stonesData);
-//
-//        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false); // 必殺技ゲージ
-//        const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false); // 必殺技回数
-//
-//        // 赤と黄色の変更する石を取得
-//        const [redChangeStones, yellowChangeStones] = await getStonesToChange(stonesData, playerLeft_UltCount);
-//
-//        console.log("逆転する赤の石:", redChangeStones);
-//        console.log("逆転する黄の石:", yellowChangeStones);
-//
-//        // 石の色を逆転
-//        await changeStonesColor(stonesData, redChangeStones, yellowChangeStones);
-//
-//        // ハイライト処理
-//        await highlightStones(redChangeStones, 250);
-//        await highlightStones(yellowChangeStones, 250);
-//
-//        // Firestoreに更新
-//        await updateRoomWithNewStones(roomDoc.id, stonesData, p1_chargeNow, p2_chargeNow, p1_UltCount, p2_UltCount);
-//
-//        init_drawBoard(true);
-//            
-//    } catch (error) {
-//        console.error("必殺技の処理中にエラーが発生しました:", error);
-//    }
 }
 
 // 石の色を逆転する関数
@@ -3624,7 +3331,6 @@ async function updateRoomWithNewStones(roomDocId, stonesData, p1_chargeNow, p2_c
 
     // バッチをコミットして更新
     await batch.commit();
-    console.log("stonesDataとRoom情報をFirestoreに更新しました！");
 }
 
 
@@ -3642,11 +3348,9 @@ function getRandomElements(array, count) {
 
 
 async function ult_CntUP() {
-    console.log("[ult_CntUP] 必殺技使用回数をカウントアップ", { player_info, turn });
 
     try {
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         const querySnapshot = await getDocs(q);
 
         for (const roomDoc of querySnapshot.docs) {
@@ -3654,15 +3358,6 @@ async function ult_CntUP() {
 
             const beforeLeft = playerLeft_UltCount;
             const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
-            console.log("[ult_CntUP] UltCount加算", {
-                player_info,
-                beforeLeft,
-                afterLeft: playerLeft_UltCount,
-                p1_UltCount,
-                p2_UltCount,
-                firestoreP1: roomData.player1_UltCount,
-                firestoreP2: roomData.player2_UltCount,
-            });
 
             const roomDocRef = doc(db, "connectRooms", roomDoc.id);
             await updateDoc(roomDocRef, {
@@ -3678,10 +3373,8 @@ async function ult_CntUP() {
 //------------------------------------------------------------------------------------------------
 
 async function ult_ruanMei() {
-    console.log("ルアン・メェイの必殺技発動！");
     try {
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
@@ -3886,8 +3579,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
     try {
         // ① ドゥリン：自分のターン開始時に自動破壊
         if (pvpDurinPending && playerLeft_Color === pvpDurinCasterColor) {
-            const roomsRef = collection(db, "connectRooms");
-            const q = query(roomsRef, where("roomID", "==", roomID));
+            const q = roomQuery();
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
                 const roomDoc = querySnapshot.docs[0];
@@ -3964,8 +3656,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 }
             }
 
-            const roomsRef = collection(db, "connectRooms");
-            const q = query(roomsRef, where("roomID", "==", roomID));
+            const q = roomQuery();
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty && lastVictimCol >= 0) {
                 const roomDoc = querySnapshot.docs[0];
@@ -4005,10 +3696,8 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
 // 新キャラクター必殺技
 
 async function ult_lowen() {
-    console.log("ローエンの必殺技発動！");
     try {
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) return;
 
@@ -4045,7 +3734,6 @@ async function ult_lowen() {
 }
 
 async function ult_zhongli() {
-    console.log("鍾離の必殺技発動！");
     try {
         // 非満杯列からランダムに2列選択して封鎖
         const nonFullCols = pvpGetNonFullCols(2);
@@ -4066,18 +3754,15 @@ async function ult_zhongli() {
 }
 
 async function ult_saphel() {
-    console.log("サフェルの必殺技発動！");
     try {
         // 相手のキャラIDを取得
         const opponentCharaID = playerRight_CharaID;
         const opponentData = getCharacterDataByID(opponentCharaID);
         if (!opponentData || opponentData.charaID === '013') {
-            console.log("サフェル：不発（相手もサフェル、またはキャラ未定義）");
             return;
         }
         const fn = abilities[opponentData.process];
         if (fn) {
-            console.log(`サフェル：相手の必殺技「${opponentData.Ability}」をコピー`);
             await fn();
         }
     } catch (error) {
@@ -4086,10 +3771,8 @@ async function ult_saphel() {
 }
 
 async function ult_durin() {
-    console.log("ドゥリンの必殺技発動！");
     try {
-        const roomsRef = collection(db, "connectRooms");
-        const q = query(roomsRef, where("roomID", "==", roomID));
+        const q = roomQuery();
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) return;
 
@@ -4129,7 +3812,6 @@ async function ult_durin() {
 }
 
 async function ult_cerylua() {
-    console.log("ケリュドラの必殺技発動！");
     try {
         pvpCerluaActive = true;
         pvpCerluaCasterColor = playerLeft_Color;
@@ -4144,7 +3826,6 @@ async function ult_cerylua() {
 }
 
 async function ult_silverwolf() {
-    console.log("銀狼LV.999の必殺技発動！");
     try {
         if (playerLeft_Color === 'red') {
             red_Win++;
