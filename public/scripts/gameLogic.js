@@ -38,7 +38,7 @@ import {
     getStonesToChange as _getStonesToChange
 } from "./abilities.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
-import { ensureUserDoc, writeBO3Result, executeRatingTransaction, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
+import { ensureUserDoc, writeBO3Result, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getClickMode } from "./settingsManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
 import { recordPvpMatchAchievements, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
@@ -135,8 +135,11 @@ let pvpPrevTurn = null;         // ターン変化検知用
 let firestoreRoomDocRef = null; // Firestoreドキュメント参照（Transaction用）
 let isMatchFinalized = false; // BO3確定済みフラグ（二重発火防止）
 let myPreRating = null; // レート変動表示用：試合前の自分のレート
-let myPreAchievements = new Set(); // 試合前の自分の解放済みアチーブメントID（P2側のトースト表示用の差分検知に使う）
-let achievementToastShownForMatch = false; // P2側のトースト多重表示防止
+let achievementToastShownForMatch = false; // 実績トーストの多重表示防止
+// ランク戦のレート確定(サーバー計算)と自分の実績記録が終わるのを待つPromise。
+// 結果画面の自動遷移・レート変動表示もこれを待つ(待たずに遷移すると実績が記録されない)。
+let ratingSettledPromise = null;
+const RATING_WAIT_MS = 20 * 1000; // レート確定を待つ上限
 let disconnectTimer = null; // 相手切断検知用の猶予タイマー
 
 // 部屋離脱検知用ハートビート：対局中は自分の生存時刻を定期的に書き込み、
@@ -450,8 +453,6 @@ async function displayThumbnails() {
         ]);
         // 自分の事前レートを保存（レート変動表示用）
         myPreRating = leftRating?.rating ?? null;
-        // 自分の事前解放済みアチーブメントを保存（P2側のトースト差分検知用）
-        myPreAchievements = new Set(leftRating?.achievements || []);
         await Promise.all([
             applyRatingDisplay(document.getElementById('playerRating_1'), leftRating, document.getElementById('rankBadge_1'), document.getElementById('playerRankName_1')),
             applyRatingDisplay(document.getElementById('playerRating_2'), rightRating, document.getElementById('rankBadge_2'), document.getElementById('playerRankName_2'))
@@ -1185,22 +1186,6 @@ function moveStoneToColumn(col) {
 
 //------------------------------------------------------------------------------------------------
 
-// P2側：自分のuser docの解放済みアチーブメントを試合前のスナップショットと比較し、
-// 新規解放分があればトーストを出す（P1はhandleBO3Final内で直接トーストするためここでは扱わない）
-function checkAndToastNewAchievements(myRating) {
-    if (!myRating || achievementToastShownForMatch) return;
-    const currentAchievements = myRating.achievements || [];
-    const newlyUnlocked = currentAchievements.filter((id) => !myPreAchievements.has(id));
-    if (newlyUnlocked.length > 0) {
-        achievementToastShownForMatch = true;
-        newlyUnlocked.forEach((id) => {
-            showAchievementToast(id);
-            const unlocked = characterData.find(c => c.requiredAchievementId === id);
-            if (unlocked) showCharacterUnlockModal(unlocked);
-        });
-    }
-}
-
 async function watchRoomUpdates() {
     const roomsRef = collection(db, "connectRooms");
     const q = query(roomsRef, where("roomID", "==", roomID));
@@ -1212,19 +1197,8 @@ async function watchRoomUpdates() {
             return;
         }
 
-        // BO3確定後は全処理をスキップ（rated検知のみ許可）
-        if (isMatchFinalized) {
-            snapshot.forEach(async (doc) => {
-                const data = doc.data();
-                if (data.rated === true && player_info === "P2") {
-                    console.log("[Rating] P2: rated===true 検知（finalized後）");
-                    const myRating = await getUserRating(playerLeft_ID);
-                    if (myRating) console.log("[Rating] P2 updated rating:", myRating);
-                    checkAndToastNewAchievements(myRating);
-                }
-            });
-            return;
-        }
+        // BO3確定後は全処理をスキップ（レート確定の待ち受けは recordMyAchievementsWhenRated が行う）
+        if (isMatchFinalized) return;
 
         snapshot.forEach(async (doc) => {
             const data = doc.data();
@@ -1233,16 +1207,6 @@ async function watchRoomUpdates() {
             const enemyField = player_info === 'P1' ? data.player2_LastActive : data.player1_LastActive;
             if (enemyField?.toMillis) {
                 enemyLastActiveMs = enemyField.toMillis();
-            }
-
-            // P2: rated===true を検知したらレート情報を再取得
-            if (data.rated === true && player_info === "P2") {
-                console.log("[Rating] P2: rated===true 検知、レート情報を再取得");
-                const myRating = await getUserRating(playerLeft_ID);
-                if (myRating) {
-                    console.log("[Rating] P2 updated rating:", myRating);
-                }
-                checkAndToastNewAchievements(myRating);
             }
 
             // 部屋のステータスが "leave" になった場合の処理
@@ -1292,9 +1256,9 @@ async function watchRoomUpdates() {
             }
 
             // 銀狼LV.999 必殺技による試合終了（非発動者クライアントが検知）
-            if (data.silverwolfMatchWinner && !isMatchFinalized) {
+            if (data.abilityState?.silverwolfMatchWinner && !isMatchFinalized) {
               isMatchFinalized = true;
-              const winnerColor = data.silverwolfMatchWinner;
+              const winnerColor = data.abilityState?.silverwolfMatchWinner;
               const isStraightWin = winnerColor === 'red' ? yellow_Win === 0 : red_Win === 0;
               await handleBO3Final(winnerColor, "normal", { isStraightWin, isComebackWin: false });
               displayVictory(winnerColor);
@@ -1384,13 +1348,13 @@ async function watchRoomUpdates() {
             }
 
             // クロスターンエフェクト状態をFirestoreから同期
-            pvpZhongliBlocked = data.zhongliBlocked || null;
-            pvpZhongliTurnsLeft = data.zhongliTurnsLeft || 0;
-            pvpZhongliCasterColor = data.zhongliCasterColor || null;
-            pvpDurinPending = data.durinPending || false;
-            pvpDurinCasterColor = data.durinCasterColor || null;
-            pvpCerluaActive = data.cerluaActive || false;
-            pvpCerluaCasterColor = data.cerluaCasterColor || null;
+            pvpZhongliBlocked = data.abilityState?.zhongliBlocked || null;
+            pvpZhongliTurnsLeft = data.abilityState?.zhongliTurnsLeft || 0;
+            pvpZhongliCasterColor = data.abilityState?.zhongliCasterColor || null;
+            pvpDurinPending = data.abilityState?.durinPending || false;
+            pvpDurinCasterColor = data.abilityState?.durinCasterColor || null;
+            pvpCerluaActive = data.abilityState?.cerluaActive || false;
+            pvpCerluaCasterColor = data.abilityState?.cerluaCasterColor || null;
 
             stonesData = data.stones || {};
             turn = data.turn;
@@ -1624,13 +1588,13 @@ async function deleteStonesAndUpdate() {
         red_Win: red_Win,        // 赤プレイヤー勝利数
         yellow_Win: yellow_Win,         // 黄プレイヤー勝利数
         changeStone: 0,
-        zhongliBlocked: null,
-        zhongliTurnsLeft: 0,
-        zhongliCasterColor: null,
-        durinPending: false,
-        durinCasterColor: null,
-        cerluaActive: false,
-        cerluaCasterColor: null
+        'abilityState.zhongliBlocked': null,
+        'abilityState.zhongliTurnsLeft': 0,
+        'abilityState.zhongliCasterColor': null,
+        'abilityState.durinPending': false,
+        'abilityState.durinCasterColor': null,
+        'abilityState.cerluaActive': false,
+        'abilityState.cerluaCasterColor': null
     };
 
     try {
@@ -2699,104 +2663,114 @@ function displayMatchDraw() {
     }, 8000);
 }
 
-// BO3確定時のレーティング更新処理
+// BO3確定時の処理
 // winningColor: 勝者の色 ("red" | "yellow")
 // resultType: "normal" | "leave" | "timeout"
 // matchFlags: { isStraightWin, isComebackWin } - "normal"決着時のみ意味を持つ
+//
+// ランク戦のレート・戦績・キャラ統計の計算はサーバー(24_AccountCenter/functions/connect.js)が行う。
+// クライアントは決着内容を部屋に書くだけで、レートには一切触れない(ルールでも書けない)。
+// 実績(achStats)は、レート確定後に両クライアントがそれぞれ「自分の分だけ」記録する。
 async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
-    // leave（退出）はP1が退出している可能性があるため残ったプレイヤーが担当。
-    // それ以外（通常・タイムアウト）はP1のみが全責務を持つ（二重実行防止）。
-    if (resultType !== "leave" && player_info !== "P1") {
-        console.log("[Rating] P2: レート処理はP1に委任");
-        return;
-    }
-
-    if (!firestoreRoomDocRef) {
-        console.warn("[Rating] firestoreRoomDocRef is null, skipping rating");
-        return;
-    }
-
     const { isStraightWin = false, isComebackWin = false } = matchFlags;
+    // playerLeft は常に自分(P1/P2どちらのクライアントでも)
+    const winnerUid = (playerLeft_Color === winningColor) ? playerLeft_ID : playerRight_ID;
 
-    // 勝者UIDの特定（P1視点: playerLeft = P1, playerRight = P2）
-    const isMeWinner = (playerLeft_Color === winningColor);
-    const winnerUid = isMeWinner ? playerLeft_ID : playerRight_ID;
+    if (matchType === "ranked") {
+        ratingSettledPromise = recordMyAchievementsWhenRated({ winnerUid, resultType, isStraightWin, isComebackWin });
+    }
 
-    const p1Uid = playerLeft_ID;
-    const p2Uid = playerRight_ID;
-    const p1CharaId = playerLeft_CharaID;
-    const p2CharaId = playerRight_CharaID;
-
-    console.log("[Rating] handleBO3Final:", { winningColor, resultType, matchType, winnerUid, p1Uid, p2Uid });
+    // 決着の書き込みと部屋の削除は1人だけが行う(二重実行防止)。
+    // leave（退出）はP1が退出している可能性があるため残ったプレイヤー、それ以外はP1。
+    if (resultType !== "leave" && player_info !== "P1") return;
+    if (!firestoreRoomDocRef) return;
 
     try {
-        // 1. roomsに結果フィールドを書き込み
         await writeBO3Result(firestoreRoomDocRef, {
             winnerUid,
             resultType,
-            p1CharaId,
-            p2CharaId,
+            p1CharaId: playerLeft_CharaID,
+            p2CharaId: playerRight_CharaID,
             redWin: red_Win,
             yellowWin: yellow_Win
         });
-        console.log("[Rating] writeBO3Result 完了");
-
-        // 2. ranked の場合のみ Transaction 実行
-        if (matchType === "ranked") {
-            const result = await executeRatingTransaction(firestoreRoomDocRef, p1Uid, p2Uid);
-            if (result) {
-                console.log("[Rating] レート更新完了:", result);
-
-                // アチーブメント関連スタッツの更新（rating/winCount/charaWinsとは別フィールド。
-                // 失敗してもレート処理自体には影響させないようtry/catchで隔離する）
-                try {
-                    const ratingFor = (uid) => (uid === winnerUid ? result.winnerNewRating : result.loserNewRating);
-                    const isCleanWin = resultType === "normal";
-                    const [p1Newly] = await Promise.all([
-                        recordPvpMatchAchievements(p1Uid, {
-                            newRating: ratingFor(p1Uid),
-                            ultCountThisMatch: playerLeft_UltCount,
-                            isWinner: winnerUid === p1Uid,
-                            isStraightWin, isCleanWin, isComebackWin,
-                            myCharaId: playerLeft_CharaID,
-                        }),
-                        recordPvpMatchAchievements(p2Uid, {
-                            newRating: ratingFor(p2Uid),
-                            ultCountThisMatch: playerRight_UltCount,
-                            isWinner: winnerUid === p2Uid,
-                            isStraightWin, isCleanWin, isComebackWin,
-                            myCharaId: playerRight_CharaID,
-                        }),
-                    ]);
-                    // playerLeft = P1 = 自分。自分の新規解放分のみトースト表示する（P2は別途rated検知で表示）
-                    achievementToastShownForMatch = true;
-                    p1Newly.forEach((id) => {
-                        showAchievementToast(id);
-                        const unlocked = characterData.find(c => c.requiredAchievementId === id);
-                        if (unlocked) showCharacterUnlockModal(unlocked);
-                    });
-                } catch (achError) {
-                    console.error("[Achievement] PvP実績更新失敗:", achError);
-                }
-            } else {
-                console.warn("[Rating] Transaction returned null（条件不一致 or エラー）");
-            }
-        } else {
-            console.log("[Rating] private マッチ: レート更新スキップ");
-        }
-
-        // 3. Transaction成功後にrooms削除（P1のみ）
-        await deleteRoomAfterRating(firestoreRoomDocRef);
-        console.log("[Rating] rooms削除完了");
-
     } catch (error) {
-        console.error("[Rating] handleBO3Final error:", error);
-        // エラー時もrooms削除を試みる
+        console.error("[Rating] 決着の書き込みに失敗:", error);
+    }
+
+    // 部屋の削除は、レート確定(相手クライアントが結果を受け取る時間も少し見る)の後に行う。
+    // 勝利画面の表示を待たせないよう、ここでは待たずに裏で進める。
+    (async () => {
+        if (matchType === "ranked") {
+            await ratingSettledPromise;
+            await wait(3000);
+        }
         try {
             await deleteRoomAfterRating(firestoreRoomDocRef);
         } catch (delErr) {
-            console.error("[Rating] rooms削除も失敗:", delErr);
+            console.error("[Rating] rooms削除失敗:", delErr);
         }
+    })();
+}
+
+// レート確定(サーバーが部屋に rated:true と ratingResult を書く)を待つ。
+// 部屋が先に削除されていた場合は試合記録(connectMatches)から結果を読む。確定しなければ null。
+function waitForRatingResult(timeoutMs) {
+    return new Promise((resolve) => {
+        if (!firestoreRoomDocRef) { resolve(null); return; }
+        let done = false;
+        let unsubscribe = () => {};
+        const finish = (value) => {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            unsubscribe();
+            resolve(value);
+        };
+        const readFromMatchLog = async () => {
+            try {
+                const snap = await getDoc(doc(db, "connectMatches", firestoreRoomDocRef.id));
+                if (!snap.exists()) return null;
+                const m = snap.data();
+                return { rated: m.rated, reason: m.reason, p1NewRating: m.p1RatingAfter, p2NewRating: m.p2RatingAfter };
+            } catch (e) {
+                return null;
+            }
+        };
+        const timer = setTimeout(async () => finish(await readFromMatchLog()), timeoutMs);
+        unsubscribe = onSnapshot(firestoreRoomDocRef, async (snap) => {
+            if (!snap.exists()) { finish(await readFromMatchLog()); return; }
+            const data = snap.data();
+            if (data.rated === true) finish(data.ratingResult || null);
+        }, async () => finish(await readFromMatchLog()));
+    });
+}
+
+// レート確定後、自分の実績(achStats)だけを記録し、新しく解放されたものをトースト表示する
+async function recordMyAchievementsWhenRated({ winnerUid, resultType, isStraightWin, isComebackWin }) {
+    const result = await waitForRatingResult(RATING_WAIT_MS);
+    if (!result || !result.rated) {
+        if (result) console.warn("[Rating] レート対象外の試合:", result.reason);
+        return;
+    }
+    try {
+        const newlyUnlocked = await recordPvpMatchAchievements(playerLeft_ID, {
+            newRating: player_info === "P1" ? result.p1NewRating : result.p2NewRating,
+            ultCountThisMatch: playerLeft_UltCount,
+            isWinner: winnerUid === playerLeft_ID,
+            isStraightWin,
+            isCleanWin: resultType === "normal",
+            isComebackWin,
+            myCharaId: playerLeft_CharaID,
+        });
+        achievementToastShownForMatch = true;
+        newlyUnlocked.forEach((id) => {
+            showAchievementToast(id);
+            const unlocked = characterData.find(c => c.requiredAchievementId === id);
+            if (unlocked) showCharacterUnlockModal(unlocked);
+        });
+    } catch (achError) {
+        console.error("[Achievement] PvP実績更新失敗:", achError);
     }
 }
 
@@ -2849,10 +2823,13 @@ function displayVictory(winningColor) {
         ratingChangeEl.style.display = "none";
     }
 
-    // 8秒後にキャラ選択画面に戻る（レートアニメーション分を考慮）
-    setTimeout(() => {
+    // 8秒後にキャラ選択画面に戻る。ランク戦はレート確定と実績記録が終わるまで待つ(最大20秒)
+    Promise.all([
+        wait(8000),
+        Promise.race([ratingSettledPromise || Promise.resolve(), wait(RATING_WAIT_MS)]),
+    ]).then(() => {
         window.location.href = "select.html?mode=match";
-    }, 8000);
+    });
 }
 
 // レート変動を取得してアニメーション表示
@@ -2861,6 +2838,10 @@ async function fetchAndAnimateRating(element, retryCount = 0) {
     const RETRY_DELAY = 1500;
 
     try {
+        // サーバーでのレート計算を待ってから取得する
+        if (retryCount === 0 && ratingSettledPromise) {
+            await Promise.race([ratingSettledPromise, wait(RATING_WAIT_MS)]);
+        }
         const updatedData = await getUserRating(playerLeft_ID);
         const newRating = updatedData?.rating ?? myPreRating;
 
@@ -3925,8 +3906,8 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 }
                 await updateDoc(doc(db, "connectRooms", roomDoc.id), {
                     stones: localStones,
-                    durinPending: false,
-                    durinCasterColor: null
+                    'abilityState.durinPending': false,
+                    'abilityState.durinCasterColor': null
                 });
                 stonesData = localStones;
                 init_drawBoard(true);
@@ -3942,8 +3923,8 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 pvpZhongliBlocked = newCols;
                 pvpZhongliTurnsLeft = 2;
                 await updateDoc(firestoreRoomDocRef, {
-                    zhongliBlocked: newCols,
-                    zhongliTurnsLeft: 2
+                    'abilityState.zhongliBlocked': newCols,
+                    'abilityState.zhongliTurnsLeft': 2
                 });
                 updateZhongliBlockOverlays();
             } else if (pvpZhongliTurnsLeft === 2) {
@@ -3952,8 +3933,8 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 pvpZhongliBlocked = newCols;
                 pvpZhongliTurnsLeft = 1;
                 await updateDoc(firestoreRoomDocRef, {
-                    zhongliBlocked: newCols,
-                    zhongliTurnsLeft: 1
+                    'abilityState.zhongliBlocked': newCols,
+                    'abilityState.zhongliTurnsLeft': 1
                 });
                 updateZhongliBlockOverlays();
             } else if (pvpZhongliTurnsLeft === 1) {
@@ -3962,9 +3943,9 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 pvpZhongliTurnsLeft = 0;
                 pvpZhongliCasterColor = null;
                 await updateDoc(firestoreRoomDocRef, {
-                    zhongliBlocked: null,
-                    zhongliTurnsLeft: 0,
-                    zhongliCasterColor: null
+                    'abilityState.zhongliBlocked': null,
+                    'abilityState.zhongliTurnsLeft': 0,
+                    'abilityState.zhongliCasterColor': null
                 });
                 updateZhongliBlockOverlays();
             }
@@ -4001,8 +3982,8 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                         localStones[`${extraCol}_${extraRow}`] = { color: victimColor, turnCount: turnCount - 1 };
                         await updateDoc(doc(db, "connectRooms", roomDoc.id), {
                             stones: localStones,
-                            cerluaActive: false,
-                            cerluaCasterColor: null
+                            'abilityState.cerluaActive': false,
+                            'abilityState.cerluaCasterColor': null
                         });
                         stonesData = localStones;
                         init_drawBoard(true);
@@ -4010,7 +3991,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                     }
                 } else {
                     // 全列満杯：追加投下なしでフラグのみクリア
-                    await updateDoc(firestoreRoomDocRef, { cerluaActive: false, cerluaCasterColor: null });
+                    await updateDoc(firestoreRoomDocRef, { 'abilityState.cerluaActive': false, 'abilityState.cerluaCasterColor': null });
                     pvpCerluaActive = false;
                 }
             }
@@ -4073,9 +4054,9 @@ async function ult_zhongli() {
         pvpZhongliCasterColor = playerLeft_Color;
 
         await updateDoc(firestoreRoomDocRef, {
-            zhongliBlocked: nonFullCols,
-            zhongliTurnsLeft: 2,
-            zhongliCasterColor: playerLeft_Color
+            'abilityState.zhongliBlocked': nonFullCols,
+            'abilityState.zhongliTurnsLeft': 2,
+            'abilityState.zhongliCasterColor': playerLeft_Color
         });
         updateZhongliBlockOverlays();
         await wait(600);
@@ -4135,8 +4116,8 @@ async function ult_durin() {
             player1_ChargeNow: p1_chargeNow,
             player2_ChargeNow: p2_chargeNow,
             stones: localStones,
-            durinPending: true,
-            durinCasterColor: playerLeft_Color
+            'abilityState.durinPending': true,
+            'abilityState.durinCasterColor': playerLeft_Color
         });
         stonesData = localStones;
         init_drawBoard(true);
@@ -4153,8 +4134,8 @@ async function ult_cerylua() {
         pvpCerluaActive = true;
         pvpCerluaCasterColor = playerLeft_Color;
         await updateDoc(firestoreRoomDocRef, {
-            cerluaActive: true,
-            cerluaCasterColor: playerLeft_Color
+            'abilityState.cerluaActive': true,
+            'abilityState.cerluaCasterColor': playerLeft_Color
         });
         await wait(400);
     } catch (error) {
@@ -4185,7 +4166,7 @@ async function ult_silverwolf() {
             await updateDoc(firestoreRoomDocRef, {
                 red_Win: red_Win,
                 yellow_Win: yellow_Win,
-                silverwolfMatchWinner: winningColor
+                'abilityState.silverwolfMatchWinner': winningColor
             });
 
             await handleBO3Final(winningColor, "normal", { isStraightWin, isComebackWin: false });
