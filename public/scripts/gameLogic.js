@@ -323,11 +323,22 @@ async function displayThumbnails() {
         where("player2_ID", "==", player_UUID)
     );
     const querySnapshotP2 = await getDocs(myroom2);
-    
-    // どちらがPlayer1かを確認
-    if (!querySnapshotP1.empty) {
 
-        querySnapshotP1.forEach((docSnap) => {
+    // 自分が参加している部屋のうち、終わっていない(離脱・決着済みでない)一番新しい部屋を使う。
+    // 以前は見つかった部屋を全部なめて最後の1件を使い、しかもP1側を優先していたため、
+    // 削除されずに残った古い部屋があると、新しい試合でもそちらを掴んでしまっていた。
+    const createdMs = (d) => (d.createdAt?.toMillis ? d.createdAt.toMillis() : new Date(d.createdAt).getTime()) || 0;
+    const chosenRoom = [
+        ...querySnapshotP1.docs.map((snap) => ({ snap, role: 'P1' })),
+        ...querySnapshotP2.docs.map((snap) => ({ snap, role: 'P2' })),
+    ]
+        .filter(({ snap }) => snap.data().status !== 'leave' && snap.data().bo3Final !== true)
+        .sort((a, b) => createdMs(b.snap.data()) - createdMs(a.snap.data()))[0];
+
+    // どちらがPlayer1かを確認
+    if (chosenRoom?.role === 'P1') {
+
+        [chosenRoom.snap].forEach((docSnap) => {
             const data = docSnap.data(); // ドキュメントのデータを取得
 
             playerLeft_ID = data.player1_ID;
@@ -365,9 +376,9 @@ async function displayThumbnails() {
             }
         });
 
-    } else {
+    } else if (chosenRoom) {
 
-        querySnapshotP2.forEach((docSnap) => {
+        [chosenRoom.snap].forEach((docSnap) => {
             const data = docSnap.data(); // ドキュメントのデータを取得
 
             playerLeft_ID = data.player2_ID;
