@@ -139,6 +139,7 @@ let achievementToastShownForMatch = false; // 実績トーストの多重表示�
 // ランク戦のレート確定(サーバー計算)と自分の実績記録が終わるのを待つPromise。
 // 結果画面の自動遷移・レート変動表示もこれを待つ(待たずに遷移すると実績が記録されない)。
 let ratingSettledPromise = null;
+let roomCleanupPromise = null; // 決着を書いたクライアントが部屋を削除し終えるまで(遷移前に待つ)
 const RATING_WAIT_MS = 20 * 1000; // レート確定を待つ上限
 let disconnectTimer = null; // 相手切断検知用の猶予タイマー
 
@@ -2490,12 +2491,12 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
         console.error("[Rating] 決着の書き込みに失敗:", error);
     }
 
-    // 部屋の削除は、レート確定(相手クライアントが結果を受け取る時間も少し見る)の後に行う。
-    // 勝利画面の表示を待たせないよう、ここでは待たずに裏で進める。
-    (async () => {
+    // 部屋の削除は、レート確定の後に行う(部屋が先に消えても、相手は試合記録から結果を読める)。
+    // 勝利画面の表示を待たせないよう裏で進め、結果画面からの自動遷移はこの削除完了も待つ。
+    roomCleanupPromise = (async () => {
         if (matchType === "ranked") {
             await ratingSettledPromise;
-            await wait(3000);
+            await wait(1000);
         }
         try {
             await deleteRoomAfterRating(firestoreRoomDocRef);
@@ -2618,7 +2619,10 @@ function displayVictory(winningColor) {
     // 8秒後にキャラ選択画面に戻る。ランク戦はレート確定と実績記録が終わるまで待つ(最大20秒)
     Promise.all([
         wait(8000),
-        Promise.race([ratingSettledPromise || Promise.resolve(), wait(RATING_WAIT_MS)]),
+        Promise.race([
+            Promise.all([ratingSettledPromise, roomCleanupPromise]),
+            wait(RATING_WAIT_MS + 5000),
+        ]),
     ]).then(() => {
         window.location.href = "select.html?mode=match";
     });
