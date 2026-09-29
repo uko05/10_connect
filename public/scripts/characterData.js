@@ -2,7 +2,7 @@
 // キャラクターのデータ
 export const characterData = [
     { 
-        src: 'public/chara/Albedo.png', 
+        src: 'public/chara/Hourousha.png', 
         charaID: '001', 
         name: '放浪者', 
         charge: 10, 
@@ -10,14 +10,14 @@ export const characterData = [
         Ability: '狂言・式楽伍番', 
         AbilityDetail: '【破壊】ランダムな縦4列を選択する。その列の上から2個の石を破壊する。(15ターン目から発動可能)', 
         AbilityUseTurn: 15,  
-        AbilityCutImage: 'public/chara/ult_Albedo.png', 
-        voice_select: 'public/scripts/sound/albedo_select.wav',
-        voice_attack: 'public/scripts/sound/albedo_attack.wav',
-        voice_ult: 'public/scripts/sound/albedo_ult.wav',
+        AbilityCutImage: 'public/chara/ult_Hourousha.png', 
+        voice_select: 'public/scripts/sound/hourousha_select.wav',
+        voice_attack: 'public/scripts/sound/hourousha_attack.wav',
+        voice_ult: 'public/scripts/sound/hourousha_ult.wav',
         process: 'ult_allTopDelete' // 関数名を文字列として保持
     },
     { 
-        src: 'public/chara/YaeMiko.png', 
+        src: 'public/chara/Shitorari.png', 
         charaID: '002', 
         name: 'シトラリ', 
         charge: 15, 
@@ -25,14 +25,14 @@ export const characterData = [
         Ability: '諸曜の令', 
         AbilityDetail: '【破壊】ランダムな縦3列を選択する。その列の上から1個の石を破壊する。(6ターン目から発動可能)', 
         AbilityUseTurn: 6,  
-        AbilityCutImage: 'public/chara/ult_YaeMiko.png', 
-        voice_select: 'public/scripts/sound/yaemiko_select.mp3',
-        voice_attack: 'public/scripts/sound/yaemiko_attack.mp3',
-        voice_ult: 'public/scripts/sound/yaemiko_ult.mp3',
+        AbilityCutImage: 'public/chara/ult_Shitorari.png', 
+        voice_select: 'public/scripts/sound/shitorari_select.mp3',
+        voice_attack: 'public/scripts/sound/shitorari_attack.mp3',
+        voice_ult: 'public/scripts/sound/shitorari_ult.mp3',
         process: 'ult_random3TopDelete' // 関数名を文字列として保持
     },
     { 
-        src: 'public/chara/Cyno.png', 
+        src: 'public/chara/Aruhaizen.png', 
         charaID: '003', 
         name: 'アルハイゼン', 
         charge: 12, 
@@ -40,14 +40,14 @@ export const characterData = [
         Ability: '殊境・顕象結縛', 
         AbilityDetail: '【破壊】中央縦3列の内、ランダムな縦2列を選択する。その列の石を破壊する。(15ターン目から発動可能)', 
         AbilityUseTurn: 15,  
-        AbilityCutImage: 'public/chara/ult_Cyno.png', 
-        voice_select: 'public/scripts/sound/cyno_select.wav',
-        voice_attack: 'public/scripts/sound/cyno_attack.wav',
-        voice_ult: 'public/scripts/sound/cyno_ult.wav',
+        AbilityCutImage: 'public/chara/ult_Aruhaizen.png', 
+        voice_select: 'public/scripts/sound/aruhaizen_select.wav',
+        voice_attack: 'public/scripts/sound/aruhaizen_attack.wav',
+        voice_ult: 'public/scripts/sound/aruhaizen_ult.wav',
         process: 'ult_randomCenter2Delete' // 関数名を文字列として保持
     },
     { 
-        src: 'public/chara/Raiden.png', 
+        src: 'public/chara/Navia.png', 
         charaID: '004', 
         name: 'ナヴィア', 
         charge: 13, 
@@ -55,10 +55,10 @@ export const characterData = [
         Ability: '晴天を衝く霰弾のサルート', 
         AbilityDetail: '【破壊】上から横3列の石を全て破壊する。', 
         AbilityUseTurn: 1,  
-        AbilityCutImage: 'public/chara/ult_Raiden.png', 
-        voice_select: 'public/scripts/sound/raiden_select.mp3',
-        voice_attack: 'public/scripts/sound/raiden_attack.mp3',
-        voice_ult: 'public/scripts/sound/raiden_ult.mp3',
+        AbilityCutImage: 'public/chara/ult_Navia.png', 
+        voice_select: 'public/scripts/sound/navia_select.mp3',
+        voice_attack: 'public/scripts/sound/navia_attack.mp3',
+        voice_ult: 'public/scripts/sound/navia_ult.mp3',
         process: 'ult_Top2Delete' // 関数名を文字列として保持
     },
     { 
