@@ -21,6 +21,8 @@ const MAX_ROUNDS = 15; // 引き分けが続いた場合の打ち切り(実戦�
 // ラウンドが終わらなくなる(実戦でも起こりうる)。上限に達したら引き分け扱いにして回数を記録する。
 const MAX_TURNS_PER_ROUND = 150;
 const COLUMN_SEARCH_ORDER = [3, 2, 4, 1, 5, 0, 6];
+// 試した結果、撃つ方がこれ以上良いときだけ撃つ(わずかな差なら温存。盤面評価の1窓=数点程度)
+const ROLLOUT_ULT_MARGIN = 1;
 
 export const CHARAS = Object.fromEntries(characterData.map((c) => [c.charaID, c]));
 
@@ -47,9 +49,15 @@ function pickRandom(rng, array, count) { // soloLogic の getRandomElements 相�
 // 1試合(3本先取)の状態と進行
 // ─────────────────────────────────────────────
 export class Match {
-    constructor(charaA, charaB, { depthA, depthB, rng, tieRandom = false }) {
+    constructor(charaA, charaB, { depthA, depthB, rng, tieRandom = false, abilityMode = 'rules', rolloutDepth = 3, rolloutSamples = 4 }) {
         this.rng = rng;
         this.tieRandom = tieRandom; // true: 同点の手をランダムに選ぶ(AI.pickColumnTieRandom)
+        // 必殺技を撃つかの判断方法。'rules': ソロCPUと同じキャラ別ルール /
+        // 'rollout': 撃った場合と撃たない場合を裏で実際に試して良い方を選ぶ(AI.rolloutDecision)
+        this.abilityMode = abilityMode;
+        this.rolloutDepth = rolloutDepth;     // 試すときの先読みの深さ(重くなりすぎないよう浅め)
+        this.rolloutSamples = rolloutSamples; // ランダム効果の必殺技を何回振り直して平均するか
+        this.isRollout = false;               // 試しの対局(コピー)中なら true
         this.sides = {
             A: { key: 'A', color: 'red', chara: CHARAS[charaA], depth: depthA, charge: 0, ultCount: 0, roundWins: 0, ultTurns: [] },
             B: { key: 'B', color: 'yellow', chara: CHARAS[charaB], depth: depthB, charge: 0, ultCount: 0, roundWins: 0, ultTurns: [] },
@@ -64,6 +72,38 @@ export class Match {
     }
 
     other(s) { return s === 'A' ? 'B' : 'A'; }
+
+    // 試し用のコピー(盤面・チャージ・必殺技の状態をすべて複製し、乱数だけ別系統にする)。
+    // 試しの中では、どちらのサイドもキャラ別ルールで判断し、先読みも浅くする(入れ子にしないため)。
+    clone(seed) {
+        const c = Object.create(Match.prototype);
+        Object.assign(c, this);
+        c.rng = makeRng(seed);
+        c.isRollout = true;
+        c.tieRandom = false;
+        c.sides = {};
+        for (const k of ['A', 'B']) {
+            const s = this.sides[k];
+            c.sides[k] = { ...s, ultTurns: [...s.ultTurns], depth: Math.min(s.depth, this.rolloutDepth) };
+        }
+        c.stones = { ...this.stones };
+        c.zhongli = { ...this.zhongli, blocked: [...this.zhongli.blocked] };
+        c.durin = { ...this.durin };
+        c.cerlua = { ...this.cerlua };
+        return c;
+    }
+
+    // コピー上で「side の今の手番(必殺技を撃つ/撃たないを指定)→相手の応手→自分の次の手」まで進め、
+    // side から見た良さを返す(勝ち=+100万 / 負け=-100万 / それ以外は盤面評価)。
+    // 自分の次の手まで見るのは、花火の「次の手で勝つ準備」やドゥリンの「次のターンの自動破壊」など、
+    // 1手先に効果が出る必殺技も評価できるようにするため。
+    rolloutValue(side, useUlt) {
+        const judge = () => (this.lastRoundWinner === side ? 1000000 : this.lastRoundWinner ? -1000000 : 0);
+        if (this.takeTurn(side, { forceUlt: useUlt, skipPreTurn: true })) return judge();
+        if (this.takeTurn(this.other(side))) return judge();
+        if (this.takeTurn(side)) return judge();
+        return new AI(this, side).evaluate(boardFromStones(this.stones, ROWS, COLS));
+    }
     sideOfColor(color) { return this.sides.A.color === color ? 'A' : 'B'; }
 
     // ── ラウンド開始(soloLogic.startNextRound) ──
@@ -205,7 +245,7 @@ export class Match {
             case '015': this.cerlua = { active: true, caster: side }; break;
             case '016': // 銀狼: 勝利数+1(3勝で即試合終了、それ以外は盤面を維持して続行)
                 me.roundWins++;
-                if (me.roundWins >= 3) return 'match';
+                if (me.roundWins >= 3) { this.lastRoundWinner = side; return 'match'; }
                 break;
         }
         return null;
@@ -226,6 +266,7 @@ export class Match {
         const line = this.winLine();
         if (line) {
             const winner = this.sideOfColor(line.color);
+            this.lastRoundWinner = winner;
             this.sides[winner].roundWins++;
             this.decidedRounds++;
             if (winner === this.roundStarter) this.firstMoverRoundWins++;
@@ -234,6 +275,7 @@ export class Match {
             return 'round';
         }
         if (this.isFull()) {
+            this.lastRoundWinner = null;
             this.draws++;
             this.startingSide = this.rng() < 0.5 ? 'A' : 'B';
             return 'round';
@@ -242,15 +284,17 @@ export class Match {
     }
 
     // 1手分(soloLogic.cpuTurn を左右どちらでも動くようにしたもの)。戻り値は checkEnd と同じ
-    takeTurn(side) {
+    // forceUlt: true/false なら必殺技を撃つかをAIに任せず指定する(試しの対局用)
+    // skipPreTurn: ターン開始時の効果を処理済みとして飛ばす(試しの対局は手番の途中からコピーするため)
+    takeTurn(side, { forceUlt, skipPreTurn = false } = {}) {
         const me = this.sides[side];
         const oppSide = this.other(side);
         // ターン開始時の効果(鍾離の再封鎖・ドゥリンの自動破壊)
-        if (this.zhongli.reblockRemaining > 0 && this.zhongli.caster === side) {
+        if (!skipPreTurn && this.zhongli.reblockRemaining > 0 && this.zhongli.caster === side) {
             this.zhongli.reblockRemaining--;
             this.zhongli.blocked = pickRandom(this.rng, this.validColumns(), 2);
         }
-        if (this.durin.pending && this.durin.caster === side) {
+        if (!skipPreTurn && this.durin.pending && this.durin.caster === side) {
             this.durin = { pending: false, caster: null };
             const del = pickRandom(this.rng, Object.keys(this.stones), 2);
             this.deleteKeys(del);
@@ -260,7 +304,14 @@ export class Match {
         if (end) return end;
 
         const ai = new AI(this, side);
-        if (ai.shouldUseAbility()) {
+        let useUlt;
+        if (forceUlt === undefined) useUlt = ai.shouldUseAbility();
+        else {
+            useUlt = forceUlt && this.abilityAvailable(side);
+            // 花火(サフェルのコピー含む)を撃つなら、ルール版と同じく「次の手で勝てる準備の列」を使う
+            if (useUlt && ai.effectiveUltId() === '005') ai.hanabiSetupCol = ai.findHanabiSetupCol();
+        }
+        if (useUlt) {
             if (this.useAbility(side) === 'match') return 'match';
             end = this.checkEnd();
             if (end) return end;
@@ -448,10 +499,38 @@ export class AI {
         return this.hasImmediateThreat(OPP) || this.opp.charge > this.me.charge + 30;
     }
 
+    // サフェルは相手の必殺技をコピーするので、実際に発動する効果のID
+    effectiveUltId() {
+        const id = this.me.chara.charaID;
+        return id === '013' ? this.opp.chara.charaID : id;
+    }
+
+    // 撃った場合と撃たなかった場合を、コピーした対局で実際に試して比べる
+    rolloutDecision() {
+        const m = this.m;
+        const deterministic = ['004', '005', '011', '015'].includes(this.effectiveUltId()); // 効果にランダム要素がない技
+        const samples = deterministic ? 1 : m.rolloutSamples;
+        const base = Math.floor(m.rng() * 2 ** 31);
+        const avg = (useUlt) => {
+            let sum = 0;
+            // 撃つ/撃たないで同じ乱数系列を使い、運の差ではなく判断の差を比べる
+            for (let k = 0; k < samples; k++) sum += m.clone(base + k).rolloutValue(this.side, useUlt);
+            return sum / samples;
+        };
+        return avg(true) > avg(false) + ROLLOUT_ULT_MARGIN;
+    }
+
     shouldUseAbility() { // cpuShouldUseAbility
         if (!this.m.abilityAvailable(this.side)) return false;
         const id = this.me.chara.charaID;
         if (this.wouldWinAfterAbility(id)) return true;
+        if (this.m.abilityMode === 'rollout' && !this.m.isRollout) {
+            // 銀狼(勝利+1)・アベンチュリン(相手チャージ減)は盤面評価に表れないが常に得なので、撃てるなら撃つ
+            if (id === '013' && this.opp.chara.charaID === '013') return false; // サフェル同士は不発
+            const eff = this.effectiveUltId(); // サフェルがコピーする場合も同じ
+            if (eff === '016' || eff === '008') return true;
+            return this.rolloutDecision();
+        }
         if (id === '013') {
             if (this.opp.chara.charaID === '013') return false;
             return this.conditionByID(this.opp.chara.charaID);

@@ -5,6 +5,7 @@
 //     --depth  CPUの先読みの深さ(ソロの難易度: EASY=1 / NORMAL=3 / HARD=6)
 //     --games  1つの組み合わせあたりの試合数(3本先取を1試合と数える)
 //     --tie-random  同点の手をランダムに選ぶ(省略時は本来のCPUと同じく中央寄りを必ず選ぶ)
+//     --rollout     必殺技を撃つかを「撃つ/撃たないを裏で試して良い方」で決める(省略時はソロCPUと同じキャラ別ルール)
 //     --out    結果の保存先(省略時 tools/sim/results/)
 // 結果: results/<日時>_d<深さ>.json と .md(総合勝率ランキング・相性表)
 //
@@ -26,12 +27,12 @@ function seedOf(a, b, g, depth) {
 }
 
 // 1組み合わせ分の試合を回す(ワーカー側)
-function runPair({ a, b, games, depth, tieRandom, gameFrom = 0 }) {
+function runPair({ a, b, games, depth, tieRandom, rollout, gameFrom = 0 }) {
     const r = { a, b, winsA: 0, winsB: 0, draws: 0, ultsA: 0, ultsB: 0, rounds: 0, roundDraws: 0, cappedRounds: 0, turns: 0, firstMoverRoundWins: 0, decidedRounds: 0 };
     for (let g = gameFrom; g < gameFrom + games; g++) {
         const swap = g % 2 === 1; // 奇数試合は左右(赤/黄)を入れ替えて、石の色の有利不利を打ち消す
         const [x, y] = swap ? [b, a] : [a, b];
-        const m = new Match(x, y, { depthA: depth, depthB: depth, rng: makeRng(seedOf(a, b, g, depth)), tieRandom });
+        const m = new Match(x, y, { depthA: depth, depthB: depth, rng: makeRng(seedOf(a, b, g, depth)), tieRandom, abilityMode: rollout ? 'rollout' : 'rules' });
         const w = m.play();
         // a は入れ替えなしならサイドA、入れ替えありならサイドBで戦っている
         const aSide = swap ? 'B' : 'A';
@@ -58,7 +59,8 @@ if (!isMainThread) {
 } else {
     const argv = process.argv.slice(2);
     const tieRandom = argv.includes('--tie-random');
-    const args = Object.fromEntries(argv.filter((v) => v !== '--tie-random').reduce((acc, v, i, arr) => (v.startsWith('--') ? [...acc, [v.slice(2), arr[i + 1]]] : acc), []));
+    const rollout = argv.includes('--rollout');
+    const args = Object.fromEntries(argv.filter((v) => v !== '--tie-random' && v !== '--rollout').reduce((acc, v, i, arr) => (v.startsWith('--') ? [...acc, [v.slice(2), arr[i + 1]]] : acc), []));
     const depth = parseInt(args.depth ?? '3', 10);
     const games = parseInt(args.games ?? '100', 10);
     const outDir = args.out ?? path.join(HERE, 'results');
@@ -67,7 +69,7 @@ if (!isMainThread) {
     // 1組み合わせを10試合ずつに分けて配る(時間のかかる組み合わせに1つのワーカーが張り付かないように)
     const CHUNK = 10;
     for (let i = 0; i < ids.length; i++) for (let j = i; j < ids.length; j++) {
-        for (let from = 0; from < games; from += CHUNK) tasks.push({ a: ids[i], b: ids[j], games: Math.min(CHUNK, games - from), gameFrom: from, depth, tieRandom });
+        for (let from = 0; from < games; from += CHUNK) tasks.push({ a: ids[i], b: ids[j], games: Math.min(CHUNK, games - from), gameFrom: from, depth, tieRandom, rollout });
     }
     fs.mkdirSync(outDir, { recursive: true });
     const progressFile = path.join(outDir, 'progress.txt'); // 途中経過(いつでも確認できるように)
@@ -125,11 +127,11 @@ if (!isMainThread) {
 
     fs.mkdirSync(outDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
-    const base = path.join(outDir, `${stamp}_d${depth}${tieRandom ? '_tr' : ''}`);
-    fs.writeFileSync(`${base}.json`, JSON.stringify({ depth, games, tieRandom, ranking, matrix, results, firstMoverRate: firstMover[0] / firstMover[1] }, null, 2));
+    const base = path.join(outDir, `${stamp}_d${depth}${tieRandom ? '_tr' : ''}${rollout ? '_ro' : ''}`);
+    fs.writeFileSync(`${base}.json`, JSON.stringify({ depth, games, tieRandom, rollout, ranking, matrix, results, firstMoverRate: firstMover[0] / firstMover[1] }, null, 2));
 
     const pct = (v) => `${(v * 100).toFixed(1)}%`;
-    let md = `# コネバト 対戦シミュレーション結果\n\n- CPUの先読み: ${depth}手${tieRandom ? '(同点の手はランダム)' : ''} / 1組み合わせ ${games}試合(3本先取) / 計 ${results.reduce((s, r) => s + r.winsA + r.winsB + r.draws, 0)}試合\n`;
+    let md = `# コネバト 対戦シミュレーション結果\n\n- CPUの先読み: ${depth}手${tieRandom ? '(同点の手はランダム)' : ''}${rollout ? ' / 必殺技は「撃つ・撃たないを試して判断」' : ' / 必殺技はキャラ別ルールで判断'} / 1組み合わせ ${games}試合(3本先取) / 計 ${results.reduce((s, r) => s + r.winsA + r.winsB + r.draws, 0)}試合\n`;
     md += `- ラウンド先攻の勝率: ${pct(firstMover[0] / firstMover[1])}\n`;
     md += `- 手数上限(150手)で打ち切ったラウンド: ${results.reduce((s, r) => s + r.cappedRounds, 0)} / ${results.reduce((s, r) => s + r.rounds, 0)}\n`;
     md += `- ※アベンチュリンはソロ仕様(相手チャージ-50)で代用した参考値\n\n`;
