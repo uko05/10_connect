@@ -9,6 +9,7 @@ import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, g
 import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
+import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
 import { recordSoloWin, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
@@ -216,35 +217,7 @@ function getDropRow(column) {
 }
 
 function checkWinLocal() {
-    const board = Array.from({ length: rows }, () => Array(cols).fill(null));
-    for (const key in stones) {
-        const [c, r] = key.split('_').map(Number);
-        board[r][c] = stones[key];
-    }
-
-    const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const color = board[r][c];
-            if (!color) continue;
-            for (const [dr, dc] of dirs) {
-                const positions = [[r, c]];
-                let i = 1;
-                while (
-                    r + i * dr >= 0 && r + i * dr < rows &&
-                    c + i * dc >= 0 && c + i * dc < cols &&
-                    board[r + i * dr][c + i * dc] === color
-                ) {
-                    positions.push([r + i * dr, c + i * dc]);
-                    i++;
-                }
-                if (positions.length >= 4) {
-                    return { color, positions };
-                }
-            }
-        }
-    }
-    return null;
+    return findFirstLine(sharedBoardFromStones(stones, rows, cols));
 }
 
 function isBoardFull() {
@@ -281,12 +254,7 @@ function hasImmediateThreat(color) {
 const COLUMN_SEARCH_ORDER = [3, 2, 4, 1, 5, 0, 6]; // 中央優先（枝刈り効率＆同点時の優先度）
 
 function boardFromStones() {
-    const board = Array.from({ length: rows }, () => Array(cols).fill(null));
-    for (const key in stones) {
-        const [c, r] = key.split('_').map(Number);
-        board[r][c] = stones[key];
-    }
-    return board;
+    return sharedBoardFromStones(stones, rows, cols);
 }
 
 function dropRowOnBoard(board, column) {
@@ -301,26 +269,7 @@ function validColumnsOnBoard(board) {
 }
 
 function checkWinOnBoard(board) {
-    const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const color = board[r][c];
-            if (!color) continue;
-            for (const [dr, dc] of dirs) {
-                let count = 1;
-                let i = 1;
-                while (
-                    r + i * dr >= 0 && r + i * dr < rows &&
-                    c + i * dc >= 0 && c + i * dc < cols &&
-                    board[r + i * dr][c + i * dc] === color
-                ) {
-                    count++; i++;
-                }
-                if (count >= 4) return color;
-            }
-        }
-    }
-    return null;
+    return firstLineColor(board);
 }
 
 // 4セット連続の「窓」をヒューリスティック評価する（古典的なConnect4の評価関数）
@@ -503,22 +452,7 @@ function findHanabiSetupCol() {
 
 // シミュレーション用: 仮想stonesでCPUの4連を確認
 function checkWinInSim(simStones) {
-    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            if (simStones[`${c}_${r}`] !== CPU_COLOR) continue;
-            for (const [dr, dc] of dirs) {
-                let count = 1;
-                for (let i = 1; i < 4; i++) {
-                    const nr = r + dr * i, nc = c + dc * i;
-                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && simStones[`${nc}_${nr}`] === CPU_COLOR) count++;
-                    else break;
-                }
-                if (count >= 4) return true;
-            }
-        }
-    }
-    return false;
+    return hasLineOfColor(sharedBoardFromStones(simStones, rows, cols), CPU_COLOR);
 }
 
 // シミュレーション用: 仮想stonesに重力を適用して返す（グローバルstonesは変更しない）

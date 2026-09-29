@@ -20,6 +20,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 import { characterData } from "./characterData.js";
+import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { drawPiece as _drawPiece, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
 import { APP_VERSION } from "./version.js";
 import {
@@ -2314,92 +2315,9 @@ function getCharacterDataByID(charaID) {
 
 //------------------------------------------------------------------------------------------------
 
+// 勝利判定は winCheck.js に集約(CPU戦と共通)。両色の勝利マスを全部集めて返す。
 function checkWin(stonesData) {
-    const board = Array.from({ length: rows }, () => Array(cols).fill(null));
-
-    // stonesData を 2 次元配列にセット
-    for (const key in stonesData) {
-        const [col, row] = key.split('_').map(Number);
-        board[row][col] = stonesData[key].color;
-    }
-
-    // 勝利の色とその座標リスト
-    let redWinPositions = new Set();  // 重複を避けるためセットを使用
-    let yellowWinPositions = new Set();
-
-    // 勝利判定: 横、縦、斜めの4つをチェック
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const color = board[r][c];
-
-            if (color) {
-                let winPositions = [];
-
-                // 横方向チェック
-                winPositions = checkDirection(r, c, 0, 1, color, rows, cols, board); // 右方向
-                if (winPositions.length >= 4) {
-                    winPositions.forEach(pos => {
-                        if (color === 'red') redWinPositions.add(pos.join(','));
-                        else if (color === 'yellow') yellowWinPositions.add(pos.join(','));
-                    });
-                }
-
-                // 縦方向チェック
-                winPositions = checkDirection(r, c, 1, 0, color, rows, cols, board); // 下方向
-                if (winPositions.length >= 4) {
-                    winPositions.forEach(pos => {
-                        if (color === 'red') redWinPositions.add(pos.join(','));
-                        else if (color === 'yellow') yellowWinPositions.add(pos.join(','));
-                    });
-                }
-
-                // 右下がりの斜めチェック
-                winPositions = checkDirection(r, c, 1, 1, color, rows, cols, board); // 右下方向
-                if (winPositions.length >= 4) {
-                    winPositions.forEach(pos => {
-                        if (color === 'red') redWinPositions.add(pos.join(','));
-                        else if (color === 'yellow') yellowWinPositions.add(pos.join(','));
-                    });
-                }
-
-                // 左下がりの斜めチェック
-                winPositions = checkDirection(r, c, 1, -1, color, rows, cols, board); // 左下方向
-                if (winPositions.length >= 4) {
-                    winPositions.forEach(pos => {
-                        if (color === 'red') redWinPositions.add(pos.join(','));
-                        else if (color === 'yellow') yellowWinPositions.add(pos.join(','));
-                    });
-                }
-            }
-        }
-    }
-
-    // Setから配列に変換し、結果を返却
-    return {
-        red: redWinPositions.size >= 4 ? Array.from(redWinPositions).map(pos => pos.split(',').map(Number)) : null,
-        yellow: yellowWinPositions.size >= 4 ? Array.from(yellowWinPositions).map(pos => pos.split(',').map(Number)) : null
-    };
-}
-
-// 方向ごとに連続する石の数を調べる関数
-function checkDirection(r, c, rowDir, colDir, color, rows, cols, board) {
-    let winPositions = [[r, c]];
-    
-    // 前方向（行列方向）に連続する石を数える
-    let i = 1;
-    while (r + i * rowDir >= 0 && r + i * rowDir < rows && c + i * colDir >= 0 && c + i * colDir < cols && board[r + i * rowDir][c + i * colDir] === color) {
-        winPositions.push([r + i * rowDir, c + i * colDir]);
-        i++;
-    }
-
-    // 後方向（逆行列方向）に連続する石を数える
-    i = 1;
-    while (r - i * rowDir >= 0 && r - i * rowDir < rows && c - i * colDir >= 0 && c - i * colDir < cols && board[r - i * rowDir][c - i * colDir] === color) {
-        winPositions.unshift([r - i * rowDir, c - i * colDir]);
-        i++;
-    }
-
-    return winPositions;
+    return collectWinPositions(boardFromStones(stonesData, rows, cols));
 }
 
 async function highlightWinningCells(winPositions) {
