@@ -12,7 +12,8 @@ A web-based multiplayer Connect Four battle game with HoYoverse-inspired charact
 
 - **Vanilla JavaScript (ES6 modules)** — no frameworks, no bundler, no package manager
 - **HTML5 Canvas** — game board rendering (7×6 grid, 110px cells)
-- **Firebase** — Firestore (real-time game state & matchmaking), Hosting, Anonymous Auth
+- **Firebase** — Firestore (real-time game state & matchmaking), Anonymous Auth
+- **GitHub Pages** — hosting (https://uko05.github.io/10_connect/)
 - **Firebase SDK v10.14.1** loaded via CDN
 
 ## Development & Deployment
@@ -20,9 +21,10 @@ A web-based multiplayer Connect Four battle game with HoYoverse-inspired charact
 There is no build step, no npm, and no test suite. Files are served directly.
 
 - **Local dev:** Open `index.html` in a browser, or use `firebase serve` for local hosting
-- **Deploy:** Automatic via GitHub Actions on push to `main` → Firebase Hosting
-- **Manual deploy:** `firebase deploy`
-- **Firebase project:** `connect-10-ca73c` (see `.firebaserc`)
+- **Deploy:** push to `main` → GitHub Pages publishes it automatically (no workflow file needed)
+- **Firestore rules / Cloud Functions:** deployed from `24_AccountCenter` to `genshin-bakatare01`
+- The old Firebase project `connect-10-ca73c` is unused; its Hosting was disabled on 2026-09-30 and the
+  Firebase Hosting workflows were removed. `.firebaserc` / `firebase.json` are leftovers — do not `firebase deploy` from here.
 
 ## Architecture
 
@@ -88,9 +90,8 @@ Never reintroduce client-side rating writes — the rules will reject them.
 
 ## Firebase Configuration
 
-- `firebase.json` — Hosting config (rewrites all routes to index.html)
+- `firebase.json` — leftover Hosting config for the unused `connect-10-ca73c` project (not used)
 - `firestore.rules` — Requires anonymous auth (`request.auth != null`)
-- GitHub Actions workflows in `.github/workflows/` handle CI/CD
 
 ---
 
