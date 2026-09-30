@@ -6,6 +6,10 @@
 //     --games  1つの組み合わせあたりの試合数(3本先取を1試合と数える)
 //     --tie-random  同点の手をランダムに選ぶ(省略時は本来のCPUと同じく中央寄りを必ず選ぶ)
 //     --rollout     必殺技を撃つかを「撃つ/撃たないを裏で試して良い方」で決める(省略時はソロCPUと同じキャラ別ルール)
+//     --charge 010=13,011=12  キャラの1石あたりチャージ量を一時的に上書き(characterData.js は変えない。調整案の試し打ち用)
+//     --turn   010=18  必殺技を撃てるターン(AbilityUseTurn)を一時的に上書き
+//     --only   010,011,004  このキャラが出る組み合わせだけ回す(速い。他キャラの勝率はこのキャラ戦だけの値になる)
+//     --tag    ファイル名に付ける目印(例: --tag nerfA)
 //     --out    結果の保存先(省略時 tools/sim/results/)
 // 結果: results/<日時>_d<深さ>.json と .md(総合勝率ランキング・相性表)
 //
@@ -27,7 +31,9 @@ function seedOf(a, b, g, depth) {
 }
 
 // 1組み合わせ分の試合を回す(ワーカー側)
-function runPair({ a, b, games, depth, tieRandom, rollout, gameFrom = 0 }) {
+function runPair({ a, b, games, depth, tieRandom, rollout, gameFrom = 0, chargeOverride = {}, turnOverride = {} }) {
+    for (const [id, v] of Object.entries(chargeOverride)) CHARAS[id].charge = v;
+    for (const [id, v] of Object.entries(turnOverride)) CHARAS[id].AbilityUseTurn = v;
     const r = { a, b, winsA: 0, winsB: 0, draws: 0, ultsA: 0, ultsB: 0, rounds: 0, roundDraws: 0, cappedRounds: 0, turns: 0, firstMoverRoundWins: 0, decidedRounds: 0 };
     for (let g = gameFrom; g < gameFrom + games; g++) {
         const swap = g % 2 === 1; // 奇数試合は左右(赤/黄)を入れ替えて、石の色の有利不利を打ち消す
@@ -65,11 +71,23 @@ if (!isMainThread) {
     const games = parseInt(args.games ?? '100', 10);
     const outDir = args.out ?? path.join(HERE, 'results');
     const ids = Object.keys(CHARAS).sort();
+    const parseOverride = (opt) => Object.fromEntries((args[opt] ?? '').split(',').filter(Boolean).map((kv) => {
+        const [id, v] = kv.split('=');
+        if (!CHARAS[id] || !(Number(v) > 0)) { console.error(`--${opt} の指定が不正: ${kv}`); process.exit(1); }
+        return [id, Number(v)];
+    }));
+    const chargeOverride = parseOverride('charge');
+    const turnOverride = parseOverride('turn');
+    const only = (args.only ?? '').split(',').filter(Boolean);
+    for (const id of only) if (!CHARAS[id]) { console.error(`--only のキャラIDが不正: ${id}`); process.exit(1); }
+    const origCharge = Object.fromEntries(ids.map((id) => [id, CHARAS[id].charge]));
+    const origTurn = Object.fromEntries(ids.map((id) => [id, CHARAS[id].AbilityUseTurn]));
     const tasks = [];
     // 1組み合わせを10試合ずつに分けて配る(時間のかかる組み合わせに1つのワーカーが張り付かないように)
     const CHUNK = 10;
     for (let i = 0; i < ids.length; i++) for (let j = i; j < ids.length; j++) {
-        for (let from = 0; from < games; from += CHUNK) tasks.push({ a: ids[i], b: ids[j], games: Math.min(CHUNK, games - from), gameFrom: from, depth, tieRandom, rollout });
+        if (only.length && !only.includes(ids[i]) && !only.includes(ids[j])) continue;
+        for (let from = 0; from < games; from += CHUNK) tasks.push({ a: ids[i], b: ids[j], games: Math.min(CHUNK, games - from), gameFrom: from, depth, tieRandom, rollout, chargeOverride, turnOverride });
     }
     fs.mkdirSync(outDir, { recursive: true });
     const progressFile = path.join(outDir, 'progress.txt'); // 途中経過(いつでも確認できるように)
@@ -122,18 +140,24 @@ if (!isMainThread) {
         total[r.b].wins += r.winsB; total[r.b].losses += r.winsA; total[r.b].draws += r.draws; total[r.b].ults += r.ultsB; total[r.b].games += n;
     }
     const firstMover = results.reduce((acc, r) => [acc[0] + r.firstMoverRoundWins, acc[1] + r.decidedRounds], [0, 0]);
-    const ranking = ids.map((id) => ({ id, name: name(id), ...total[id], rate: (total[id].wins + total[id].draws / 2) / total[id].games }))
+    const ranking = ids.filter((id) => total[id].games > 0).map((id) => ({ id, name: name(id), ...total[id], rate: (total[id].wins + total[id].draws / 2) / total[id].games }))
         .sort((x, y) => y.rate - x.rate);
 
     fs.mkdirSync(outDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
-    const base = path.join(outDir, `${stamp}_d${depth}${tieRandom ? '_tr' : ''}${rollout ? '_ro' : ''}`);
-    fs.writeFileSync(`${base}.json`, JSON.stringify({ depth, games, tieRandom, rollout, ranking, matrix, results, firstMoverRate: firstMover[0] / firstMover[1] }, null, 2));
+    const base = path.join(outDir, `${stamp}_d${depth}${tieRandom ? '_tr' : ''}${rollout ? '_ro' : ''}${args.tag ? `_${args.tag}` : ''}`);
+    fs.writeFileSync(`${base}.json`, JSON.stringify({ depth, games, tieRandom, rollout, chargeOverride, turnOverride, only, ranking, matrix, results, firstMoverRate: firstMover[0] / firstMover[1] }, null, 2));
 
     const pct = (v) => `${(v * 100).toFixed(1)}%`;
     let md = `# コネバト 対戦シミュレーション結果\n\n- CPUの先読み: ${depth}手${tieRandom ? '(同点の手はランダム)' : ''}${rollout ? ' / 必殺技は「撃つ・撃たないを試して判断」' : ' / 必殺技はキャラ別ルールで判断'} / 1組み合わせ ${games}試合(3本先取) / 計 ${results.reduce((s, r) => s + r.winsA + r.winsB + r.draws, 0)}試合\n`;
     md += `- ラウンド先攻の勝率: ${pct(firstMover[0] / firstMover[1])}\n`;
     md += `- 手数上限(150手)で打ち切ったラウンド: ${results.reduce((s, r) => s + r.cappedRounds, 0)} / ${results.reduce((s, r) => s + r.rounds, 0)}\n`;
+    if (Object.keys(chargeOverride).length) md += `- チャージ量を上書き: ${Object.entries(chargeOverride).map(([id, v]) => `${name(id)} ${origCharge[id]}→${v}`).join(' / ')}
+`;
+    if (Object.keys(turnOverride).length) md += `- 撃てるターンを上書き: ${Object.entries(turnOverride).map(([id, v]) => `${name(id)} ${origTurn[id]}→${v}`).join(' / ')}
+`;
+    if (only.length) md += `- ${only.map(name).join('・')} が出る組み合わせだけ回した(他キャラの勝率はこのキャラ戦だけの値)
+`;
     md += `- ※アベンチュリンはソロ仕様(相手チャージ-50)で代用した参考値\n\n`;
     md += `## 総合勝率(ミラー戦を除く)\n\n| 順位 | キャラ | 勝率 | 勝 | 敗 | 分 | 1試合あたり必殺技 |\n|---|---|---|---|---|---|---|\n`;
     ranking.forEach((r, i) => { md += `| ${i + 1} | ${r.name} | ${pct(r.rate)} | ${r.wins} | ${r.losses} | ${r.draws} | ${(r.ults / r.games).toFixed(2)} |\n`; });
