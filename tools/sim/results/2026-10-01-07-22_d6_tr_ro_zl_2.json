@@ -1,0 +1,486 @@
+{
+  "depth": 6,
+  "games": 200,
+  "tieRandom": true,
+  "rollout": true,
+  "chargeOverride": {},
+  "turnOverride": {},
+  "newBonus": [
+    "012"
+  ],
+  "bonusScale": 2,
+  "randomOpening": 4,
+  "only": [
+    "012"
+  ],
+  "ranking": [
+    {
+      "id": "002",
+      "name": "シトラリ",
+      "wins": 172,
+      "losses": 28,
+      "draws": 0,
+      "ults": 924,
+      "games": 200,
+      "rate": 0.86
+    },
+    {
+      "id": "001",
+      "name": "放浪者",
+      "wins": 161,
+      "losses": 39,
+      "draws": 0,
+      "ults": 999,
+      "games": 200,
+      "rate": 0.805
+    },
+    {
+      "id": "010",
+      "name": "ルアン・メェイ",
+      "wins": 159,
+      "losses": 41,
+      "draws": 0,
+      "ults": 479,
+      "games": 200,
+      "rate": 0.795
+    },
+    {
+      "id": "004",
+      "name": "ナヴィア",
+      "wins": 147,
+      "losses": 53,
+      "draws": 0,
+      "ults": 531,
+      "games": 200,
+      "rate": 0.735
+    },
+    {
+      "id": "016",
+      "name": "銀狼LV.999",
+      "wins": 145,
+      "losses": 55,
+      "draws": 0,
+      "ults": 371,
+      "games": 200,
+      "rate": 0.725
+    },
+    {
+      "id": "009",
+      "name": "ホタル",
+      "wins": 123,
+      "losses": 77,
+      "draws": 0,
+      "ults": 990,
+      "games": 200,
+      "rate": 0.615
+    },
+    {
+      "id": "014",
+      "name": "ドゥリン",
+      "wins": 122,
+      "losses": 78,
+      "draws": 0,
+      "ults": 931,
+      "games": 200,
+      "rate": 0.61
+    },
+    {
+      "id": "011",
+      "name": "ローエン",
+      "wins": 120,
+      "losses": 80,
+      "draws": 0,
+      "ults": 516,
+      "games": 200,
+      "rate": 0.6
+    },
+    {
+      "id": "007",
+      "name": "キャストリス",
+      "wins": 99,
+      "losses": 101,
+      "draws": 0,
+      "ults": 1232,
+      "games": 200,
+      "rate": 0.495
+    },
+    {
+      "id": "003",
+      "name": "アルハイゼン",
+      "wins": 97,
+      "losses": 103,
+      "draws": 0,
+      "ults": 1156,
+      "games": 200,
+      "rate": 0.485
+    },
+    {
+      "id": "012",
+      "name": "鍾離",
+      "wins": 1331,
+      "losses": 1669,
+      "draws": 0,
+      "ults": 14725,
+      "games": 3000,
+      "rate": 0.44366666666666665
+    },
+    {
+      "id": "006",
+      "name": "マダム・ヘルタ",
+      "wins": 87,
+      "losses": 113,
+      "draws": 0,
+      "ults": 1310,
+      "games": 200,
+      "rate": 0.435
+    },
+    {
+      "id": "013",
+      "name": "サフェル",
+      "wins": 86,
+      "losses": 114,
+      "draws": 0,
+      "ults": 800,
+      "games": 200,
+      "rate": 0.43
+    },
+    {
+      "id": "015",
+      "name": "ケリュドラ",
+      "wins": 58,
+      "losses": 142,
+      "draws": 0,
+      "ults": 478,
+      "games": 200,
+      "rate": 0.29
+    },
+    {
+      "id": "005",
+      "name": "花火",
+      "wins": 57,
+      "losses": 143,
+      "draws": 0,
+      "ults": 591,
+      "games": 200,
+      "rate": 0.285
+    },
+    {
+      "id": "008",
+      "name": "アベンチュリン",
+      "wins": 36,
+      "losses": 164,
+      "draws": 0,
+      "ults": 988,
+      "games": 200,
+      "rate": 0.18
+    }
+  ],
+  "matrix": {
+    "001": {
+      "012": 0.805
+    },
+    "012": {
+      "001": 0.195,
+      "002": 0.14,
+      "003": 0.515,
+      "004": 0.265,
+      "005": 0.715,
+      "006": 0.565,
+      "007": 0.505,
+      "008": 0.82,
+      "009": 0.385,
+      "010": 0.205,
+      "011": 0.4,
+      "012": 0.495,
+      "013": 0.57,
+      "014": 0.39,
+      "015": 0.71,
+      "016": 0.275
+    },
+    "002": {
+      "012": 0.86
+    },
+    "003": {
+      "012": 0.485
+    },
+    "004": {
+      "012": 0.735
+    },
+    "005": {
+      "012": 0.285
+    },
+    "006": {
+      "012": 0.435
+    },
+    "007": {
+      "012": 0.495
+    },
+    "008": {
+      "012": 0.18
+    },
+    "009": {
+      "012": 0.615
+    },
+    "010": {
+      "012": 0.795
+    },
+    "011": {
+      "012": 0.6
+    },
+    "013": {
+      "012": 0.43
+    },
+    "014": {
+      "012": 0.61
+    },
+    "015": {
+      "012": 0.29
+    },
+    "016": {
+      "012": 0.725
+    }
+  },
+  "results": [
+    {
+      "a": "001",
+      "b": "012",
+      "winsA": 161,
+      "winsB": 39,
+      "draws": 0,
+      "ultsA": 999,
+      "ultsB": 1112,
+      "rounds": 845,
+      "roundDraws": 7,
+      "cappedRounds": 0,
+      "turns": 25671,
+      "firstMoverRoundWins": 506,
+      "decidedRounds": 838
+    },
+    {
+      "a": "002",
+      "b": "012",
+      "winsA": 172,
+      "winsB": 28,
+      "draws": 0,
+      "ultsA": 924,
+      "ultsB": 869,
+      "rounds": 807,
+      "roundDraws": 11,
+      "cappedRounds": 0,
+      "turns": 20861,
+      "firstMoverRoundWins": 454,
+      "decidedRounds": 796
+    },
+    {
+      "a": "003",
+      "b": "012",
+      "winsA": 97,
+      "winsB": 103,
+      "draws": 0,
+      "ultsA": 1156,
+      "ultsB": 1305,
+      "rounds": 862,
+      "roundDraws": 2,
+      "cappedRounds": 0,
+      "turns": 29556,
+      "firstMoverRoundWins": 506,
+      "decidedRounds": 860
+    },
+    {
+      "a": "004",
+      "b": "012",
+      "winsA": 147,
+      "winsB": 53,
+      "draws": 0,
+      "ultsA": 531,
+      "ultsB": 982,
+      "rounds": 865,
+      "roundDraws": 3,
+      "cappedRounds": 0,
+      "turns": 23921,
+      "firstMoverRoundWins": 493,
+      "decidedRounds": 862
+    },
+    {
+      "a": "005",
+      "b": "012",
+      "winsA": 57,
+      "winsB": 143,
+      "draws": 0,
+      "ultsA": 591,
+      "ultsB": 1025,
+      "rounds": 849,
+      "roundDraws": 15,
+      "cappedRounds": 0,
+      "turns": 23948,
+      "firstMoverRoundWins": 467,
+      "decidedRounds": 834
+    },
+    {
+      "a": "006",
+      "b": "012",
+      "winsA": 87,
+      "winsB": 113,
+      "draws": 0,
+      "ultsA": 1310,
+      "ultsB": 1147,
+      "rounds": 876,
+      "roundDraws": 7,
+      "cappedRounds": 0,
+      "turns": 26471,
+      "firstMoverRoundWins": 549,
+      "decidedRounds": 869
+    },
+    {
+      "a": "007",
+      "b": "012",
+      "winsA": 99,
+      "winsB": 101,
+      "draws": 0,
+      "ultsA": 1232,
+      "ultsB": 1275,
+      "rounds": 894,
+      "roundDraws": 20,
+      "cappedRounds": 0,
+      "turns": 28780,
+      "firstMoverRoundWins": 546,
+      "decidedRounds": 874
+    },
+    {
+      "a": "008",
+      "b": "012",
+      "winsA": 36,
+      "winsB": 164,
+      "draws": 0,
+      "ultsA": 988,
+      "ultsB": 748,
+      "rounds": 820,
+      "roundDraws": 29,
+      "cappedRounds": 0,
+      "turns": 24311,
+      "firstMoverRoundWins": 421,
+      "decidedRounds": 791
+    },
+    {
+      "a": "009",
+      "b": "012",
+      "winsA": 123,
+      "winsB": 77,
+      "draws": 0,
+      "ultsA": 990,
+      "ultsB": 978,
+      "rounds": 884,
+      "roundDraws": 14,
+      "cappedRounds": 0,
+      "turns": 22937,
+      "firstMoverRoundWins": 546,
+      "decidedRounds": 870
+    },
+    {
+      "a": "010",
+      "b": "012",
+      "winsA": 159,
+      "winsB": 41,
+      "draws": 0,
+      "ultsA": 479,
+      "ultsB": 910,
+      "rounds": 844,
+      "roundDraws": 0,
+      "cappedRounds": 0,
+      "turns": 21332,
+      "firstMoverRoundWins": 487,
+      "decidedRounds": 844
+    },
+    {
+      "a": "011",
+      "b": "012",
+      "winsA": 120,
+      "winsB": 80,
+      "draws": 0,
+      "ultsA": 516,
+      "ultsB": 966,
+      "rounds": 887,
+      "roundDraws": 7,
+      "cappedRounds": 0,
+      "turns": 22529,
+      "firstMoverRoundWins": 518,
+      "decidedRounds": 880
+    },
+    {
+      "a": "012",
+      "b": "012",
+      "winsA": 101,
+      "winsB": 99,
+      "draws": 0,
+      "ultsA": 782,
+      "ultsB": 786,
+      "rounds": 831,
+      "roundDraws": 18,
+      "cappedRounds": 0,
+      "turns": 24878,
+      "firstMoverRoundWins": 406,
+      "decidedRounds": 813
+    },
+    {
+      "a": "012",
+      "b": "013",
+      "winsA": 114,
+      "winsB": 86,
+      "draws": 0,
+      "ultsA": 835,
+      "ultsB": 800,
+      "rounds": 848,
+      "roundDraws": 9,
+      "cappedRounds": 0,
+      "turns": 23996,
+      "firstMoverRoundWins": 470,
+      "decidedRounds": 839
+    },
+    {
+      "a": "012",
+      "b": "014",
+      "winsA": 78,
+      "winsB": 122,
+      "draws": 0,
+      "ultsA": 883,
+      "ultsB": 931,
+      "rounds": 849,
+      "roundDraws": 2,
+      "cappedRounds": 0,
+      "turns": 21048,
+      "firstMoverRoundWins": 481,
+      "decidedRounds": 847
+    },
+    {
+      "a": "012",
+      "b": "015",
+      "winsA": 142,
+      "winsB": 58,
+      "draws": 0,
+      "ultsA": 1028,
+      "ultsB": 478,
+      "rounds": 862,
+      "roundDraws": 17,
+      "cappedRounds": 0,
+      "turns": 23791,
+      "firstMoverRoundWins": 524,
+      "decidedRounds": 845
+    },
+    {
+      "a": "012",
+      "b": "016",
+      "winsA": 55,
+      "winsB": 145,
+      "draws": 0,
+      "ultsA": 662,
+      "ultsB": 371,
+      "rounds": 613,
+      "roundDraws": 9,
+      "cappedRounds": 0,
+      "turns": 16694,
+      "firstMoverRoundWins": 250,
+      "decidedRounds": 516
+    }
+  ],
+  "firstMoverRate": 0.5785399908939141
+}

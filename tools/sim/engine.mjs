@@ -569,7 +569,7 @@ export class AI {
             const oppID = this.opp.chara.charaID;
             return oppID === '013' ? 0 : this.characterBonus(board, oppID);
         }
-        if (this.m.newBonus) {
+        if (this.m.newBonus && (this.m.newBonus === true || this.m.newBonus.includes(charaID))) {
             const extra = this.newCharacterBonus(board, charaID);
             if (extra !== null) return extra * this.m.bonusScale;
         }
@@ -625,6 +625,16 @@ export class AI {
             for (let r = 0; r <= ROWS - 4; r++) for (let c = 0; c <= COLS - 4; c++) fn([[r, c], [r + 1, c + 1], [r + 2, c + 2], [r + 3, c + 3]]);
             for (let r = 0; r <= ROWS - 4; r++) for (let c = 3; c < COLS; c++) fn([[r, c], [r + 1, c - 1], [r + 2, c - 2], [r + 3, c - 3]]);
         };
+        // 「今は置けない(下が空いている)勝ちマス」がある列の数。相手はその真下に置けなくなる
+        const latentThreatCols = () => {
+            const cols = new Set();
+            scan((cells) => {
+                let mine = 0, empty = null, n = 0;
+                for (const [r, c] of cells) { const v = board[r][c]; if (v === ME) mine++; else if (v === null) { empty = [r, c]; n++; } }
+                if (mine === 3 && n === 1 && !playable(empty[0], empty[1])) cols.add(empty[1]);
+            });
+            return cols.size;
+        };
         // 「次にその列に置けばすぐ勝てる」列の数
         const winningCols = () => {
             const cols = new Set();
@@ -636,9 +646,9 @@ export class AI {
             return cols.size;
         };
         switch (charaID) {
-            case '012': { // 鍾離: 封鎖で守れなくなるよう、勝ちマスの列を複数作る
-                const n = winningCols();
-                return n * 3 + (n >= 2 ? (n - 1) * 10 : 0);
+            case '012': { // 鍾離: 「今は置けない勝ちマス」を別々の列に作り、封鎖と合わせて相手の置き場をなくす
+                const n = latentThreatCols();
+                return n * 4 + (n >= 2 ? (n - 1) * 6 : 0);
             }
             case '009': // ホタル: ランダム1列への追加投下が勝ちになる列を増やす
                 return winningCols() * 6;

@@ -9,6 +9,7 @@
 //     --charge 010=13,011=12  キャラの1石あたりチャージ量を一時的に上書き(characterData.js は変えない。調整案の試し打ち用)
 //     --turn   010=18  必殺技を撃てるターン(AbilityUseTurn)を一時的に上書き
 //     --new-bonus  置き方の補正の試験中の案(鍾離/ホタル/銀狼/ルアン・メェイ)を使う
+//     --new-bonus-ids 012  試験中の補正を指定したキャラだけに使う
 //     --bonus-scale 1.5  新案の補正の大きさの倍率
 //     --random-opening 4  各ラウンドの最初の4手(両者合計)をランダムにする(測定のぶれを減らす)
 //     --only   010,011,004  このキャラが出る組み合わせだけ回す(速い。他キャラの勝率はこのキャラ戦だけの値になる)
@@ -69,11 +70,13 @@ if (!isMainThread) {
     const argv = process.argv.slice(2);
     const tieRandom = argv.includes('--tie-random');
     const rollout = argv.includes('--rollout');
-    const newBonus = argv.includes('--new-bonus');
+    // --new-bonus: 試験中の補正をすべて使う / --new-bonus-ids 012,009: 指定したキャラだけ使う
+    const newBonusFlag = argv.includes('--new-bonus');
     const args = Object.fromEntries(argv.filter((v) => v !== '--tie-random' && v !== '--rollout' && v !== '--new-bonus').reduce((acc, v, i, arr) => (v.startsWith('--') ? [...acc, [v.slice(2), arr[i + 1]]] : acc), []));
     const depth = parseInt(args.depth ?? '3', 10);
     const games = parseInt(args.games ?? '100', 10);
     const bonusScale = Number(args['bonus-scale'] ?? '1');
+    const newBonus = args['new-bonus-ids'] ? args['new-bonus-ids'].split(',') : newBonusFlag;
     const randomOpening = parseInt(args['random-opening'] ?? '0', 10);
     const outDir = args.out ?? path.join(HERE, 'results');
     const ids = Object.keys(CHARAS).sort();
@@ -164,7 +167,7 @@ if (!isMainThread) {
 `;
     if (randomOpening) md += `- 各ラウンドの最初の${randomOpening}手はランダム
 `;
-    if (newBonus) md += `- 置き方の補正の新案を使用(倍率 ${bonusScale})
+    if (newBonus) md += `- 置き方の補正の試験中の案を使用(${newBonus === true ? '全部' : newBonus.map(name).join('・')} / 倍率 ${bonusScale})
 `;
     if (only.length) md += `- ${only.map(name).join('・')} が出る組み合わせだけ回した(他キャラの勝率はこのキャラ戦だけの値)
 `;
