@@ -8,6 +8,9 @@
 //     --rollout     必殺技を撃つかを「撃つ/撃たないを裏で試して良い方」で決める(省略時はソロCPUと同じキャラ別ルール)
 //     --charge 010=13,011=12  キャラの1石あたりチャージ量を一時的に上書き(characterData.js は変えない。調整案の試し打ち用)
 //     --turn   010=18  必殺技を撃てるターン(AbilityUseTurn)を一時的に上書き
+//     --new-bonus  置き方の補正の試験中の案(鍾離/ホタル/銀狼/ルアン・メェイ)を使う
+//     --bonus-scale 1.5  新案の補正の大きさの倍率
+//     --random-opening 4  各ラウンドの最初の4手(両者合計)をランダムにする(測定のぶれを減らす)
 //     --only   010,011,004  このキャラが出る組み合わせだけ回す(速い。他キャラの勝率はこのキャラ戦だけの値になる)
 //     --tag    ファイル名に付ける目印(例: --tag nerfA)
 //     --out    結果の保存先(省略時 tools/sim/results/)
@@ -31,14 +34,14 @@ function seedOf(a, b, g, depth) {
 }
 
 // 1組み合わせ分の試合を回す(ワーカー側)
-function runPair({ a, b, games, depth, tieRandom, rollout, gameFrom = 0, chargeOverride = {}, turnOverride = {} }) {
+function runPair({ a, b, games, depth, tieRandom, rollout, gameFrom = 0, chargeOverride = {}, turnOverride = {}, newBonus = false, bonusScale = 1, randomOpening = 0 }) {
     for (const [id, v] of Object.entries(chargeOverride)) CHARAS[id].charge = v;
     for (const [id, v] of Object.entries(turnOverride)) CHARAS[id].AbilityUseTurn = v;
     const r = { a, b, winsA: 0, winsB: 0, draws: 0, ultsA: 0, ultsB: 0, rounds: 0, roundDraws: 0, cappedRounds: 0, turns: 0, firstMoverRoundWins: 0, decidedRounds: 0 };
     for (let g = gameFrom; g < gameFrom + games; g++) {
         const swap = g % 2 === 1; // 奇数試合は左右(赤/黄)を入れ替えて、石の色の有利不利を打ち消す
         const [x, y] = swap ? [b, a] : [a, b];
-        const m = new Match(x, y, { depthA: depth, depthB: depth, rng: makeRng(seedOf(a, b, g, depth)), tieRandom, abilityMode: rollout ? 'rollout' : 'rules' });
+        const m = new Match(x, y, { depthA: depth, depthB: depth, rng: makeRng(seedOf(a, b, g, depth)), tieRandom, abilityMode: rollout ? 'rollout' : 'rules', newBonus, bonusScale, randomOpening });
         const w = m.play();
         // a は入れ替えなしならサイドA、入れ替えありならサイドBで戦っている
         const aSide = swap ? 'B' : 'A';
@@ -66,9 +69,12 @@ if (!isMainThread) {
     const argv = process.argv.slice(2);
     const tieRandom = argv.includes('--tie-random');
     const rollout = argv.includes('--rollout');
-    const args = Object.fromEntries(argv.filter((v) => v !== '--tie-random' && v !== '--rollout').reduce((acc, v, i, arr) => (v.startsWith('--') ? [...acc, [v.slice(2), arr[i + 1]]] : acc), []));
+    const newBonus = argv.includes('--new-bonus');
+    const args = Object.fromEntries(argv.filter((v) => v !== '--tie-random' && v !== '--rollout' && v !== '--new-bonus').reduce((acc, v, i, arr) => (v.startsWith('--') ? [...acc, [v.slice(2), arr[i + 1]]] : acc), []));
     const depth = parseInt(args.depth ?? '3', 10);
     const games = parseInt(args.games ?? '100', 10);
+    const bonusScale = Number(args['bonus-scale'] ?? '1');
+    const randomOpening = parseInt(args['random-opening'] ?? '0', 10);
     const outDir = args.out ?? path.join(HERE, 'results');
     const ids = Object.keys(CHARAS).sort();
     const parseOverride = (opt) => Object.fromEntries((args[opt] ?? '').split(',').filter(Boolean).map((kv) => {
@@ -87,7 +93,7 @@ if (!isMainThread) {
     const CHUNK = 10;
     for (let i = 0; i < ids.length; i++) for (let j = i; j < ids.length; j++) {
         if (only.length && !only.includes(ids[i]) && !only.includes(ids[j])) continue;
-        for (let from = 0; from < games; from += CHUNK) tasks.push({ a: ids[i], b: ids[j], games: Math.min(CHUNK, games - from), gameFrom: from, depth, tieRandom, rollout, chargeOverride, turnOverride });
+        for (let from = 0; from < games; from += CHUNK) tasks.push({ a: ids[i], b: ids[j], games: Math.min(CHUNK, games - from), gameFrom: from, depth, tieRandom, rollout, chargeOverride, turnOverride, newBonus, bonusScale, randomOpening });
     }
     fs.mkdirSync(outDir, { recursive: true });
     const progressFile = path.join(outDir, 'progress.txt'); // 途中経過(いつでも確認できるように)
@@ -146,7 +152,7 @@ if (!isMainThread) {
     fs.mkdirSync(outDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
     const base = path.join(outDir, `${stamp}_d${depth}${tieRandom ? '_tr' : ''}${rollout ? '_ro' : ''}${args.tag ? `_${args.tag}` : ''}`);
-    fs.writeFileSync(`${base}.json`, JSON.stringify({ depth, games, tieRandom, rollout, chargeOverride, turnOverride, only, ranking, matrix, results, firstMoverRate: firstMover[0] / firstMover[1] }, null, 2));
+    fs.writeFileSync(`${base}.json`, JSON.stringify({ depth, games, tieRandom, rollout, chargeOverride, turnOverride, newBonus, bonusScale, randomOpening, only, ranking, matrix, results, firstMoverRate: firstMover[0] / firstMover[1] }, null, 2));
 
     const pct = (v) => `${(v * 100).toFixed(1)}%`;
     let md = `# コネバト 対戦シミュレーション結果\n\n- CPUの先読み: ${depth}手${tieRandom ? '(同点の手はランダム)' : ''}${rollout ? ' / 必殺技は「撃つ・撃たないを試して判断」' : ' / 必殺技はキャラ別ルールで判断'} / 1組み合わせ ${games}試合(3本先取) / 計 ${results.reduce((s, r) => s + r.winsA + r.winsB + r.draws, 0)}試合\n`;
@@ -155,6 +161,10 @@ if (!isMainThread) {
     if (Object.keys(chargeOverride).length) md += `- チャージ量を上書き: ${Object.entries(chargeOverride).map(([id, v]) => `${name(id)} ${origCharge[id]}→${v}`).join(' / ')}
 `;
     if (Object.keys(turnOverride).length) md += `- 撃てるターンを上書き: ${Object.entries(turnOverride).map(([id, v]) => `${name(id)} ${origTurn[id]}→${v}`).join(' / ')}
+`;
+    if (randomOpening) md += `- 各ラウンドの最初の${randomOpening}手はランダム
+`;
+    if (newBonus) md += `- 置き方の補正の新案を使用(倍率 ${bonusScale})
 `;
     if (only.length) md += `- ${only.map(name).join('・')} が出る組み合わせだけ回した(他キャラの勝率はこのキャラ戦だけの値)
 `;

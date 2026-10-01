@@ -49,8 +49,15 @@ function pickRandom(rng, array, count) { // soloLogic の getRandomElements 相�
 // 1試合(3本先取)の状態と進行
 // ─────────────────────────────────────────────
 export class Match {
-    constructor(charaA, charaB, { depthA, depthB, rng, tieRandom = false, abilityMode = 'rules', rolloutDepth = 3, rolloutSamples = 4 }) {
+    constructor(charaA, charaB, { depthA, depthB, rng, tieRandom = false, abilityMode = 'rules', rolloutDepth = 3, rolloutSamples = 4, newBonus = false, bonusScale = 1, randomOpening = 0 }) {
         this.rng = rng;
+        // 置き方の補正(AI.characterBonus)の試験中の案(鍾離/ホタル/銀狼/ルアン・メェイ)を使うか。
+        // bonusScale は新案の加点・減点の大きさの倍率(調整用)
+        this.newBonus = newBonus;
+        this.bonusScale = bonusScale;
+        // 各ラウンドの最初の randomOpening 手(両者合計)はランダムな列に置く。
+        // CPU同士は同じ展開をくり返しやすく、少しの違いで試合がまるごと入れ替わるので、序盤をばらして測定のぶれを減らす
+        this.randomOpening = randomOpening;
         this.tieRandom = tieRandom; // true: 同点の手をランダムに選ぶ(AI.pickColumnTieRandom)
         // 必殺技を撃つかの判断方法。'rules': ソロCPUと同じキャラ別ルール /
         // 'rollout': 撃った場合と撃たない場合を裏で実際に試して良い方を選ぶ(AI.rolloutDecision)
@@ -316,7 +323,12 @@ export class Match {
             end = this.checkEnd();
             if (end) return end;
         }
-        const col = ai.hanabiSetupCol >= 0 ? ai.hanabiSetupCol : ai.pickColumn();
+        let col;
+        if (!this.isRollout && this.turnCount <= this.randomOpening && ai.hanabiSetupCol < 0) {
+            const blocked = this.zhongliBlocks(side);
+            const cand = this.validColumns().filter((c) => !blocked.includes(c));
+            col = cand[Math.floor(this.rng() * cand.length)];
+        } else col = ai.hanabiSetupCol >= 0 ? ai.hanabiSetupCol : ai.pickColumn();
         const dropped = this.colorSwap(me.color);
         this.drop(col, dropped);
         me.charge = Math.min(CHARGE_MAX, me.charge + me.chara.charge);
@@ -550,10 +562,20 @@ export class AI {
         if (theirs === 2 && empty === 2) return -1;
         return 0;
     }
-    characterBonus(board) {
+    characterBonus(board, charaID = this.me.chara.charaID) {
         const ME = this.myColor, OPP = this.oppColor;
         let bonus = 0;
-        switch (this.me.chara.charaID) {
+        if (charaID === '013') { // サフェル: コピーする相手の技に合わせる
+            const oppID = this.opp.chara.charaID;
+            return oppID === '013' ? 0 : this.characterBonus(board, oppID);
+        }
+        if (this.m.newBonus) {
+            const extra = this.newCharacterBonus(board, charaID);
+            if (extra !== null) return extra * this.m.bonusScale;
+        }
+        switch (charaID) {
+            case '001': bonus += this.topStonesBonus(board, 2, 2); break; // 放浪者: 上から2個が消される
+            case '002': bonus += this.topStonesBonus(board, 1, 2); break; // シトラリ: 一番上の1個が消される
             case '004':
                 for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
                     if (board[r][c] === ME) bonus += r >= 3 ? 4 : -2;
@@ -578,6 +600,69 @@ export class AI {
                 break;
         }
         return bonus;
+    }
+    // 各列の上から depth 個の石: 自分の石なら減点、相手の石なら加点(上から消される技向け。soloLogic.topStonesBonus)
+    topStonesBonus(board, depth, w) {
+        let b = 0;
+        for (let c = 0; c < COLS; c++) {
+            let seen = 0;
+            for (let r = 0; r < ROWS && seen < depth; r++) {
+                if (board[r][c] === null) continue;
+                b += board[r][c] === this.myColor ? -w : w;
+                seen++;
+            }
+        }
+        return b;
+    }
+    // 新案の置き方の補正。対象外のキャラは null(従来の補正を使う)
+    newCharacterBonus(board, charaID) {
+        const ME = this.myColor, OPP = this.oppColor;
+        const playable = (r, c) => r === ROWS - 1 || board[r + 1][c] !== null;
+        // 4マスの並びをすべて見て、数を数える
+        const scan = (fn) => {
+            for (let r = 0; r < ROWS; r++) for (let c = 0; c <= COLS - 4; c++) fn([[r, c], [r, c + 1], [r, c + 2], [r, c + 3]]);
+            for (let c = 0; c < COLS; c++) for (let r = 0; r <= ROWS - 4; r++) fn([[r, c], [r + 1, c], [r + 2, c], [r + 3, c]]);
+            for (let r = 0; r <= ROWS - 4; r++) for (let c = 0; c <= COLS - 4; c++) fn([[r, c], [r + 1, c + 1], [r + 2, c + 2], [r + 3, c + 3]]);
+            for (let r = 0; r <= ROWS - 4; r++) for (let c = 3; c < COLS; c++) fn([[r, c], [r + 1, c - 1], [r + 2, c - 2], [r + 3, c - 3]]);
+        };
+        // 「次にその列に置けばすぐ勝てる」列の数
+        const winningCols = () => {
+            const cols = new Set();
+            scan((cells) => {
+                let mine = 0, empty = null, n = 0;
+                for (const [r, c] of cells) { const v = board[r][c]; if (v === ME) mine++; else if (v === null) { empty = [r, c]; n++; } }
+                if (mine === 3 && n === 1 && playable(empty[0], empty[1])) cols.add(empty[1]);
+            });
+            return cols.size;
+        };
+        switch (charaID) {
+            case '012': { // 鍾離: 封鎖で守れなくなるよう、勝ちマスの列を複数作る
+                const n = winningCols();
+                return n * 3 + (n >= 2 ? (n - 1) * 10 : 0);
+            }
+            case '009': // ホタル: ランダム1列への追加投下が勝ちになる列を増やす
+                return winningCols() * 6;
+            case '016': { // 銀狼: 守り重視(相手の並びへの減点を強める)
+                let b = 0;
+                scan((cells) => {
+                    let theirs = 0, empty = 0;
+                    for (const [r, c] of cells) { const v = board[r][c]; if (v === OPP) theirs++; else if (v === null) empty++; }
+                    if (theirs === 3 && empty === 1) b -= 6;
+                    else if (theirs === 2 && empty === 2) b -= 1;
+                });
+                return b;
+            }
+            case '010': { // ルアン・メェイ: 「自分3個+相手1個」の並び(奪えば勝ち)を作る
+                let b = 0;
+                scan((cells) => {
+                    let mine = 0, theirs = 0;
+                    for (const [r, c] of cells) { const v = board[r][c]; if (v === ME) mine++; else if (v === OPP) theirs++; }
+                    if (mine === 3 && theirs === 1) b += 3;
+                });
+                return b;
+            }
+        }
+        return null;
     }
     evaluate(board) {
         let score = 0;
