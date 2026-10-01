@@ -231,9 +231,9 @@ header {
 }
 
 .solo-mode-group {
-    margin-top: 30px; /* 合言葉欄との間隔を広げる */
-    margin-bottom: 20px;
-    padding: 12px 10px;
+    margin-top: 12px; /* 対戦相手選びを追加したぶん詰めて、左パネル(730px)に収める */
+    margin-bottom: 6px;
+    padding: 8px 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
     background-color: rgba(255, 255, 255, 0.4);
@@ -251,7 +251,7 @@ header {
     cursor: pointer;
     transition: background-color 0.3s ease, border-color 0.3s ease;
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .cpu-difficulty-selector {
@@ -289,7 +289,7 @@ header {
 }
 
 .cpu-difficulty-label {
-    margin-top: 6px;
+    margin-top: 2px;
     font-weight: bold;
     font-size: 0.95em;
     letter-spacing: 0.05em;
@@ -890,7 +890,7 @@ details[open] > .achievement-group-header::after {
 }
 
 .cpu-opponent-picker {
-    margin-top: 10px;
+    margin-top: 6px;
 }
 .pick-target-toggle {
     display: flex;
@@ -911,7 +911,7 @@ details[open] > .achievement-group-header::after {
 .pick-target-btn.pick-opponent.active { border-color: #1e78ff; background-color: #1e78ff; color: #fff; }
 .pick-target-btn.pick-random.active   { border-color: #7f8c8d; background-color: #7f8c8d; color: #fff; }
 .vs-summary {
-    margin-top: 6px;
+    margin-top: 4px;
     font-size: 13px;
     font-weight: bold;
     text-align: center;
@@ -1340,6 +1340,11 @@ footer.legal-footer {
   #lobbyWrap{
     transform-origin: top center;
     display: inline-block;
+  }
+
+  /* ロビー（キャラ選択）は画面ぴったりに縮小表示するので、ページ自体はスクロールさせない */
+  html:has(body.lobby-page), body.lobby-page {
+    overflow: hidden;
   }
 
   .help-btn{

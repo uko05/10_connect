@@ -219,6 +219,7 @@ export const characterData = [
         voice_ult: 'public/scripts/sound/Dorin_ult.mp3',
         process: 'ult_durin',
         requiredAchievementId: 'straight_win_10',
+        requiredAchievementLabel: '圧勝３',
     },
     {
         src: 'public/chara/Keryu.png',
