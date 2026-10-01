@@ -910,14 +910,6 @@ details[open] > .achievement-group-header::after {
 .pick-target-btn.pick-self.active     { border-color: #e74c3c; background-color: #e74c3c; color: #fff; }
 .pick-target-btn.pick-opponent.active { border-color: #1e78ff; background-color: #1e78ff; color: #fff; }
 .pick-target-btn.pick-random.active   { border-color: #7f8c8d; background-color: #7f8c8d; color: #fff; }
-.vs-summary {
-    margin-top: 4px;
-    font-size: 13px;
-    font-weight: bold;
-    text-align: center;
-}
-.vs-summary .vs-self     { color: #e74c3c; }
-.vs-summary .vs-opponent { color: #1e78ff; }
 
 /* 選択されている画像には別のスタイル */
 .thumbnail.selected {

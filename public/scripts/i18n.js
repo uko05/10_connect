@@ -89,10 +89,6 @@ const dict = {
     pickSelf: "自分を選ぶ",
     pickOpponent: "相手を選ぶ",
     opponentRandom: "おまかせ",
-    vsYou: "あなた",
-    vsCpu: "CPU",
-    vsRandom: "おまかせ",
-    vsNotSelected: "未選択",
   },
   en: {
     pageTitle: "GK: Connect Battle",
@@ -181,10 +177,6 @@ const dict = {
     pickSelf: "You",
     pickOpponent: "Opponent",
     opponentRandom: "Random",
-    vsYou: "You",
-    vsCpu: "CPU",
-    vsRandom: "Random",
-    vsNotSelected: "Not selected",
   },
 };
 

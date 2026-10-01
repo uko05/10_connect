@@ -372,17 +372,8 @@ document.getElementById('pickSelfBtn')?.addEventListener('click', () => setPickT
 document.getElementById('pickOpponentBtn')?.addEventListener('click', () => setPickTarget('opponent'));
 document.getElementById('opponentRandomBtn')?.addEventListener('click', () => { setOpponentRandom(); setPickTarget('self'); });
 
-// 「あなた：○○ VS CPU：○○」の表示
+// 相手が未選択（おまかせ）なら「おまかせ」ボタンを点灯
 function updateVsSummary() {
-    const el = document.getElementById('vsSummary');
-    if (!el) return;
-    const nameOf = (id) => {
-        const c = characterData.find(x => x.charaID === id);
-        return c ? (getCharaText(c.charaID, 'name') ?? c.name) : null;
-    };
-    const self = nameOf(currentCharacterData?.charaID) || t('vsNotSelected');
-    const opp = nameOf(selectedOpponentID) || t('vsRandom');
-    el.innerHTML = `<span class="vs-self">${t('vsYou')}：${self}</span> VS <span class="vs-opponent">${t('vsCpu')}：${opp}</span>`;
     document.getElementById('opponentRandomBtn')?.classList.toggle('active', !selectedOpponentID);
 }
 
