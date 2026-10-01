@@ -288,12 +288,36 @@ function scoreWindow(window, color) {
     return 0;
 }
 
+// 各列の上から depth 個の石: CPUの石なら減点、相手の石なら加点（上から石を消す必殺技向け）
+function topStonesBonus(board, depth, weight) {
+    let bonus = 0;
+    for (let c = 0; c < cols; c++) {
+        let seen = 0;
+        for (let r = 0; r < rows && seen < depth; r++) {
+            if (!board[r][c]) continue;
+            bonus += board[r][c] === CPU_COLOR ? -weight : weight;
+            seen++;
+        }
+    }
+    return bonus;
+}
+
 // キャラ別の盤面評価ボーナス（自キャラの必殺技を活かす配置を優遇する）
-function characterBonus(board) {
-    const charaID = cpuChara?.charaID;
+function characterBonus(board, charaID = cpuChara?.charaID) {
     if (!charaID) return 0;
+    // サフェル: 相手の必殺技をコピーするので、相手キャラの置き方に合わせる
+    if (charaID === '013') {
+        const oppID = playerChara?.charaID;
+        return (!oppID || oppID === '013') ? 0 : characterBonus(board, oppID);
+    }
     let bonus = 0;
     switch (charaID) {
+        case '001': // 放浪者: ランダム4列の上から2個を消す → 列の上2個は相手の石にさせ、自石は下に
+            bonus += topStonesBonus(board, 2, 2);
+            break;
+        case '002': // シトラリ: ランダム3列の一番上を消す → 列の一番上は相手の石にさせる
+            bonus += topStonesBonus(board, 1, 2);
+            break;
         case '004': // ナヴィア: 必殺技で上3行を消す → 下3行(row3-5)に自石を積み、上3行は避ける
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
