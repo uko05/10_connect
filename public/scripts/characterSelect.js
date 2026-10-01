@@ -62,6 +62,7 @@ function getAchName(achId, jaLabel) {
 document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
     radio.addEventListener('change', () => {
         if (currentCharacterData) displayCharacterInfo(currentCharacterData);
+        updateVsSummary();
         document.querySelectorAll('.thumbnail-locked-hint[data-req-ach-id]').forEach(el => {
             const achId = el.dataset.reqAchId;
             const jaLabel = el.dataset.reqAchLabel;
@@ -120,7 +121,10 @@ document.getElementById('soloModeButton').addEventListener('click', () => {
         return;
     }
     const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
+    saveLastChara('cpu', charaID);
     sessionStorage.setItem('soloPlayerCharaID', charaID);
+    // CPUの対戦相手（未選択ならソロ画面側でランダム）
+    sessionStorage.setItem('soloCpuCharaID', selectedOpponentID || '');
     sessionStorage.setItem('soloPlayerName', playerName);
     // CPUランダム選択で未解放キャラを除くために解放済みアチーブメントを渡す
     sessionStorage.setItem('soloUnlockedAchievements', JSON.stringify([...myAchievements]));
@@ -146,6 +150,19 @@ let roomDocRef = null; //ここで roomDocRef を宣言
 
 //選択中のキャラクターを保持する変数
 let selectedCharacter = null;
+// CPU戦の対戦相手（null = おまかせ／ランダム）と、一覧のクリック先（'self' | 'opponent'）
+let selectedOpponentID = null;
+let pickTarget = 'self';
+
+// 直前に使ったキャラ・CPU戦の相手を覚えておく（CPU戦とマッチング対戦で別々）
+const LAST_CHARA_KEY = { cpu: 'connectLastChara_cpu', match: 'connectLastChara_match' };
+const LAST_OPPONENT_KEY = 'connectLastCpuOpponent';
+function saveLastChara(mode, charaID) {
+    try { localStorage.setItem(LAST_CHARA_KEY[mode], charaID); } catch (e) { /* 保存できなくても続行 */ }
+}
+function loadStored(key) {
+    try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+}
 // 選択中キャラクターのdataオブジェクト（言語切替時の再描画に使用）
 let currentCharacterData = null;
 // ロビーのユーザーデータキャッシュ（言語切替時の称号再描画に使用）
@@ -253,26 +270,10 @@ function displayThumbnails() {
             img.className = 'thumbnail';
             img.setAttribute('data-voice', character.voice_select);
 
+            img.dataset.charaId = character.charaID;
             img.addEventListener('click', () => {
-                if (charaSound && !charaSound.paused) {
-                    charaSound.pause();
-                    charaSound.currentTime = 0;
-                }
-                if (selectedCharacter) {
-                    selectedCharacter.classList.remove('selected');
-                }
-                img.classList.add('selected');
-                selectedCharacter = img;
-                currentCharacterData = character;
-                displayCharacterInfo(character);
-
-                selectSound.currentTime = 0;
-                selectSound.play().catch(err => console.error('システム音の再生に失敗しました:', err));
-
-                charaSoundUrl = img.getAttribute('data-voice');
-                charaSound = new Audio(charaSoundUrl);
-                charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : getVoiceVolume();
-                charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
+                if (pickTarget === 'opponent') selectOpponent(img, character, true);
+                else selectSelf(img, character, true);
             });
 
             wrapper.appendChild(img);
@@ -288,17 +289,117 @@ function displayThumbnails() {
 
         container.appendChild(wrapper);
     });
+
+    // 直前に使ったキャラ（と前回のCPUの相手）を選択状態に戻す。自動選択なのでボイスは鳴らさない
+    const mode = requestedMode === 'match' ? 'match' : 'cpu';
+    const lastImg = findThumbnail(loadStored(LAST_CHARA_KEY[mode]));
+    if (lastImg) selectSelf(lastImg, characterData.find(c => c.charaID === lastImg.dataset.charaId), false);
+    if (isOpponentPickerActive()) {
+        const oppImg = findThumbnail(loadStored(LAST_OPPONENT_KEY));
+        if (oppImg) selectOpponent(oppImg, characterData.find(c => c.charaID === oppImg.dataset.charaId), false);
+        if (lastImg) showCharacterInfo(currentCharacterData); // 情報欄は自分のキャラを表示
+        updateVsSummary();
+    }
 }
 
-//キャラクターの情報を表示する関数
+// 解放済み（クリックできる）サムネイルを charaID で探す
+function findThumbnail(charaID) {
+    if (!charaID) return null;
+    return document.querySelector(`#thumbnailContainer img.thumbnail[data-chara-id="${charaID}"]`);
+}
+
+function playSelectVoices(img, withVoice) {
+    if (!withVoice) return;
+    if (charaSound && !charaSound.paused) {
+        charaSound.pause();
+        charaSound.currentTime = 0;
+    }
+    selectSound.currentTime = 0;
+    selectSound.play().catch(err => console.error('システム音の再生に失敗しました:', err));
+    charaSoundUrl = img.getAttribute('data-voice');
+    charaSound = new Audio(charaSoundUrl);
+    charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : getVoiceVolume();
+    charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
+}
+
+// 自分のキャラを選ぶ
+function selectSelf(img, character, withVoice) {
+    if (selectedCharacter) selectedCharacter.classList.remove('selected');
+    img.classList.add('selected');
+    selectedCharacter = img;
+    currentCharacterData = character;
+    displayCharacterInfo(character);
+    playSelectVoices(img, withVoice);
+    updateVsSummary();
+}
+
+// CPUの対戦相手を選ぶ（同じキャラをもう一度押すと「おまかせ」に戻す）
+function selectOpponent(img, character, withVoice) {
+    if (withVoice && selectedOpponentID === character.charaID) {
+        setOpponentRandom();
+        return;
+    }
+    document.querySelectorAll('#thumbnailContainer img.opponent-selected').forEach(el => el.classList.remove('opponent-selected'));
+    img.classList.add('opponent-selected');
+    selectedOpponentID = character.charaID;
+    try { localStorage.setItem(LAST_OPPONENT_KEY, character.charaID); } catch (e) { /* 保存できなくても続行 */ }
+    showCharacterInfo(character); // 相手の必殺技も確認できるように、表示だけ切り替える
+    playSelectVoices(img, withVoice);
+    updateVsSummary();
+}
+
+function setOpponentRandom() {
+    document.querySelectorAll('#thumbnailContainer img.opponent-selected').forEach(el => el.classList.remove('opponent-selected'));
+    selectedOpponentID = null;
+    try { localStorage.setItem(LAST_OPPONENT_KEY, ''); } catch (e) { /* 保存できなくても続行 */ }
+    updateVsSummary();
+}
+
+function isOpponentPickerActive() {
+    return !!document.getElementById('cpuOpponentPicker') && requestedMode !== 'match';
+}
+
+// 「自分を選ぶ／相手を選ぶ」ボタン。情報欄は、いま選んでいる側のキャラを表示する
+function setPickTarget(target) {
+    pickTarget = target;
+    document.getElementById('pickSelfBtn')?.classList.toggle('active', target === 'self');
+    document.getElementById('pickOpponentBtn')?.classList.toggle('active', target === 'opponent');
+    if (target === 'self' && currentCharacterData) showCharacterInfo(currentCharacterData);
+    if (target === 'opponent' && selectedOpponentID) showCharacterInfo(characterData.find(c => c.charaID === selectedOpponentID));
+    updateVsSummary();
+}
+document.getElementById('pickSelfBtn')?.addEventListener('click', () => setPickTarget('self'));
+document.getElementById('pickOpponentBtn')?.addEventListener('click', () => setPickTarget('opponent'));
+document.getElementById('opponentRandomBtn')?.addEventListener('click', () => { setOpponentRandom(); setPickTarget('self'); });
+
+// 「あなた：○○ VS CPU：○○」の表示
+function updateVsSummary() {
+    const el = document.getElementById('vsSummary');
+    if (!el) return;
+    const nameOf = (id) => {
+        const c = characterData.find(x => x.charaID === id);
+        return c ? (getCharaText(c.charaID, 'name') ?? c.name) : null;
+    };
+    const self = nameOf(currentCharacterData?.charaID) || t('vsNotSelected');
+    const opp = nameOf(selectedOpponentID) || t('vsRandom');
+    el.innerHTML = `<span class="vs-self">${t('vsYou')}：${self}</span> VS <span class="vs-opponent">${t('vsCpu')}：${opp}</span>`;
+    document.getElementById('opponentRandomBtn')?.classList.toggle('active', !selectedOpponentID);
+}
+
+//キャラクターの情報を表示する関数（自分のキャラとして選ぶ）
 function displayCharacterInfo(character) {
+    showCharacterInfo(character);
+    document.getElementById('charaID').value = character.charaID;
+}
+
+// 情報欄の表示だけを切り替える（CPUの相手の確認用。選択中の自分のキャラは変えない）
+function showCharacterInfo(character) {
     document.getElementById('characterName').innerText = getCharaText(character.charaID, 'name') ?? character.name;
     document.getElementById('characterCharge').innerText = character.charge;
     document.getElementById('Ability').innerText = getCharaText(character.charaID, 'Ability') ?? character.Ability;
     document.getElementById('AbilityDetail').innerText = getCharaText(character.charaID, 'AbilityDetail') ?? character.AbilityDetail;
     fitAbilityText(document.getElementById('Ability'));
     fitAbilityText(document.getElementById('AbilityDetail'));
-    document.getElementById('charaID').value = character.charaID;
 }
 
 // ロビーのプレイヤー情報エリアを更新する（5行レイアウト）
@@ -619,6 +720,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         document.getElementById('statusMessage').innerText = t('statusSelectChara');
         return;
     }
+    saveLastChara('match', charaID);
 
     //合言葉マッチング用
     let roomMatching = document.getElementById('roomMatching').value;

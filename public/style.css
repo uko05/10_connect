@@ -873,6 +873,52 @@ details[open] > .achievement-group-header::after {
     }
 }
 
+/* CPUの対戦相手に選ばれている画像（自分=赤、相手=青） */
+@keyframes glowBlue {
+    0%   { box-shadow: 0 0 8px 4px rgba(0, 120, 255, 0.1); }
+    50%  { box-shadow: 0 0 12px 12px rgba(0, 120, 255, 0.6); }
+    100% { box-shadow: 0 0 8px 4px rgba(0, 120, 255, 0.1); }
+}
+.thumbnail.opponent-selected {
+    border: 2px solid #1e78ff;
+    box-shadow: 0 0 12px 8px rgba(0, 120, 255, 0.6);
+    animation: glowBlue 2s infinite ease-in-out;
+}
+/* 自分と相手が同じキャラ（ミラー戦） */
+.thumbnail.selected.opponent-selected {
+    border: 2px solid #b03cff;
+}
+
+.cpu-opponent-picker {
+    margin-top: 10px;
+}
+.pick-target-toggle {
+    display: flex;
+    gap: 4px;
+}
+.pick-target-btn {
+    flex: 1;
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 13px;
+    padding: 4px 0;
+    border-radius: 6px;
+    border: 2px solid #aaa;
+    background-color: rgba(255, 255, 255, 0.7);
+    color: #555;
+    cursor: pointer;
+}
+.pick-target-btn.pick-self.active     { border-color: #e74c3c; background-color: #e74c3c; color: #fff; }
+.pick-target-btn.pick-opponent.active { border-color: #1e78ff; background-color: #1e78ff; color: #fff; }
+.pick-target-btn.pick-random.active   { border-color: #7f8c8d; background-color: #7f8c8d; color: #fff; }
+.vs-summary {
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+}
+.vs-summary .vs-self     { color: #e74c3c; }
+.vs-summary .vs-opponent { color: #1e78ff; }
+
 /* 選択されている画像には別のスタイル */
 .thumbnail.selected {
     /* 選択されている画像には枠を強調 */

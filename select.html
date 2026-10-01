@@ -202,6 +202,16 @@
                         </div>
                         <div id="cpuDifficultyLabel" class="cpu-difficulty-label"></div>
                     </div>
+
+                    <!-- CPUの対戦相手選び：一覧のクリック先を「自分／相手」で切り替える。相手未選択ならランダム -->
+                    <div id="cpuOpponentPicker" class="cpu-opponent-picker">
+                        <div class="pick-target-toggle">
+                            <button type="button" id="pickSelfBtn" class="pick-target-btn pick-self active" data-i18n="pickSelf">自分を選ぶ</button>
+                            <button type="button" id="pickOpponentBtn" class="pick-target-btn pick-opponent" data-i18n="pickOpponent">相手を選ぶ</button>
+                            <button type="button" id="opponentRandomBtn" class="pick-target-btn pick-random" data-i18n="opponentRandom">おまかせ</button>
+                        </div>
+                        <div id="vsSummary" class="vs-summary"></div>
+                    </div>
                 </div>
             </div>
 

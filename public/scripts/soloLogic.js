@@ -1675,6 +1675,9 @@ function displayCharaPanel(side, chara) {
 function pickCpuCharacter() {
     const unlocked = new Set(JSON.parse(sessionStorage.getItem('soloUnlockedAchievements') || '[]'));
     const pool = characterData.filter(c => !c.requiredAchievementId || unlocked.has(c.requiredAchievementId));
+    // キャラ選択画面で相手を選んでいればそのキャラ（解放済みのみ）。未選択ならランダム
+    const chosen = pool.find(c => c.charaID === sessionStorage.getItem('soloCpuCharaID'));
+    if (chosen) return chosen;
     const candidates = pool.length > 0 ? pool : characterData;
     return candidates[Math.floor(Math.random() * candidates.length)];
 }
