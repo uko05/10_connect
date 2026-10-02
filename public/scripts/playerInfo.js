@@ -48,7 +48,6 @@ let latestUserData = {};
 let currentSlot = 0; // 称号スロット（0=アチーブメント1, 1=アチーブメント2）。タブで切り替える
 let isAdminUser = false;    // ロール「管理者」: 全アチーブメントを解放・リセットできる
 let isDebugUser = false;    // ロール「デバッガー」(または「コネクトバトル」の印): 新キャラ解放アチーブだけ解放・リセットできる
-let isBakatareUser = false; // playerName が ばかたれ@ で始まる場合だけ true（新キャラ解放アチーブのみデバッグ可）
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -72,7 +71,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const myRating = await getUserRating(user.uid);
         latestUserData = myRating || {};
-        isBakatareUser = (latestUserData.playerName || '').startsWith('ばかたれ@');
 
         const roleSnap = await getDoc(doc(db, 'sharedUserRoles', getSharedUserId()));
         // 管理者は全アチーブメント、デバッガーは新キャラ解放アチーブだけ(2026-10-02)
@@ -250,9 +248,8 @@ function renderAchievements() {
                 ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? t('btnAchSetDone') : t('btnAchSet')}</button>`
                 : (isCharUnlock ? charUnlockBadge : '') + `<button type="button" class="ach-set-btn" disabled>${t('btnAchUnowned')}</button>`;
 
-            // 管理者: 全アチーブメントで解放・リセット
-            // デバッガー・ばかたれ@: 新キャラ解放アチーブだけ解放・リセット
-            const canUnlock = isAdminUser || (isCharUnlock && (isBakatareUser || isDebugUser));
+            // 管理者: 全アチーブメントで解放・リセット / デバッガー: 新キャラ解放アチーブだけ解放・リセット
+            const canUnlock = isAdminUser || (isCharUnlock && isDebugUser);
             const canReset = canUnlock;
             const debugBtnsHtml = (canUnlock || canReset)
                 ? `<span class="debug-ach-btns">` +
@@ -351,9 +348,8 @@ document.getElementById('savePlayerNameButton').addEventListener('click', async 
         setTimeout(() => { feedback.textContent = ''; }, 2000);
     }
 
-    // ばかたれ@先頭：ばかたれテスターアチーブを解放
-    if (nameInput.value.trim().startsWith('ばかたれ@')) {
-        isBakatareUser = true;
+    // 名前の最後に「@ばかたれ」(全角＠も可)：隠し実績「ばかたれの同志」を解放するだけ(2026-10-02、以前は先頭の「ばかたれ@」)
+    if (/[@＠]ばかたれ$/.test(nameInput.value.trim())) {
         await debugForceUnlockAchievement(currentUid, 'bakatare_tester');
         latestUserData = (await getUserRating(currentUid)) || {};
         renderTitleSlots(latestUserData);

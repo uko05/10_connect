@@ -240,7 +240,7 @@ const achDict = {
       'clean_win':          { name: 'Fair and Square',                     condition: 'Win a match with no disconnects or timeouts' },
       'comeback_win':       { name: 'Miraculous Comeback',                 condition: 'Come back from 0-2 down to win 3-2' },
       'cerylua_ult5_win':   { name: 'Air of a Ruler',                      condition: "Use Cerylua's Ultimate 5 times in one match and win" },
-      'bakatare_tester':    { name: 'Comrade of Bakatare',                 condition: "Save a name starting with 'ばかたれ@' in Player Info" },
+      'bakatare_tester':    { name: 'Comrade of Bakatare',                 condition: "Save a name ending with '@ばかたれ' in Player Info" },
       'debug_test':         { name: 'Debug Staff',                         condition: 'Granted Connect Battle debugger role by the admin' },
     },
   },

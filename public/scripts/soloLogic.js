@@ -1691,7 +1691,7 @@ function initCharacters() {
         return false;
     }
     const playerName = (sessionStorage.getItem('soloPlayerName') || 'プレイヤー')
-        .replace(/^ばかたれ@/, '').replace(/@debug$/, '');
+        .replace(/^ばかたれ@/, '').replace(/[@＠]ばかたれ$/, '').replace(/@debug$/, '');
     document.getElementById('playerName_1').innerText = playerName;
 
     // ソロモードは称号データなし（両側「未設定」表示）

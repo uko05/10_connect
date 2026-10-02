@@ -69,10 +69,11 @@ const canvas = document.getElementById('connect4Canvas');
 let isInitialLoad = true; // 初期ロードかどうかを管理するフラグ
 
 // プレイヤー情報格納
+// 隠し実績用の印(名前の最後の「@ばかたれ」、以前の仕様の先頭「ばかたれ@」)や
 // テストプレイヤー識別子をバトル画面上で非表示にするためのサニタイズ関数
 function sanitizeDisplayName(name) {
     if (!name) return name;
-    return name.replace(/^ばかたれ@/, '').replace(/@debug$/, '');
+    return name.replace(/^ばかたれ@/, '').replace(/[@＠]ばかたれ$/, '').replace(/@debug$/, '');
 }
 
 let playerLeft_ID = null;
