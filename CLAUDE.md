@@ -117,3 +117,6 @@ Claude Code must:
 2. Never leave version unchanged after modifying behavior
 3. Keep version synchronized across index.html and battle.html
 
+APP_VERSION is also what `public/scripts/versionGuard.js` compares when a player starts a CPU battle or matchmaking:
+if the published version.js differs, the tab is told to reload. Bumping APP_VERSION therefore makes stale tabs reload before their next battle.
+

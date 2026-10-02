@@ -18,6 +18,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
+import { ensureLatestVersion } from './versionGuard.js';
 import { setupScaledLayout } from './layoutScaler.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName, syncSharedUserId } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
@@ -114,12 +115,13 @@ cpuDifficultyRadios.forEach(radio => {
 updateCpuDifficultyLabel(initialCpuDifficulty);
 
 // ソロモード（CPU対戦）への遷移。マッチング不要・Firestoreを使わない別画面
-document.getElementById('soloModeButton').addEventListener('click', () => {
+document.getElementById('soloModeButton').addEventListener('click', async () => {
     const charaID = document.getElementById('charaID').value;
     if (charaID.trim() === "") {
         document.getElementById('statusMessage').innerText = t('statusSelectChara');
         return;
     }
+    if (!(await ensureLatestVersion())) return;
     const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
     saveLastChara('cpu', charaID);
     sessionStorage.setItem('soloPlayerCharaID', charaID);
@@ -711,6 +713,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         document.getElementById('statusMessage').innerText = t('statusSelectChara');
         return;
     }
+    if (!NowMatching && !(await ensureLatestVersion())) return;
     saveLastChara('match', charaID);
 
     //合言葉マッチング用
