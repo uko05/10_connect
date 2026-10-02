@@ -46,7 +46,8 @@ document.getElementById('backToHubButton').addEventListener('click', () => {
 let currentUid = null;
 let latestUserData = {};
 let currentSlot = 0; // 称号スロット（0=アチーブメント1, 1=アチーブメント2）。タブで切り替える
-let isDebugUser = false;    // 管理画面でロール「デバッガー」+「コネクトバトル」を付与された場合だけ true
+let isAdminUser = false;    // ロール「管理者」: 全アチーブメントを解放・リセットできる
+let isDebugUser = false;    // ロール「デバッガー」(または「コネクトバトル」の印): 新キャラ解放アチーブの「解放」だけできる
 let isBakatareUser = false; // playerName が ばかたれ@ で始まる場合だけ true（新キャラ解放アチーブのみデバッグ可）
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -74,11 +75,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         isBakatareUser = (latestUserData.playerName || '').startsWith('ばかたれ@');
 
         const roleSnap = await getDoc(doc(db, 'sharedUserRoles', getSharedUserId()));
-        // 管理者はデバッガーの上位ロールなので、admin/debugger いずれの role でもデバッグ扱いにする
-        // (14_GenshinOmikuji/script.js の loadDebuggerRole と同じ扱い)
+        // 管理者は全アチーブメント、デバッガーは新キャラ解放アチーブの「解放」だけ(2026-10-02)
         if (roleSnap.exists()) {
             const roleData = roleSnap.data();
-            isDebugUser = roleData.role === 'admin' || roleData.role === 'debugger' || !!roleData.debugConnect;
+            isAdminUser = roleData.role === 'admin';
+            isDebugUser = roleData.role === 'debugger' || !!roleData.debugConnect;
         }
 
         const nameInput = document.getElementById('playerInfoNameInput');
@@ -249,11 +250,14 @@ function renderAchievements() {
                 ? `<button type="button" class="ach-set-btn ${isSet ? 'set' : ''}" data-id="${ach.id}">${isSet ? t('btnAchSetDone') : t('btnAchSet')}</button>`
                 : (isCharUnlock ? charUnlockBadge : '') + `<button type="button" class="ach-set-btn" disabled>${t('btnAchUnowned')}</button>`;
 
-            const showDebugBtns = isDebugUser || (isBakatareUser && isCharUnlock);
-            const debugBtnsHtml = showDebugBtns
+            // 管理者: 全アチーブメントで解放・リセット / ばかたれ@: 新キャラ解放アチーブで解放・リセット
+            // デバッガー: 新キャラ解放アチーブの解放だけ
+            const canUnlock = isAdminUser || (isCharUnlock && (isBakatareUser || isDebugUser));
+            const canReset = isAdminUser || (isCharUnlock && isBakatareUser);
+            const debugBtnsHtml = (canUnlock || canReset)
                 ? `<span class="debug-ach-btns">` +
-                  `<button type="button" class="debug-ach-btn debug-unlock-btn" data-id="${ach.id}">解放</button>` +
-                  `<button type="button" class="debug-ach-btn debug-reset-btn" data-id="${ach.id}">リセット</button>` +
+                  (canUnlock ? `<button type="button" class="debug-ach-btn debug-unlock-btn" data-id="${ach.id}">解放</button>` : '') +
+                  (canReset ? `<button type="button" class="debug-ach-btn debug-reset-btn" data-id="${ach.id}">リセット</button>` : '') +
                   `</span>`
                 : '';
 
