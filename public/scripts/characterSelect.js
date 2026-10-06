@@ -1,21 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { db, auth, authReady, getSharedUserId } from "./firebaseConfig.js"; //firebaseの設定ファイル
 import {
-    getFirestore,
-    collection,
-    writeBatch,
-    addDoc,
-    onSnapshot,
-    query,
-    where,
-    deleteDoc,
-    doc,
-    getDocs,
-    getDoc,
-    runTransaction,
-    updateDoc,
-    serverTimestamp
+  getFirestore, collection, writeBatch, addDoc, query, where, deleteDoc, doc, runTransaction, updateDoc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { onSnapshot, getDocs, getDoc } from './fsTracked.js'; // 読み取り件数の集計(調査用、fsTracked.js参照)
 import { characterData } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { ensureLatestVersion } from './versionGuard.js';

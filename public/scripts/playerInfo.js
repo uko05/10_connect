@@ -1,6 +1,9 @@
 // playerInfo.js - プレイヤー情報画面（レート・アチーブメント・称号の表示）
 import { authReady, getSharedUserId, db } from './firebaseConfig.js';
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {
+  doc,
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getDoc } from './fsTracked.js'; // 読み取り件数の集計(調査用、fsTracked.js参照)
 import { APP_VERSION } from './version.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName, syncSharedUserId } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';

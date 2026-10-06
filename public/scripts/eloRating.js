@@ -2,18 +2,9 @@
 // ※レート・戦績・キャラ統計の計算と書き込みはサーバー(24_AccountCenter/functions/connect.js)に移した。
 import { db } from "./firebaseConfig.js";
 import {
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc,
-    deleteDoc,
-    serverTimestamp,
-    collection,
-    query,
-    where,
-    getDocs,
-    getCountFromServer
+  doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getDoc, getDocs, getCountFromServer } from './fsTracked.js'; // 読み取り件数の集計(調査用、fsTracked.js参照)
 import { getRankTier, getRankCssClass, getRankBadgePath } from "./rankConfig.js";
 
 // ────────────────────────────

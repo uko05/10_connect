@@ -1,7 +1,10 @@
 // achievementManager.js - users/{uid} の実績データ（achievements/achievementCount/achStats）の読み書きと判定
 // rating/charaWins には一切触れない（ソロモードの判定もここに限定し、レート・キャラ別勝利数とは完全に分離する）
 import { db } from './firebaseConfig.js';
-import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {
+  doc, updateDoc,
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getDoc } from './fsTracked.js'; // 読み取り件数の集計(調査用、fsTracked.js参照)
 import { ALL_ACHIEVEMENTS } from './achievements.js';
 import { characterData } from './characterData.js';
 import { t, getAchText, getCharaAchText, getCharaText } from './i18n.js';
