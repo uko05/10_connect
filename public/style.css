@@ -1703,3 +1703,28 @@ body.hub-page::before {
 }
 .hero-setting-feedback { min-height: 1.2em; font-size: 12px; color: #28a745; margin-top: 6px; }
 
+/* デザイン変更タブ: 項目ごとの見出し / まだ固定にできないキャラ */
+.design-section-title {
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 15px;
+    color: #333;
+    text-align: left;
+    margin: 6px 0 2px;
+    padding-left: 8px;
+    border-left: 4px solid #c9962b;
+}
+.hero-option.locked { cursor: default; }
+.hero-option.locked img { filter: grayscale(1) brightness(0.6); }
+.hero-option-lock {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.65);
+    white-space: nowrap;
+}

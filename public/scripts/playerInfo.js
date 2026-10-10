@@ -11,7 +11,7 @@ import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement, fitChipText } from './achievementManager.js';
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
-import { getHubHeroSetting, setHubHeroSetting, heroCandidates } from './hubHero.js';
+import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS } from './hubHero.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
@@ -105,24 +105,34 @@ document.querySelectorAll('.pi-tab-btn').forEach((btn) => {
     });
 });
 
-// タイトル画面タブ: トップ画面の左に出すキャラを「ランダム」か1人に固定する(hubHero.js、この端末に保存)。
-// 未解放の隠しキャラは候補に出さない。
+// デザイン変更タブ「タイトル画面のキャラ」: トップ画面の左に出すキャラを「ランダム」か1人に固定する(hubHero.js、この端末に保存)。
+// 未解放の隠しキャラは候補に出さない。固定にできるのは、そのキャラでランク戦に5勝以上したキャラだけ。
 function renderHeroSetting() {
     const grid = document.getElementById('heroSettingGrid');
     if (!grid) return;
     const current = getHubHeroSetting();
     const candidates = heroCandidates(latestUserData);
-    const selected = current === 'random' || !candidates.some((c) => c.charaID === current) ? 'random' : current;
+    const selected = candidates.some((c) => c.charaID === current) && canFixHero(latestUserData, current) ? current : 'random';
     grid.innerHTML = '';
 
-    const makeOption = (value, inner, label) => {
+    const makeOption = (value, inner, label, lockedText = '') => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'hero-option' + (value === selected ? ' selected' : '');
+        btn.className = 'hero-option' + (value === selected ? ' selected' : '') + (lockedText ? ' locked' : '');
         btn.innerHTML = inner;
         const span = document.createElement('span');
         span.textContent = label;
         btn.appendChild(span);
+        if (lockedText) {
+            // まだ固定にできないキャラ: あと何勝で選べるかを出す
+            const lock = document.createElement('div');
+            lock.className = 'hero-option-lock';
+            lock.textContent = lockedText;
+            btn.appendChild(lock);
+            btn.disabled = true;
+            grid.appendChild(btn);
+            return;
+        }
         btn.addEventListener('click', () => {
             setHubHeroSetting(value);
             renderHeroSetting();
@@ -137,7 +147,9 @@ function renderHeroSetting() {
     };
     makeOption('random', '<div class="hero-option-random">?</div>', t('heroRandom'));
     candidates.forEach((c) => {
-        makeOption(c.charaID, `<img src="${c.src}" alt="" loading="lazy">`, getCharaText(c.charaID, 'name') || c.name);
+        const rest = HERO_FIXED_MIN_WINS - heroWins(latestUserData, c.charaID);
+        makeOption(c.charaID, `<img src="${c.src}" alt="" loading="lazy">`, getCharaText(c.charaID, 'name') || c.name,
+            rest > 0 ? t('heroWinsLeft').replace('{n}', rest) : '');
     });
 }
 

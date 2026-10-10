@@ -5,6 +5,17 @@
 import { characterData } from './characterData.js';
 
 const HUB_HERO_KEY = 'connectHubHero';
+// 1人に固定できるのは、そのキャラでランク戦にこの回数以上勝ったキャラだけ(2026-10-11)
+export const HERO_FIXED_MIN_WINS = 5;
+
+// そのキャラでのランク戦の勝利数(connectUsers.charaWins、サーバーが記録)
+export function heroWins(userData, charaID) {
+    return (userData?.charaWins || {})[charaID] || 0;
+}
+
+export function canFixHero(userData, charaID) {
+    return heroWins(userData, charaID) >= HERO_FIXED_MIN_WINS;
+}
 
 export function getHubHeroSetting() {
     try { return localStorage.getItem(HUB_HERO_KEY) || 'random'; } catch (e) { return 'random'; }
@@ -22,13 +33,13 @@ export function heroCandidates(userData) {
         && (!c.requiredAchievementId || unlocked[c.charaID] || achs.has(c.requiredAchievementId)));
 }
 
-// 設定に従って1人選ぶ。固定にしたキャラが候補に無い(未解放など)ときはランダムにする
+// 設定に従って1人選ぶ。固定にしたキャラが候補に無い(未解放など)か、条件(5勝)を満たしていないときはランダムにする
 export function pickHubHero(userData) {
     const pool = heroCandidates(userData);
     const setting = getHubHeroSetting();
     if (setting !== 'random') {
         const fixed = pool.find((c) => c.charaID === setting);
-        if (fixed) return fixed;
+        if (fixed && canFixHero(userData, fixed.charaID)) return fixed;
     }
     return pool[Math.floor(Math.random() * pool.length)] || null;
 }
