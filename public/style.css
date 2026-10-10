@@ -1849,3 +1849,8 @@ body.hub-page::before {
 
 /* 石のデザイン: 相手の石をデフォルト表示にするチェック */
 .hide-opp-skin-row { display: flex; align-items: center; gap: 6px; margin: 10px 2px 0; font-size: 13px; color: #333; text-align: left; cursor: pointer; }
+
+/* 石のデザイン: 四角の見本 / まだ持っていない石(グレーアウト) */
+.skin-preview.square { border-radius: 24%; }
+.skin-option.locked { cursor: default; opacity: 0.55; }
+.skin-option.locked .skin-preview { filter: grayscale(1); }

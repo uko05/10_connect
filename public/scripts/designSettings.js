@@ -39,14 +39,28 @@ export const STONE_SKIN_GROUPS = [
     { id: 'nation', name: '原神の国', nameEn: 'Genshin nations' },
 ];
 
-export function ownsStoneSkin(skinId) {
+// 石の形: 'round'(丸) / 'square'(角丸の四角)。2026-10-11追加。
+// 石は形ごとに別アイテム(「炎の丸」を持っていても「炎の四角」は未開放)。デフォルトは丸・四角とも全員が持っている
+export const STONE_SHAPES = ['round', 'square'];
+const STONE_SHAPE_KEY = 'connectStoneShape';
+
+export function getStoneShape() {
+    try { return localStorage.getItem(STONE_SHAPE_KEY) === 'square' ? 'square' : 'round'; } catch (e) { return 'round'; }
+}
+
+export function setStoneShape(shape) {
+    try { localStorage.setItem(STONE_SHAPE_KEY, shape === 'square' ? 'square' : 'round'); } catch (e) { /* 保存できなくても続ける */ }
+}
+
+// その形のそのスキンを持っているか。ガチャを作ったら「スキン×形」の所持データで判定する
+export function ownsStoneSkin(skinId, shape = 'round') {
     return skinId === 'go' || TEST_OWN_ALL_SKINS;
 }
 
 export function getStoneSkinId() {
     try {
         const id = localStorage.getItem(STONE_SKIN_KEY) || 'go';
-        return STONE_SKINS.some((s) => s.id === id) && ownsStoneSkin(id) ? id : 'go';
+        return STONE_SKINS.some((s) => s.id === id) && ownsStoneSkin(id, getStoneShape()) ? id : 'go';
     } catch (e) { return 'go'; }
 }
 
@@ -84,18 +98,24 @@ function tintedIcon(skin, color) {
     return null;
 }
 
-// スキンIDから石のスキンを返す(デフォルト・不明ならnull)。マーク画像を先読みしておく
-export function getStoneSkinById(id) {
+// スキンIDと形から、描画に使うスキンを返す(丸のデフォルト・不明ならnull)。マーク画像を先読みしておく
+export function getStoneSkinById(id, shape = 'round') {
     const skin = STONE_SKINS.find((s) => s.id === id);
-    if (!skin || skin.id === 'go') return null;
+    if (!skin) return null;
+    if (skin.id === 'go') return shape === 'square' ? { id: 'go', shape: 'square' } : null;
     tintedIcon(skin, '#ffffff');
     tintedIcon(skin, 'rgba(0, 0, 0, 0.25)');
-    return skin;
+    return { ...skin, shape: shape === 'square' ? 'square' : 'round' };
 }
 
-// 自分が選んでいる石のスキン(標準ならnull)
+// 自分が選んでいる石(スキン+形)。丸のデフォルトならnull
 export function getMyStoneSkin() {
-    return getStoneSkinById(getStoneSkinId());
+    return getStoneSkinById(getStoneSkinId(), getStoneShape());
+}
+
+// 対戦部屋に書く自分の石の情報("スキンID:形"。例 "el_hi:square")
+export function getMyStoneSkinCode() {
+    return `${getStoneSkinId()}:${getStoneShape()}`;
 }
 
 // 相手の石のスキンを表示するか(2026-10-11)。設定で「相手の石をデフォルトで表示する」にチェックした人は表示しない
@@ -107,10 +127,11 @@ export function setHideOpponentSkin(hide) {
     try { localStorage.setItem(HIDE_OPP_SKIN_KEY, hide ? 'true' : 'false'); } catch (e) { /* 保存できなくても続ける */ }
 }
 
-// 相手が選んでいるスキンID(対戦部屋の player1_StoneSkin / player2_StoneSkin)から、表示する相手のスキンを返す
-export function getOpponentStoneSkin(skinId) {
-    if (getHideOpponentSkin()) return null;
-    return getStoneSkinById(skinId);
+// 相手が選んでいる石(対戦部屋の player1_StoneSkin / player2_StoneSkin。"スキンID:形")から、表示する相手の石を返す
+export function getOpponentStoneSkin(code) {
+    if (getHideOpponentSkin() || !code) return null;
+    const [id, shape] = String(code).split(':');
+    return getStoneSkinById(id, shape);
 }
 
 // renderer.js の drawStoneAt から呼ぶ: 石の上に白いマーク(うっすら影付き)を重ねる

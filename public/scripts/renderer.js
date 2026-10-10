@@ -29,21 +29,23 @@ function shadeColor(hex, amt) {
  * 影はshadowBlurを使わずに描く(マスの外にはみ出すと、石を消した時に影の跡が残るため)。
  */
 export function drawStoneAt(ctx, cx, cy, R, color, skin = null, oppColor = null) {
+    // 形: 'round'(丸) か 'square'(角丸の四角)。スキンが無ければ丸(2026-10-11、形ごとに別アイテム)
+    const shape = skin?.shape === 'square' ? 'square' : 'round';
     // 元素・国のスキンは、石そのものをテーマ色にして白いマークを重ねる。
     // ただしスキンの色が相手の石の色に近くて見分けにくい時(かぶった時)だけ、外側に自分の色(赤/黄)の
     // 太い輪を残して、内側にスキンを小さめに描く(2026-10-11、案A)
     if (skin && skin.color && oppColor && isSkinClash(skin.color, color, oppColor)) {
-        drawGoBody(ctx, cx, cy, R, color);
+        drawGoBody(ctx, cx, cy, R, color, shape);
         const r = R * 0.74;
-        drawGoBody(ctx, cx, cy - R * 0.02, r, skin.color, false);
+        drawGoBody(ctx, cx, cy - R * 0.02, r, skin.color, shape, false);
         if (skin.icon) drawSkinMark(ctx, cx, cy - R * 0.02, r, skin);
-        drawGoHighlight(ctx, cx, cy, R);
+        drawGoHighlight(ctx, cx, cy, R, shape);
         return;
     }
     if (skin && skin.color) color = skin.color;
-    drawGoBody(ctx, cx, cy, R, color);
+    drawGoBody(ctx, cx, cy, R, color, shape);
     if (skin && skin.icon) drawSkinMark(ctx, cx, cy, R, skin);
-    drawGoHighlight(ctx, cx, cy, R);
+    drawGoHighlight(ctx, cx, cy, R, shape);
 }
 
 // スキンの色(skinHex)が、相手の色(oppHex)に近くて自分の色(myHex)より相手に近い時に「かぶり」とみなす。
@@ -61,39 +63,51 @@ function isSkinClash(skinHex, myHex, oppHex) {
     return toOpp < 200 && toOpp <= dist(s, m);
 }
 
+// 石の輪郭のパスを作る(rx,ryは半径。四角は角を丸めた正方形)
+function stonePath(ctx, cx, cy, rx, ry, shape) {
+    ctx.beginPath();
+    if (shape === 'square') {
+        const w = rx * 0.92, h = ry * 0.92, r = Math.min(w, h) * 0.32;
+        const x = cx - w, y = cy - h;
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + 2 * w, y, x + 2 * w, y + 2 * h, r);
+        ctx.arcTo(x + 2 * w, y + 2 * h, x, y + 2 * h, r);
+        ctx.arcTo(x, y + 2 * h, x, y, r);
+        ctx.arcTo(x, y, x + 2 * w, y, r);
+        ctx.closePath();
+    } else {
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    }
+}
+
 // 碁石風の本体(接地の影・下側の厚み・上面)。withShadow=falseなら接地の影を省く(内側に重ねる時用)
-function drawGoBody(ctx, cx, cy, R, color, withShadow = true) {
+function drawGoBody(ctx, cx, cy, R, color, shape = 'round', withShadow = true) {
     ctx.save();
     if (withShadow) {
         // 接地の影(マスからはみ出さない大きさに抑える)
         ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + R * 0.1, R * 0.98, R * 0.94, 0, 0, Math.PI * 2);
+        stonePath(ctx, cx, cy + R * 0.1, R * 0.98, R * 0.94, shape);
         ctx.fill();
     }
-    drawGoBodyRest(ctx, cx, cy, R, color);
-    ctx.restore();
-}
-
-function drawGoBodyRest(ctx, cx, cy, R, color) {
     // 下側の厚み
     ctx.fillStyle = shadeColor(color, -0.3);
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + R * 0.05, R * 0.97, R * 0.92, 0, 0, Math.PI * 2);
+    stonePath(ctx, cx, cy + R * 0.05, R * 0.97, R * 0.92, shape);
     ctx.fill();
     // 上面(左上から光が当たるなめらかなグラデーション)
-    const g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
+    const g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R * (shape === 'square' ? 1.15 : 1));
     g.addColorStop(0, shadeColor(color, 0.35));
     g.addColorStop(1, shadeColor(color, -0.2));
     ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy - R * 0.03, R * 0.95, R * 0.89, 0, 0, Math.PI * 2);
+    stonePath(ctx, cx, cy - R * 0.03, R * 0.95, R * 0.89, shape);
     ctx.fill();
+    ctx.restore();
 }
 
-// やわらかいハイライト(石のいちばん上に重ねる)
-function drawGoHighlight(ctx, cx, cy, R) {
+// やわらかいハイライト(石のいちばん上に重ねる。石の形からはみ出さないように切り抜く)
+function drawGoHighlight(ctx, cx, cy, R, shape = 'round') {
     ctx.save();
+    stonePath(ctx, cx, cy - R * 0.03, R * 0.95, R * 0.89, shape);
+    ctx.clip();
     const h = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.4, 0, cx - R * 0.3, cy - R * 0.4, R * 0.5);
     h.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
     h.addColorStop(1, 'rgba(255, 255, 255, 0)');

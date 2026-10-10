@@ -12,6 +12,7 @@ import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement,
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
 import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStoneSkinId, skinIconUrl,
+    getStoneShape, setStoneShape,
     BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId, applyBattleBackground,
     getHideOpponentSkin, setHideOpponentSkin } from './designSettings.js';
 
@@ -173,60 +174,86 @@ function flashSaved(id) {
 const isEn = () => localStorage.getItem('lang') === 'en';
 
 // デザイン変更タブ「石のデザイン」(designSettings.js)。自分の石にだけ反映される。
+// いちばん上に「デフォルト(丸)」「デフォルト(四角)」を並べ、選んでいる形のスキンだけを下に出す。
+// 石は形ごとに別アイテムなので、その形で持っていないスキンはグレーアウトして押せないようにする。
 // 今はテストのため全スキンを持っている扱い(ガチャ実装時に所持チェックへ置き換える)
+function makeSkinPreview(colors, shape, icon) {
+    const wrap = document.createElement('div');
+    wrap.className = 'skin-preview-pair';
+    colors.forEach((c) => {
+        const dot = document.createElement('span');
+        dot.className = 'skin-preview' + (shape === 'square' ? ' square' : '');
+        dot.style.setProperty('--skin-c', c);
+        if (icon) {
+            const img = document.createElement('img');
+            img.src = icon;
+            img.alt = '';
+            img.loading = 'lazy';
+            dot.appendChild(img);
+        }
+        wrap.appendChild(dot);
+    });
+    return wrap;
+}
+
 function renderStoneSkinSetting() {
     const list = document.getElementById('skinSettingList');
     if (!list) return;
-    const current = getStoneSkinId();
+    const currentId = getStoneSkinId();
+    const shape = getStoneShape();
     list.innerHTML = '';
-    STONE_SKIN_GROUPS.forEach((g) => {
-        const skins = STONE_SKINS.filter((s) => s.group === g.id && ownsStoneSkin(s.id));
-        if (!skins.length) return;
+
+    const addOption = (grid, { label, preview, selected, owned, wide, onClick }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'skin-option' + (selected ? ' selected' : '') + (wide ? ' skin-option-wide' : '') + (owned ? '' : ' locked');
+        btn.appendChild(preview);
+        const span = document.createElement('span');
+        span.textContent = label;
+        btn.appendChild(span);
+        if (!owned) btn.disabled = true;
+        else btn.addEventListener('click', () => { onClick(); renderStoneSkinSetting(); flashSaved('skinSettingFeedback'); });
+        grid.appendChild(btn);
+    };
+    const groupGrid = (name) => {
         const label = document.createElement('div');
         label.className = 'skin-group-label';
-        label.textContent = isEn() ? g.nameEn : g.name;
+        label.textContent = name;
         list.appendChild(label);
         const grid = document.createElement('div');
         grid.className = 'skin-setting-grid';
-        skins.forEach((skin) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'skin-option' + (skin.id === current ? ' selected' : '');
-            const prev = document.createElement('div');
-            if (skin.color) {
-                prev.className = 'skin-preview';
-                prev.style.setProperty('--skin-c', skin.color);
-            } else {
-                // デフォルトは赤・黄の2色(自分が赤とは限らないので両方見せる。色の設定に合わせる)。
-                // 1枠に詰め込まず、2枠分の幅を使って普通の大きさで並べる
-                btn.classList.add('skin-option-wide');
-                prev.className = 'skin-preview-pair';
-                ['red', 'yellow'].forEach((role) => {
-                    const dot = document.createElement('span');
-                    dot.className = 'skin-preview';
-                    dot.style.setProperty('--skin-c', getDisplayColor(role));
-                    prev.appendChild(dot);
-                });
-            }
-            if (skin.icon) {
-                const img = document.createElement('img');
-                img.src = skinIconUrl(skin);
-                img.alt = '';
-                img.loading = 'lazy';
-                prev.appendChild(img);
-            }
-            btn.appendChild(prev);
-            const span = document.createElement('span');
-            span.textContent = isEn() ? skin.nameEn : skin.name;
-            btn.appendChild(span);
-            btn.addEventListener('click', () => {
-                setStoneSkinId(skin.id);
-                renderStoneSkinSetting();
-                flashSaved('skinSettingFeedback');
-            });
-            grid.appendChild(btn);
-        });
         list.appendChild(grid);
+        return grid;
+    };
+
+    // デフォルト: 丸・四角(どちらも全員が持っている)。押すと形も切り替わる
+    const basic = groupGrid(isEn() ? 'Default' : 'デフォルト');
+    [['round', isEn() ? 'Default (round)' : 'デフォルト（丸）'], ['square', isEn() ? 'Default (square)' : 'デフォルト（四角）']].forEach(([sh, label]) => {
+        addOption(basic, {
+            label,
+            preview: makeSkinPreview([getDisplayColor('red'), getDisplayColor('yellow')], sh),
+            selected: currentId === 'go' && shape === sh,
+            owned: true,
+            wide: true,
+            onClick: () => { setStoneShape(sh); setStoneSkinId('go'); },
+        });
+    });
+
+    // 元素・国: いま選んでいる形のものだけ出す
+    STONE_SKIN_GROUPS.forEach((g) => {
+        if (g.id === 'basic') return;
+        const skins = STONE_SKINS.filter((s) => s.group === g.id);
+        if (!skins.length) return;
+        const grid = groupGrid(isEn() ? g.nameEn : g.name);
+        skins.forEach((skin) => {
+            addOption(grid, {
+                label: isEn() ? skin.nameEn : skin.name,
+                preview: makeSkinPreview([skin.color], shape, skinIconUrl(skin)),
+                selected: currentId === skin.id,
+                owned: ownsStoneSkin(skin.id, shape),
+                onClick: () => setStoneSkinId(skin.id),
+            });
+        });
     });
 }
 
