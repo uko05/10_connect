@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル（プレイヤー情報）</title>
     <link rel="stylesheet" href="public/style_settings.css">
-    <link rel="stylesheet" href="public/style.css">
+    <link rel="stylesheet" href="public/style.css?v=1.37.0">
     <script type="module" src="public/scripts/playerInfo.js" defer></script>
 
     <!-- Favicon -->
@@ -115,15 +115,28 @@
                     <img id="playerInfoRankBadge" class="rank-badge rank-badge-large" src="" alt="">
                 </div>
 
-            <div class="info-box top15" data-i18n="achSectionLabel">▼アチーブメント▼</div>
-            <div id="achievementSummary" class="achievement-summary">---</div>
-
-            <div class="achievement-tabs">
-                <button type="button" id="achievementTab0" class="achievement-tab-btn active" data-slot="0" data-i18n="tabAch1">アチーブメント1</button>
-                <button type="button" id="achievementTab1" class="achievement-tab-btn" data-slot="1" data-i18n="tabAch2">アチーブメント2</button>
+            <!-- タブ(2026-10-11)。設定項目が増えたらタブとパネルを足す -->
+            <div class="pi-tabs" role="tablist">
+                <button type="button" class="pi-tab-btn active" data-pi-tab="ach" data-i18n="piTabAch">アチーブメント</button>
+                <button type="button" class="pi-tab-btn" data-pi-tab="hero" data-i18n="piTabHero">タイトル画面</button>
             </div>
 
-            <div id="achievementList" class="achievement-list"></div>
+            <div class="pi-tab-panel" data-pi-panel="ach">
+                <div id="achievementSummary" class="achievement-summary">---</div>
+
+                <div class="achievement-tabs">
+                    <button type="button" id="achievementTab0" class="achievement-tab-btn active" data-slot="0" data-i18n="tabAch1">アチーブメント1</button>
+                    <button type="button" id="achievementTab1" class="achievement-tab-btn" data-slot="1" data-i18n="tabAch2">アチーブメント2</button>
+                </div>
+
+                <div id="achievementList" class="achievement-list"></div>
+            </div>
+
+            <div class="pi-tab-panel" data-pi-panel="hero" hidden>
+                <p class="hero-setting-desc" data-i18n="heroSettingDesc">トップ画面の左に出すキャラを選べます。「ランダム」なら開くたびに変わります（この端末に保存されます）。</p>
+                <div id="heroSettingGrid" class="hero-setting-grid"></div>
+                <div id="heroSettingFeedback" class="hero-setting-feedback"></div>
+            </div>
         </div>
     </main>
 

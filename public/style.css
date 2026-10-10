@@ -1449,10 +1449,10 @@ body.hub-page::before {
 
 .hub-hero {
     position: fixed;
-    left: -4vw;
+    left: -2vw;
     bottom: 0;
-    width: 62vw;
-    height: 96vh;
+    width: 48vw; /* 2026-10-11: 大きすぎたので62vw×96vhから縮小 */
+    height: 84vh;
     z-index: 1;
     pointer-events: none;
 }
@@ -1622,3 +1622,84 @@ body.hub-page::before {
     .hub-btn-sub { font-size: 10px; }
     .hub-hero-name { bottom: 3vh; }
 }
+
+/* ===== プレイヤー情報画面のタブ(2026-10-11) =====
+   「アチーブメント」「タイトル画面」…と、設定項目が増えてもタブを足すだけで済むようにする */
+.pi-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 16px 0 10px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+}
+.pi-tab-btn {
+    padding: 8px 16px;
+    font-family: 'SDK_JP_WEB', sans-serif;
+    font-size: 15px;
+    font-weight: bold;
+    color: #666;
+    background: rgba(255, 255, 255, 0.45);
+    border: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    margin-bottom: -2px;
+    border-bottom: 3px solid transparent;
+}
+.pi-tab-btn.active {
+    color: #222;
+    background: rgba(255, 255, 255, 0.85);
+    border-bottom-color: #c9962b;
+}
+.pi-tab-panel[hidden] { display: none; }
+
+/* タイトル画面タブ: トップ画面のキャラをランダム/固定から選ぶ */
+.hero-setting-desc { font-size: 13px; color: #444; text-align: left; margin: 4px 0 10px; line-height: 1.6; }
+.hero-setting-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 8px;
+}
+.hero-option {
+    position: relative;
+    padding: 0;
+    border: 3px solid transparent;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.5);
+    font-family: 'SDK_JP_WEB', sans-serif;
+}
+.hero-option img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.hero-option span {
+    display: block;
+    padding: 4px 2px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #333;
+    background: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hero-option.selected { border-color: #c9962b; box-shadow: 0 0 0 2px rgba(201, 150, 43, 0.35); }
+.hero-option.selected::after {
+    content: "設定中";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    color: #fff;
+    background: #c9962b;
+}
+.hero-option-random {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    font-size: 30px;
+    font-weight: 900;
+    color: #c9962b;
+    background: linear-gradient(135deg, #2a2038, #4a3a66);
+}
+.hero-setting-feedback { min-height: 1.2em; font-size: 12px; color: #28a745; margin-top: 6px; }
+

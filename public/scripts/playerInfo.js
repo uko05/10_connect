@@ -11,6 +11,7 @@ import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement, fitChipText } from './achievementManager.js';
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
+import { getHubHeroSetting, setHubHeroSetting, heroCandidates } from './hubHero.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
@@ -89,10 +90,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderRankInfo(latestUserData);
         renderTitleSlots(latestUserData);
         renderAchievements();
+        renderHeroSetting();
     } catch (error) {
         console.error('[playerInfo] Auth initialization failed:', error);
     }
 });
+
+// ページのタブ(アチーブメント / タイトル画面 …)の切り替え(2026-10-11)
+document.querySelectorAll('.pi-tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        const key = btn.dataset.piTab;
+        document.querySelectorAll('.pi-tab-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.pi-tab-panel').forEach((p) => { p.hidden = p.dataset.piPanel !== key; });
+    });
+});
+
+// タイトル画面タブ: トップ画面の左に出すキャラを「ランダム」か1人に固定する(hubHero.js、この端末に保存)。
+// 未解放の隠しキャラは候補に出さない。
+function renderHeroSetting() {
+    const grid = document.getElementById('heroSettingGrid');
+    if (!grid) return;
+    const current = getHubHeroSetting();
+    const candidates = heroCandidates(latestUserData);
+    const selected = current === 'random' || !candidates.some((c) => c.charaID === current) ? 'random' : current;
+    grid.innerHTML = '';
+
+    const makeOption = (value, inner, label) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'hero-option' + (value === selected ? ' selected' : '');
+        btn.innerHTML = inner;
+        const span = document.createElement('span');
+        span.textContent = label;
+        btn.appendChild(span);
+        btn.addEventListener('click', () => {
+            setHubHeroSetting(value);
+            renderHeroSetting();
+            const fb = document.getElementById('heroSettingFeedback');
+            if (fb) {
+                fb.textContent = t('heroSaved');
+                clearTimeout(renderHeroSetting.timer);
+                renderHeroSetting.timer = setTimeout(() => { fb.textContent = ''; }, 2000);
+            }
+        });
+        grid.appendChild(btn);
+    };
+    makeOption('random', '<div class="hero-option-random">?</div>', t('heroRandom'));
+    candidates.forEach((c) => {
+        makeOption(c.charaID, `<img src="${c.src}" alt="" loading="lazy">`, getCharaText(c.charaID, 'name') || c.name);
+    });
+}
 
 // 称号タブの切り替え（アチーブメント1/2は同じ内容。どちらの枠に「設定」するかだけが変わる）
 document.querySelectorAll('.achievement-tab-btn').forEach((btn) => {

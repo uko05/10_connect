@@ -2,7 +2,7 @@
 import { APP_VERSION } from './version.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 import { initLang, t, getCharaText } from './i18n.js';
-import { characterData } from './characterData.js';
+import { pickHubHero } from './hubHero.js';
 import { authReady } from './firebaseConfig.js';
 import { getUserRating } from './eloRating.js';
 import { getRankByRating, getRankBadgePath } from './rankConfig.js';
@@ -75,42 +75,48 @@ document.getElementById('goPlayerInfoButton').addEventListener('click', () => {
 });
 
 //------------------------------------------------------------------------------------------------
-// ハブ画面の左の大きなキャラ(開くたびに完全ランダム、2026-10-11のデザイン変更)
-// ※ 将来ガチャなどで表示できるイラストの種類を増やす場合は、ここで選ぶ候補を増やせばよい
+// ハブ画面: 左の大きなキャラ(設定に従ってランダム/固定、hubHero.js)と、自分のランク表示
+// 自分のデータ(解放済みの隠しキャラ・レート)を読んでから両方を出す。読み込みが遅い時は通常キャラだけで先に出す
 
-const heroImg = document.getElementById('hubHeroImg');
-if (heroImg) {
-    const pool = characterData.filter((c) => c.src);
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    if (pick) {
-        heroImg.src = pick.src;
-        document.getElementById('hubHeroName').textContent = getCharaText(pick.charaID, 'name') || pick.name;
-    }
-}
-
-//------------------------------------------------------------------------------------------------
-// 自分のランク表示(ランクバッジ・レート・戦績)。読み込めなかった時は欄ごと出さない
-
-(async () => {
-    const box = document.getElementById('hubPlayer');
-    if (!box) return;
+const myDataPromise = (async () => {
     try {
         const user = await authReady;
-        const data = user ? await getUserRating(user.uid) : null;
-        const rating = data?.rating ?? 1500;
-        const matchCount = data?.matchCount || 0;
-        const winCount = data?.winCount || 0;
-        const tier = getRankByRating(rating);
-        document.getElementById('hubRankBadge').src = getRankBadgePath(rating);
-        document.getElementById('hubRankBadge').alt = tier.name;
-        document.getElementById('hubRankName').textContent = tier.name.toUpperCase();
-        document.getElementById('hubPlayerName').textContent = data?.playerName || t('hubDefaultName');
-        document.getElementById('hubPlayerRate').textContent = matchCount > 0
-            ? t('hubRate').replace('{rate}', Math.round(rating).toLocaleString())
-                .replace('{win}', winCount).replace('{lose}', Math.max(0, matchCount - winCount))
-            : t('hubNoRanked');
-        box.hidden = false;
+        return user ? await getUserRating(user.uid) : null;
     } catch (e) {
-        console.warn('[hub] rank load failed', e);
+        console.warn('[hub] user data load failed', e);
+        return undefined; // 読み込み失敗(ランク欄は出さない)
     }
+})();
+
+function showHero(userData) {
+    const img = document.getElementById('hubHeroImg');
+    if (!img || img.dataset.shown) return;
+    const pick = pickHubHero(userData);
+    if (!pick) return;
+    img.dataset.shown = '1';
+    img.src = pick.src;
+    document.getElementById('hubHeroName').textContent = getCharaText(pick.charaID, 'name') || pick.name;
+}
+const heroFallbackTimer = setTimeout(() => showHero(null), 1500);
+
+(async () => {
+    const data = await myDataPromise;
+    clearTimeout(heroFallbackTimer);
+    showHero(data || null);
+
+    const box = document.getElementById('hubPlayer');
+    if (!box || data === undefined) return;
+    const rating = data?.rating ?? 1500;
+    const matchCount = data?.matchCount || 0;
+    const winCount = data?.winCount || 0;
+    const tier = getRankByRating(rating);
+    document.getElementById('hubRankBadge').src = getRankBadgePath(rating);
+    document.getElementById('hubRankBadge').alt = tier.name;
+    document.getElementById('hubRankName').textContent = tier.name.toUpperCase();
+    document.getElementById('hubPlayerName').textContent = data?.playerName || t('hubDefaultName');
+    document.getElementById('hubPlayerRate').textContent = matchCount > 0
+        ? t('hubRate').replace('{rate}', Math.round(rating).toLocaleString())
+            .replace('{win}', winCount).replace('{lose}', Math.max(0, matchCount - winCount))
+        : t('hubNoRanked');
+    box.hidden = false;
 })();
