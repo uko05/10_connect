@@ -13,7 +13,7 @@ import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js'
 import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume } from './settingsManager.js';
 import { initLang, t, getCharaText, getAchText, getCharaAchText } from './i18n.js';
-import { applyBattleBackground } from './designSettings.js';
+import { applyBattleBackground, getStoneSkinId } from './designSettings.js';
 
 // 背景(プレイヤー情報 > デザイン変更 で選んだもの)
 applyBattleBackground();
@@ -796,6 +796,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
                     player2_ID: playerUUID, //修正: player2_IDにUUIDを設定
                     player2_CharaID: charaID,
                     player2_Name: playerName,
+                    player2_StoneSkin: getStoneSkinId(), // 相手の画面に自分の石のデザインを出すため(2026-10-11)
                     status: "in_progress",
                     player2_LastActive: serverTimestamp()
                 });
@@ -824,6 +825,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
                 player1_ChargeNow: 0,
                 player1_Name: playerName,
                 player1_Color: p1color,
+                player1_StoneSkin: getStoneSkinId(), // 相手の画面に自分の石のデザインを出すため(2026-10-11)
                 player1_TimeLimit: 100,
                 player1_UltCount: 0,
                 player1_TimeoutCount: 0,

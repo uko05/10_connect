@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル（設定・プレイヤー情報）</title>
     <link rel="stylesheet" href="public/style_settings.css">
-    <link rel="stylesheet" href="public/style.css?v=1.50.0">
+    <link rel="stylesheet" href="public/style.css?v=1.51.0">
     <script type="module" src="public/scripts/playerInfo.js" defer></script>
 
     <!-- Favicon -->
@@ -139,8 +139,12 @@
                 <details class="design-section">
                     <summary class="design-section-title" data-i18n="skinSectionTitle">石のデザイン</summary>
                     <div class="design-section-body">
-                        <p class="hero-setting-desc" data-i18n="skinSettingDesc">対戦中の自分の石の見た目を変えられます（相手の石はいつもの色のままです）。</p>
+                        <p class="hero-setting-desc" data-i18n="skinSettingDesc">対戦中の自分の石の見た目を変えられます。マッチング対戦では、相手が選んだデザインも相手の石に表示されます。</p>
                         <div id="skinSettingList"></div>
+                        <label class="hide-opp-skin-row">
+                            <input type="checkbox" id="hideOppSkinToggle">
+                            <span data-i18n="hideOppSkinLabel">相手の石はデフォルト（いつもの赤・黄）で表示する</span>
+                        </label>
                         <div id="skinSettingFeedback" class="hero-setting-feedback"></div>
                     </div>
                 </details>

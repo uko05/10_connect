@@ -1846,3 +1846,6 @@ body.hub-page::before {
     color: #fff;
     background: #c9962b;
 }
+
+/* 石のデザイン: 相手の石をデフォルト表示にするチェック */
+.hide-opp-skin-row { display: flex; align-items: center; gap: 6px; margin: 10px 2px 0; font-size: 13px; color: #333; text-align: left; cursor: pointer; }

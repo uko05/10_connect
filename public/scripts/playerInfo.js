@@ -12,7 +12,8 @@ import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement,
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
 import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStoneSkinId, skinIconUrl,
-    BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId, applyBattleBackground } from './designSettings.js';
+    BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId, applyBattleBackground,
+    getHideOpponentSkin, setHideOpponentSkin } from './designSettings.js';
 
 // 背景(デザイン変更で選んだもの)
 applyBattleBackground();
@@ -226,6 +227,16 @@ function renderStoneSkinSetting() {
             grid.appendChild(btn);
         });
         list.appendChild(grid);
+    });
+}
+
+// 石のデザイン: 「相手の石はデフォルトで表示する」(相手のスキンが気になる人向け、2026-10-11)
+const hideOppSkinToggle = document.getElementById('hideOppSkinToggle');
+if (hideOppSkinToggle) {
+    hideOppSkinToggle.checked = getHideOpponentSkin();
+    hideOppSkinToggle.addEventListener('change', () => {
+        setHideOpponentSkin(hideOppSkinToggle.checked);
+        flashSaved('skinSettingFeedback');
     });
 }
 

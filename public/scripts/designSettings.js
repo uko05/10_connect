@@ -84,13 +84,33 @@ function tintedIcon(skin, color) {
     return null;
 }
 
-// 自分が選んでいる石のスキン(標準ならnull)。ページを開いた時にマーク画像を先読みしておく
-export function getMyStoneSkin() {
-    const skin = STONE_SKINS.find((s) => s.id === getStoneSkinId());
+// スキンIDから石のスキンを返す(デフォルト・不明ならnull)。マーク画像を先読みしておく
+export function getStoneSkinById(id) {
+    const skin = STONE_SKINS.find((s) => s.id === id);
     if (!skin || skin.id === 'go') return null;
     tintedIcon(skin, '#ffffff');
     tintedIcon(skin, 'rgba(0, 0, 0, 0.25)');
     return skin;
+}
+
+// 自分が選んでいる石のスキン(標準ならnull)
+export function getMyStoneSkin() {
+    return getStoneSkinById(getStoneSkinId());
+}
+
+// 相手の石のスキンを表示するか(2026-10-11)。設定で「相手の石をデフォルトで表示する」にチェックした人は表示しない
+const HIDE_OPP_SKIN_KEY = 'connectHideOppSkin';
+export function getHideOpponentSkin() {
+    try { return localStorage.getItem(HIDE_OPP_SKIN_KEY) === 'true'; } catch (e) { return false; }
+}
+export function setHideOpponentSkin(hide) {
+    try { localStorage.setItem(HIDE_OPP_SKIN_KEY, hide ? 'true' : 'false'); } catch (e) { /* 保存できなくても続ける */ }
+}
+
+// 相手が選んでいるスキンID(対戦部屋の player1_StoneSkin / player2_StoneSkin)から、表示する相手のスキンを返す
+export function getOpponentStoneSkin(skinId) {
+    if (getHideOpponentSkin()) return null;
+    return getStoneSkinById(skinId);
 }
 
 // renderer.js の drawStoneAt から呼ぶ: 石の上に白いマーク(うっすら影付き)を重ねる

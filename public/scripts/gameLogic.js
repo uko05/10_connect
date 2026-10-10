@@ -9,7 +9,7 @@ import { onSnapshot, getDocs, getDoc } from './fsTracked.js'; // 読み取り件
 
 import { characterData } from "./characterData.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
-import { getMyStoneSkin, applyBattleBackground } from './designSettings.js';
+import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
 import { APP_VERSION } from "./version.js";
 import {
@@ -72,6 +72,23 @@ let playerLeft_Name = null;
 let playerLeft_Color = null;
 // 自分の石のスキン(デザイン変更タブで選んだもの)。自分の色の石にだけ使う
 const MY_STONE_SKIN = getMyStoneSkin();
+// 相手の石のスキン(対戦部屋の相手側の StoneSkin。設定で非表示にしていればnull)
+let OPP_STONE_SKIN = null;
+let oppStoneSkinId = null;
+function updateOpponentSkin(data) {
+    const id = (player_info === 'P1' ? data.player2_StoneSkin : data.player1_StoneSkin) || null;
+    if (id === oppStoneSkinId) return;
+    oppStoneSkinId = id;
+    OPP_STONE_SKIN = getOpponentStoneSkin(id);
+}
+// 石を描く時のスキンと「かぶり判定に使う相手側の色」。自分の石なら自分のスキン、相手の石なら相手のスキン
+function stoneSkinArgs(colorRole) {
+    const myRole = playerLeft_Color;
+    const oppRole = myRole === 'red' ? 'yellow' : 'red';
+    const myShown = MY_STONE_SKIN?.color || getDisplayColor(myRole);
+    const oppShown = OPP_STONE_SKIN?.color || getDisplayColor(oppRole);
+    return colorRole === myRole ? [MY_STONE_SKIN, oppShown] : [OPP_STONE_SKIN, myShown];
+}
 applyBattleBackground();
 let playerLeft_Image = null;
 let playerLeft_CutIn = null;
@@ -1175,6 +1192,7 @@ async function watchRoomUpdates() {
 
         snapshot.forEach(async (doc) => {
             const data = doc.data();
+            updateOpponentSkin(data);
 
             // 相手のハートビート（生存時刻）を記録。一定時間更新が無ければ離脱とみなす
             const enemyField = player_info === 'P1' ? data.player2_LastActive : data.player1_LastActive;
@@ -2007,7 +2025,7 @@ function disp_TopStone(turn, col) {
     }
     // 石を描画（'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする。見た目は盤面の石と共通）
     _drawStoneAt(topCtx, col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, getDisplayColor(color),
-        color === playerLeft_Color ? MY_STONE_SKIN : null, getDisplayColor(playerLeft_Color === 'red' ? 'yellow' : 'red'));
+        ...stoneSkinArgs(color));
 }
 
 // 背景を描画する関数（Firestoreのデータを使用して石も描画）
@@ -2043,8 +2061,8 @@ async function init_drawBoard(allstones = false) {
 function drawPiece(column, y, color) {
     // 'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする
     // 自分の色(playerLeft_Color)の石にだけ、デザイン変更で選んだスキンを使う
-    _drawPiece(ctx, column, y, getDisplayColor(color), cellSize, color === playerLeft_Color ? MY_STONE_SKIN : null,
-        getDisplayColor(playerLeft_Color === 'red' ? 'yellow' : 'red')); // 相手の色(スキンとかぶる時だけ輪を付ける)
+    // 自分の石には自分のスキン、相手の石には相手のスキン(かぶる時だけ自分の色の輪を付ける)
+    _drawPiece(ctx, column, y, getDisplayColor(color), cellSize, ...stoneSkinArgs(color));
 }
 
 //------------------------------------------------------------------------------------------------
