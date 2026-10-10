@@ -40,8 +40,8 @@ export const STONE_SKIN_GROUPS = [
 ];
 
 // 石の形: 'round'(丸) / 'square'(角丸の四角) / 'octagon'(八角形のステップカット)。2026-10-11追加。
-// 石は形ごとに別アイテム(「炎の丸」を持っていても「炎の四角」は未開放)。デフォルトの丸・四角は全員が持っている
-// (八角形はデフォルトでも持っていない扱いにする予定。今はテストのため全部持っている扱い)
+// 石は形ごとに別アイテム(「炎の丸」を持っていても「炎の四角」「炎の八角形」は未開放)。
+// デフォルトは丸・四角・八角形の3つとも全員が持っている(2026-10-11決定)
 export const STONE_SHAPES = ['round', 'square', 'octagon'];
 const normShape = (s) => (STONE_SHAPES.includes(s) ? s : 'round');
 const STONE_SHAPE_KEY = 'connectStoneShape';
@@ -56,7 +56,7 @@ export function setStoneShape(shape) {
 
 // その形のそのスキンを持っているか。ガチャを作ったら「スキン×形」の所持データで判定する
 export function ownsStoneSkin(skinId, shape = 'round') {
-    if (skinId === 'go' && (shape === 'round' || shape === 'square')) return true;
+    if (skinId === 'go') return true; // デフォルトは全部の形を全員が持っている
     return TEST_OWN_ALL_SKINS;
 }
 
