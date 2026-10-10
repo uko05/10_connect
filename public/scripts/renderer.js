@@ -1,4 +1,5 @@
 // renderer.js - Canvas描画系の純粋なレンダリング処理
+import { drawSkinMark } from './designSettings.js';
 
 /**
  * 石を1つ描画する（碁石風: つや消し+ふちの丸み+下側の厚み、2026-10-10に変更）
@@ -7,9 +8,10 @@
  * @param {number} y - Y座標（ピクセル、マスの上端）
  * @param {string} color - 石の色（#rrggbb）
  * @param {number} cellSize - セルのサイズ
+ * @param {object|null} skin - 石のスキン(designSettings.js)。自分の石にだけ渡す。nullなら標準
  */
-export function drawPiece(ctx, column, y, color, cellSize) {
-    drawStoneAt(ctx, column * cellSize + cellSize / 2, y + cellSize / 2, (cellSize / 2) - 5, color);
+export function drawPiece(ctx, column, y, color, cellSize, skin = null) {
+    drawStoneAt(ctx, column * cellSize + cellSize / 2, y + cellSize / 2, (cellSize / 2) - 5, color, skin);
 }
 
 // #rrggbb を明るく(amt>0)/暗く(amt<0)した色を返す。#rrggbb以外はそのまま返す
@@ -25,7 +27,9 @@ function shadeColor(hex, amt) {
  * 中心座標と半径を指定して碁石風の石を描く（盤面の石・盤面上のカーソル石で共通）。
  * 影はshadowBlurを使わずに描く(マスの外にはみ出すと、石を消した時に影の跡が残るため)。
  */
-export function drawStoneAt(ctx, cx, cy, R, color) {
+export function drawStoneAt(ctx, cx, cy, R, color, skin = null) {
+    // 元素・国のスキンは、石そのものをテーマ色にして白いマークを重ねる
+    if (skin && skin.color) color = skin.color;
     ctx.save();
     // 接地の影(マスからはみ出さない大きさに抑える)
     ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
@@ -45,6 +49,7 @@ export function drawStoneAt(ctx, cx, cy, R, color) {
     ctx.beginPath();
     ctx.ellipse(cx, cy - R * 0.03, R * 0.95, R * 0.89, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (skin && skin.icon) drawSkinMark(ctx, cx, cy, R, skin);
     // やわらかいハイライト
     const h = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.4, 0, cx - R * 0.3, cy - R * 0.4, R * 0.5);
     h.addColorStop(0, 'rgba(255, 255, 255, 0.55)');

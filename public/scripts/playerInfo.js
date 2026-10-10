@@ -11,6 +11,8 @@ import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement, fitChipText } from './achievementManager.js';
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
+import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStoneSkinId, skinIconUrl,
+    BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId } from './designSettings.js';
 import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS } from './hubHero.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
@@ -91,6 +93,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTitleSlots(latestUserData);
         renderAchievements();
         renderHeroSetting();
+        renderStoneSkinSetting();
+        renderBattleBgSetting();
     } catch (error) {
         console.error('[playerInfo] Auth initialization failed:', error);
     }
@@ -150,6 +154,85 @@ function renderHeroSetting() {
         const rest = HERO_FIXED_MIN_WINS - heroWins(latestUserData, c.charaID);
         makeOption(c.charaID, `<img src="${c.src}" alt="" loading="lazy">`, getCharaText(c.charaID, 'name') || c.name,
             rest > 0 ? t('heroWinsLeft').replace('{n}', rest) : '');
+    });
+}
+
+// 保存したことを数秒だけ知らせる
+function flashSaved(id) {
+    const fb = document.getElementById(id);
+    if (!fb) return;
+    fb.textContent = t('heroSaved');
+    clearTimeout(flashSaved[id]);
+    flashSaved[id] = setTimeout(() => { fb.textContent = ''; }, 2000);
+}
+
+const isEn = () => localStorage.getItem('lang') === 'en';
+
+// デザイン変更タブ「石のデザイン」(designSettings.js)。自分の石にだけ反映される。
+// 今はテストのため全スキンを持っている扱い(ガチャ実装時に所持チェックへ置き換える)
+function renderStoneSkinSetting() {
+    const list = document.getElementById('skinSettingList');
+    if (!list) return;
+    const current = getStoneSkinId();
+    list.innerHTML = '';
+    STONE_SKIN_GROUPS.forEach((g) => {
+        const skins = STONE_SKINS.filter((s) => s.group === g.id && ownsStoneSkin(s.id));
+        if (!skins.length) return;
+        const label = document.createElement('div');
+        label.className = 'skin-group-label';
+        label.textContent = isEn() ? g.nameEn : g.name;
+        list.appendChild(label);
+        const grid = document.createElement('div');
+        grid.className = 'skin-setting-grid';
+        skins.forEach((skin) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'skin-option' + (skin.id === current ? ' selected' : '');
+            const prev = document.createElement('div');
+            prev.className = 'skin-preview' + (skin.color ? '' : ' skin-preview-go');
+            if (skin.color) prev.style.setProperty('--skin-c', skin.color);
+            if (skin.icon) {
+                const img = document.createElement('img');
+                img.src = skinIconUrl(skin);
+                img.alt = '';
+                img.loading = 'lazy';
+                prev.appendChild(img);
+            }
+            btn.appendChild(prev);
+            const span = document.createElement('span');
+            span.textContent = isEn() ? skin.nameEn : skin.name;
+            btn.appendChild(span);
+            btn.addEventListener('click', () => {
+                setStoneSkinId(skin.id);
+                renderStoneSkinSetting();
+                flashSaved('skinSettingFeedback');
+            });
+            grid.appendChild(btn);
+        });
+        list.appendChild(grid);
+    });
+}
+
+// デザイン変更タブ「バトル中の背景」(designSettings.js)。今は標準の1枚だけ
+function renderBattleBgSetting() {
+    const grid = document.getElementById('bgSettingGrid');
+    if (!grid) return;
+    const current = getBattleBgId();
+    grid.innerHTML = '';
+    BATTLE_BACKGROUNDS.forEach((bg) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bg-option' + (bg.id === current ? ' selected' : '');
+        btn.innerHTML = `<img src="${bg.file}" alt="" loading="lazy">`;
+        const span = document.createElement('span');
+        span.textContent = isEn() ? bg.nameEn : bg.name;
+        btn.appendChild(span);
+        btn.addEventListener('click', () => {
+            setBattleBgId(bg.id);
+            renderBattleBgSetting();
+            flashSaved('bgSettingFeedback');
+        });
+        grid.appendChild(btn);
     });
 }
 

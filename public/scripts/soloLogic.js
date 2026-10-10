@@ -2,6 +2,7 @@
 // キャラ選択・チャージ・必殺技は通常戦同様に使えるが、レート・キャラ別勝利数には一切影響しない。
 // アチーブメント（難易度別勝利）のみ、users/{uid}.achStats に記録する（rating/charaWinsとは完全に別フィールド）。
 
+import { getMyStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
@@ -27,6 +28,9 @@ const cols = 7;
 let cellSize = 110; // PC版はラジオボタンで変更可能
 
 const PLAYER_COLOR = 'red';
+// 自分の石のスキン(デザイン変更タブで選んだもの。自分の石にだけ使う)
+const MY_STONE_SKIN = getMyStoneSkin();
+applyBattleBackground();
 const CPU_COLOR = 'yellow';
 const ABEN_CHARGE_PENALTY = 50; // ソロモード専用(BAKATARE以外)：アベンチュリンは相手のチャージを減らす
 const ABEN_MAX_USES = 5;
@@ -1161,7 +1165,7 @@ function drawBoard() {
 }
 
 function drawPiece(column, y, role) {
-    _drawPiece(ctx, column, y, getDisplayColor(role), cellSize);
+    _drawPiece(ctx, column, y, getDisplayColor(role), cellSize, role === PLAYER_COLOR ? MY_STONE_SKIN : null);
 }
 
 function animateStoneDrop(column, row, role) {
@@ -1199,7 +1203,8 @@ function dispTopStone() {
     const centerY = topCanvas.height / 2;
     const color = getDisplayColor(applyColorSwap(PLAYER_COLOR));
 
-    _drawStoneAt(topCtx, nowCol * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, color);
+    _drawStoneAt(topCtx, nowCol * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, color,
+        applyColorSwap(PLAYER_COLOR) === PLAYER_COLOR ? MY_STONE_SKIN : null);
 
     highlightColumn(nowCol); // マウスが止まっていてもターン開始時にハイライトを復元
 }

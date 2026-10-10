@@ -9,6 +9,7 @@ import { onSnapshot, getDocs, getDoc } from './fsTracked.js'; // 読み取り件
 
 import { characterData } from "./characterData.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
+import { getMyStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
 import { APP_VERSION } from "./version.js";
 import {
@@ -69,6 +70,9 @@ let playerLeft_CharaID = null;
 let playerLeft_ChargeNow = 0;
 let playerLeft_Name = null;
 let playerLeft_Color = null;
+// 自分の石のスキン(デザイン変更タブで選んだもの)。自分の色の石にだけ使う
+const MY_STONE_SKIN = getMyStoneSkin();
+applyBattleBackground();
 let playerLeft_Image = null;
 let playerLeft_CutIn = null;
 let playerLeft_Ability = null;
@@ -2002,7 +2006,8 @@ function disp_TopStone(turn, col) {
         color = color === 'red' ? 'yellow' : 'red'; // 色交換
     }
     // 石を描画（'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする。見た目は盤面の石と共通）
-    _drawStoneAt(topCtx, col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, getDisplayColor(color));
+    _drawStoneAt(topCtx, col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, getDisplayColor(color),
+        color === playerLeft_Color ? MY_STONE_SKIN : null);
 }
 
 // 背景を描画する関数（Firestoreのデータを使用して石も描画）
@@ -2037,7 +2042,8 @@ async function init_drawBoard(allstones = false) {
 
 function drawPiece(column, y, color) {
     // 'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする
-    _drawPiece(ctx, column, y, getDisplayColor(color), cellSize);
+    // 自分の色(playerLeft_Color)の石にだけ、デザイン変更で選んだスキンを使う
+    _drawPiece(ctx, column, y, getDisplayColor(color), cellSize, color === playerLeft_Color ? MY_STONE_SKIN : null);
 }
 
 //------------------------------------------------------------------------------------------------

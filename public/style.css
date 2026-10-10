@@ -1728,3 +1728,76 @@ body.hub-page::before {
     background: rgba(0, 0, 0, 0.65);
     white-space: nowrap;
 }
+
+/* タブの中だけスクロールする(項目が増えても、名前・ランクの欄とタブは画面に残る) */
+.pi-tab-panel {
+    max-height: calc(100vh - 380px);
+    min-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* デザイン変更タブ: 石のデザイン */
+.skin-group-label { font-size: 12px; font-weight: bold; color: #666; text-align: left; margin: 8px 0 4px; }
+.skin-setting-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.skin-option {
+    position: relative;
+    padding: 8px 2px 4px;
+    border: 3px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.55);
+    font-family: 'SDK_JP_WEB', sans-serif;
+}
+.skin-option span { display: block; margin-top: 4px; font-size: 11px; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skin-option.selected { border-color: #c9962b; box-shadow: 0 0 0 2px rgba(201, 150, 43, 0.35); }
+.skin-option.selected::after {
+    content: "設定中";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    padding: 0 5px;
+    border-radius: 8px;
+    font-size: 9px;
+    color: #fff;
+    background: #c9962b;
+}
+.skin-preview {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--skin-c) 55%, #fff), var(--skin-c) 55%, color-mix(in srgb, var(--skin-c) 70%, #000));
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--skin-c) 65%, #000), 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+.skin-preview-go { --skin-c: #ff0000; }
+.skin-preview img { width: 62%; height: 62%; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.25)); opacity: 0.92; }
+
+/* デザイン変更タブ: バトル中の背景 */
+.bg-setting-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.bg-option {
+    position: relative;
+    padding: 0;
+    border: 3px solid transparent;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.5);
+    font-family: 'SDK_JP_WEB', sans-serif;
+}
+.bg-option img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.bg-option span { display: block; padding: 4px; font-size: 11px; font-weight: bold; color: #333; background: rgba(255, 255, 255, 0.85); }
+.bg-option.selected { border-color: #c9962b; }
+.bg-option.selected::after {
+    content: "設定中";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    color: #fff;
+    background: #c9962b;
+}
