@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル（設定・プレイヤー情報）</title>
     <link rel="stylesheet" href="public/style_settings.css">
-    <link rel="stylesheet" href="public/style.css?v=1.45.0">
+    <link rel="stylesheet" href="public/style.css?v=1.46.0">
     <script type="module" src="public/scripts/playerInfo.js" defer></script>
 
     <!-- Favicon -->
@@ -134,17 +134,9 @@
 
             <!-- デザイン変更: 今後、石のスキン・バトル中の背景などもここに項目(見出し+中身)を足していく -->
             <!-- 項目ごとに見出しを押して開け閉めできる(<details>) -->
+            <!-- 並び順: 石のデザイン → 背景 → タイトル画面のキャラ。最初は全部閉じておく(2026-10-11) -->
             <div class="pi-tab-panel" data-pi-panel="design" hidden>
-                <details class="design-section" open>
-                    <summary class="design-section-title" data-i18n="heroSectionTitle">タイトル画面のキャラ</summary>
-                    <div class="design-section-body">
-                        <p class="hero-setting-desc" data-i18n="heroSettingDesc">トップ画面の左に出すキャラを選べます。「ランダム」なら開くたびに変わります。1人に固定できるのは、そのキャラでランク戦に5勝以上したキャラです（設定はこの端末に保存されます）。</p>
-                        <div id="heroSettingGrid" class="hero-setting-grid"></div>
-                        <div id="heroSettingFeedback" class="hero-setting-feedback"></div>
-                    </div>
-                </details>
-
-                <details class="design-section" open>
+                <details class="design-section">
                     <summary class="design-section-title" data-i18n="skinSectionTitle">石のデザイン</summary>
                     <div class="design-section-body">
                         <p class="hero-setting-desc" data-i18n="skinSettingDesc">対戦中の自分の石の見た目を変えられます（相手の石はいつもの色のままです）。</p>
@@ -153,12 +145,21 @@
                     </div>
                 </details>
 
-                <details class="design-section" open>
+                <details class="design-section">
                     <summary class="design-section-title" data-i18n="bgSectionTitle">背景</summary>
                     <div class="design-section-body">
                         <p class="hero-setting-desc" data-i18n="bgSettingDesc">すべての画面の背景を変えられます。</p>
                         <div id="bgSettingGrid" class="bg-setting-grid"></div>
                         <div id="bgSettingFeedback" class="hero-setting-feedback"></div>
+                    </div>
+                </details>
+
+                <details class="design-section">
+                    <summary class="design-section-title" data-i18n="heroSectionTitle">タイトル画面のキャラ</summary>
+                    <div class="design-section-body">
+                        <p class="hero-setting-desc" data-i18n="heroSettingDesc">トップ画面の左に出すキャラを選べます。「ランダム」なら開くたびに変わります。1人に固定できるのは、そのキャラでランク戦に5勝以上したキャラです（設定はこの端末に保存されます）。</p>
+                        <div id="heroSettingGrid" class="hero-setting-grid"></div>
+                        <div id="heroSettingFeedback" class="hero-setting-feedback"></div>
                     </div>
                 </details>
             </div>

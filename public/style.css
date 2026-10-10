@@ -1718,8 +1718,9 @@ body.hub-page::before {
     text-align: left;
     padding: 8px 12px;
     border-radius: 8px;
-    background: linear-gradient(90deg, #4a3a66, #2a2038);
-    border-left: 5px solid #c9962b;
+    background: linear-gradient(90deg, #e08a3a, #b85a28); /* 暖色(オレンジ〜赤茶)。2026-10-11に紫から変更 */
+    border-left: 5px solid #ffd77a;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
     cursor: pointer;
     list-style: none;
     user-select: none;
@@ -1729,7 +1730,7 @@ body.hub-page::before {
     content: "\25BC";
     margin-left: auto;
     font-size: 11px;
-    color: #f2cf7a;
+    color: #fff3c4;
     transition: transform 0.2s;
 }
 .design-section:not([open]) .design-section-title::after { transform: rotate(-90deg); }
