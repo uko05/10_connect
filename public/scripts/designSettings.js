@@ -107,12 +107,18 @@ export function drawSkinMark(ctx, cx, cy, R, skin) {
 }
 
 // ===== バトル中の背景 =====
-// 画像を用意したらここに足す(public/scripts/wallpaper/battleback_XXX.png)。選択肢には名前を出さず画像だけ見せる
-export const BATTLE_BACKGROUNDS = [
-    { id: 'default', file: 'public/scripts/wallpaper/battleback_001.png' },
-    { id: 'bb002', file: 'public/scripts/wallpaper/battleback_002.png' },
-    { id: 'bb003', file: 'public/scripts/wallpaper/battleback_003.png' },
-];
+// 画像は public/scripts/wallpaper/battleback_001.jpg 〜 battleback_XXX.jpg(連番・JPG、1920×1080)。
+// 選択肢には名前を出さず画像だけ見せる。設定画面の一覧には軽いサムネイル(wallpaper/thumb/同じファイル名、384×216)を使う。
+// 背景を増やしたら、画像とサムネイルを置いて BATTLE_BG_COUNT を増やす。
+const BATTLE_BG_COUNT = 39;
+export const BATTLE_BACKGROUNDS = Array.from({ length: BATTLE_BG_COUNT }, (_, i) => {
+    const num = String(i + 1).padStart(3, '0');
+    return {
+        id: i === 0 ? 'default' : `bb${num}`, // 001は最初からある標準の背景
+        file: `public/scripts/wallpaper/battleback_${num}.jpg`,
+        thumb: `public/scripts/wallpaper/thumb/battleback_${num}.jpg`,
+    };
+});
 
 export function getBattleBgId() {
     try {

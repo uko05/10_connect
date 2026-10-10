@@ -223,7 +223,7 @@ function renderBattleBgSetting() {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'bg-option' + (bg.id === current ? ' selected' : '');
-        btn.innerHTML = `<img src="${bg.file}" alt="" loading="lazy">`; // 背景には名前を付けない(画像だけ)
+        btn.innerHTML = `<img src="${bg.thumb || bg.file}" alt="" loading="lazy">`; // 背景には名前を付けない(画像だけ)
         btn.addEventListener('click', () => {
             setBattleBgId(bg.id);
             renderBattleBgSetting();

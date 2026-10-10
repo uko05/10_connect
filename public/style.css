@@ -35,7 +35,7 @@ body {
     margin: 0;
     padding: 0;
     text-align: center;
-    background-image: url('./scripts/wallpaper/battleback_001.png');
+    background-image: url('./scripts/wallpaper/battleback_001.jpg');
     background-size: cover; /* アスペクト比を維持しながら背景をカバー */
     background-position: center center; /* 中央に配置 */
     background-repeat: no-repeat;
@@ -1797,7 +1797,7 @@ body.hub-page::before {
 .skin-preview img { width: 62%; height: 62%; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.25)); opacity: 0.92; }
 
 /* デザイン変更タブ: バトル中の背景 */
-.bg-setting-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.bg-setting-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 .bg-option {
     position: relative;
     padding: 0;
