@@ -1791,7 +1791,7 @@ body.hub-page::before {
     background: rgba(255, 255, 255, 0.55);
     font-family: 'SDK_JP_WEB', sans-serif;
 }
-.skin-option span { display: block; margin-top: 4px; font-size: 11px; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skin-option > span { display: block; margin-top: 4px; font-size: 11px; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .skin-option.selected { border-color: #c9962b; box-shadow: 0 0 0 2px rgba(201, 150, 43, 0.35); }
 .skin-option.selected::after {
     content: "設定中";
@@ -1854,3 +1854,20 @@ body.hub-page::before {
 .skin-preview.square { border-radius: 24%; }
 .skin-option.locked { cursor: default; opacity: 0.55; }
 .skin-option.locked .skin-preview { filter: grayscale(1); }
+
+/* 石のデザイン: 八角形(ステップカット)の見本。八角形の中にひと回り小さい明るい八角形を重ねる */
+.skin-preview.octagon {
+    position: relative;
+    border-radius: 0;
+    box-shadow: none;
+    clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--skin-c) 60%, #fff), var(--skin-c) 45%, color-mix(in srgb, var(--skin-c) 60%, #000));
+}
+.skin-preview.octagon::before {
+    content: "";
+    position: absolute;
+    inset: 24%;
+    clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--skin-c) 45%, #fff), var(--skin-c));
+}
+.skin-preview.octagon img { position: relative; z-index: 1; }

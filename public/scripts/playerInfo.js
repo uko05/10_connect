@@ -182,7 +182,7 @@ function makeSkinPreview(colors, shape, icon) {
     wrap.className = 'skin-preview-pair';
     colors.forEach((c) => {
         const dot = document.createElement('span');
-        dot.className = 'skin-preview' + (shape === 'square' ? ' square' : '');
+        dot.className = 'skin-preview' + (shape === 'round' ? '' : ' ' + shape);
         dot.style.setProperty('--skin-c', c);
         if (icon) {
             const img = document.createElement('img');
@@ -228,12 +228,13 @@ function renderStoneSkinSetting() {
 
     // デフォルト: 丸・四角(どちらも全員が持っている)。押すと形も切り替わる
     const basic = groupGrid(isEn() ? 'Default' : 'デフォルト');
-    [['round', isEn() ? 'Default (round)' : 'デフォルト（丸）'], ['square', isEn() ? 'Default (square)' : 'デフォルト（四角）']].forEach(([sh, label]) => {
+    [['round', isEn() ? 'Default (round)' : 'デフォルト（丸）'], ['square', isEn() ? 'Default (square)' : 'デフォルト（四角）'],
+        ['octagon', isEn() ? 'Default (octagon)' : 'デフォルト（八角形）']].forEach(([sh, label]) => {
         addOption(basic, {
             label,
             preview: makeSkinPreview([getDisplayColor('red'), getDisplayColor('yellow')], sh),
             selected: currentId === 'go' && shape === sh,
-            owned: true,
+            owned: ownsStoneSkin('go', sh),
             wide: true,
             onClick: () => { setStoneShape(sh); setStoneSkinId('go'); },
         });

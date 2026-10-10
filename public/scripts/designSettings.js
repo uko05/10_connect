@@ -39,22 +39,25 @@ export const STONE_SKIN_GROUPS = [
     { id: 'nation', name: '原神の国', nameEn: 'Genshin nations' },
 ];
 
-// 石の形: 'round'(丸) / 'square'(角丸の四角)。2026-10-11追加。
-// 石は形ごとに別アイテム(「炎の丸」を持っていても「炎の四角」は未開放)。デフォルトは丸・四角とも全員が持っている
-export const STONE_SHAPES = ['round', 'square'];
+// 石の形: 'round'(丸) / 'square'(角丸の四角) / 'octagon'(八角形のステップカット)。2026-10-11追加。
+// 石は形ごとに別アイテム(「炎の丸」を持っていても「炎の四角」は未開放)。デフォルトの丸・四角は全員が持っている
+// (八角形はデフォルトでも持っていない扱いにする予定。今はテストのため全部持っている扱い)
+export const STONE_SHAPES = ['round', 'square', 'octagon'];
+const normShape = (s) => (STONE_SHAPES.includes(s) ? s : 'round');
 const STONE_SHAPE_KEY = 'connectStoneShape';
 
 export function getStoneShape() {
-    try { return localStorage.getItem(STONE_SHAPE_KEY) === 'square' ? 'square' : 'round'; } catch (e) { return 'round'; }
+    try { return normShape(localStorage.getItem(STONE_SHAPE_KEY)); } catch (e) { return 'round'; }
 }
 
 export function setStoneShape(shape) {
-    try { localStorage.setItem(STONE_SHAPE_KEY, shape === 'square' ? 'square' : 'round'); } catch (e) { /* 保存できなくても続ける */ }
+    try { localStorage.setItem(STONE_SHAPE_KEY, normShape(shape)); } catch (e) { /* 保存できなくても続ける */ }
 }
 
 // その形のそのスキンを持っているか。ガチャを作ったら「スキン×形」の所持データで判定する
 export function ownsStoneSkin(skinId, shape = 'round') {
-    return skinId === 'go' || TEST_OWN_ALL_SKINS;
+    if (skinId === 'go' && (shape === 'round' || shape === 'square')) return true;
+    return TEST_OWN_ALL_SKINS;
 }
 
 export function getStoneSkinId() {
@@ -102,10 +105,10 @@ function tintedIcon(skin, color) {
 export function getStoneSkinById(id, shape = 'round') {
     const skin = STONE_SKINS.find((s) => s.id === id);
     if (!skin) return null;
-    if (skin.id === 'go') return shape === 'square' ? { id: 'go', shape: 'square' } : null;
+    if (skin.id === 'go') return normShape(shape) === 'round' ? null : { id: 'go', shape: normShape(shape) };
     tintedIcon(skin, '#ffffff');
     tintedIcon(skin, 'rgba(0, 0, 0, 0.25)');
-    return { ...skin, shape: shape === 'square' ? 'square' : 'round' };
+    return { ...skin, shape: normShape(shape) };
 }
 
 // 自分が選んでいる石(スキン+形)。丸のデフォルトならnull

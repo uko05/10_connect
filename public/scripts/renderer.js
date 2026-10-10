@@ -29,8 +29,23 @@ function shadeColor(hex, amt) {
  * 影はshadowBlurを使わずに描く(マスの外にはみ出すと、石を消した時に影の跡が残るため)。
  */
 export function drawStoneAt(ctx, cx, cy, R, color, skin = null, oppColor = null) {
-    // 形: 'round'(丸) か 'square'(角丸の四角)。スキンが無ければ丸(2026-10-11、形ごとに別アイテム)
-    const shape = skin?.shape === 'square' ? 'square' : 'round';
+    // 形: 'round'(丸) / 'square'(角丸の四角) / 'octagon'(八角形のステップカット)。スキンが無ければ丸
+    // (2026-10-11、形ごとに別アイテム)
+    const shape = ['square', 'octagon'].includes(skin?.shape) ? skin.shape : 'round';
+    if (shape === 'octagon') {
+        const clash = skin && skin.color && oppColor && isSkinClash(skin.color, color, oppColor);
+        if (clash) {
+            // かぶった時: 外側を自分の色の八角形、内側をスキンの色の八角形にする
+            drawStepCut(ctx, cx, cy, R, color);
+            const r = R * 0.74;
+            drawStepCut(ctx, cx, cy - R * 0.02, r, skin.color, false);
+            if (skin.icon) drawSkinMark(ctx, cx, cy - R * 0.02, r * 0.85, skin);
+            return;
+        }
+        drawStepCut(ctx, cx, cy, R, skin?.color || color);
+        if (skin && skin.icon) drawSkinMark(ctx, cx, cy, R * 0.85, skin);
+        return;
+    }
     // 元素・国のスキンは、石そのものをテーマ色にして白いマークを重ねる。
     // ただしスキンの色が相手の石の色に近くて見分けにくい時(かぶった時)だけ、外側に自分の色(赤/黄)の
     // 太い輪を残して、内側にスキンを小さめに描く(2026-10-11、案A)
@@ -61,6 +76,45 @@ function isSkinClash(skinHex, myHex, oppHex) {
     const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
     const toOpp = dist(s, o);
     return toOpp < 200 && toOpp <= dist(s, m);
+}
+
+// 八角形のステップカット(エメラルドのように八角形を内側へ段々に重ねる。左上から光が当たる。2026-10-11)
+const OCT_N = 8, OCT_ROT = -Math.PI / 8;
+function octPoint(cx, cy, r, i) {
+    const a = OCT_ROT + i * 2 * Math.PI / OCT_N;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+}
+function fillPolygon(ctx, pts, style) {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fillStyle = style;
+    ctx.fill();
+}
+function drawStepCut(ctx, cx, cy, R, color, withShadow = true) {
+    const octagon = (y, r) => Array.from({ length: OCT_N }, (_, i) => octPoint(cx, y, r, i));
+    ctx.save();
+    if (withShadow) fillPolygon(ctx, octagon(cy + R * 0.09, R * 0.98), 'rgba(0, 0, 0, 0.3)');
+    fillPolygon(ctx, octagon(cy + R * 0.05, R * 0.97), shadeColor(color, -0.45));
+    const y = cy - R * 0.03;
+    const rs = [0.95, 0.8, 0.66, 0.52];
+    // 面の明るさ: 左上(光の来る方向)を向いた面ほど明るい
+    const light = (i) => Math.cos(OCT_ROT + (i + 0.5) * 2 * Math.PI / OCT_N + Math.PI * 3 / 4);
+    for (let k = 0; k < 3; k++) {
+        for (let i = 0; i < OCT_N; i++) {
+            const pts = [octPoint(cx, y, R * rs[k], i), octPoint(cx, y, R * rs[k], i + 1),
+                octPoint(cx, y, R * rs[k + 1], i + 1), octPoint(cx, y, R * rs[k + 1], i)];
+            const amt = Math.max(-0.9, Math.min(0.9, light(i) * (0.5 - k * 0.1) + (k === 1 ? -0.08 : 0.06)));
+            fillPolygon(ctx, pts, shadeColor(color, amt));
+        }
+    }
+    // 中央の平らな面(テーブル)
+    const t = R * 0.52;
+    const g = ctx.createLinearGradient(cx - t, y - t, cx + t, y + t);
+    g.addColorStop(0, shadeColor(color, 0.5));
+    g.addColorStop(1, shadeColor(color, 0));
+    fillPolygon(ctx, octagon(y, t), g);
+    ctx.restore();
 }
 
 // 石の輪郭のパスを作る(rx,ryは半径。四角は角を丸めた正方形)
