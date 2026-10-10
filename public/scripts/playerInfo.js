@@ -17,7 +17,7 @@ import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStone
 // 背景(デザイン変更で選んだもの)
 applyBattleBackground();
 import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS } from './hubHero.js';
-import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
+import { setupSettingsModal, bindSettingsUI, getDisplayColor } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
 initLang();
@@ -192,8 +192,19 @@ function renderStoneSkinSetting() {
             btn.type = 'button';
             btn.className = 'skin-option' + (skin.id === current ? ' selected' : '');
             const prev = document.createElement('div');
-            prev.className = 'skin-preview' + (skin.color ? '' : ' skin-preview-go');
-            if (skin.color) prev.style.setProperty('--skin-c', skin.color);
+            if (skin.color) {
+                prev.className = 'skin-preview';
+                prev.style.setProperty('--skin-c', skin.color);
+            } else {
+                // デフォルトは赤・黄の2色(自分が赤とは限らないので両方見せる。色の設定に合わせる)
+                prev.className = 'skin-preview-pair';
+                ['red', 'yellow'].forEach((role) => {
+                    const dot = document.createElement('span');
+                    dot.className = 'skin-preview skin-preview-mini';
+                    dot.style.setProperty('--skin-c', getDisplayColor(role));
+                    prev.appendChild(dot);
+                });
+            }
             if (skin.icon) {
                 const img = document.createElement('img');
                 img.src = skinIconUrl(skin);

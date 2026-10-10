@@ -27,11 +27,13 @@ const rows = 6;
 const cols = 7;
 let cellSize = 110; // PC版はラジオボタンで変更可能
 
-const PLAYER_COLOR = 'red';
+// 石の色は「その対戦で最初に打つ側が赤」(マッチング対戦と同じ。2026-10-11、以前は自分がいつも赤)。
+// 対戦開始時(初戦の先攻が決まった時)に assignMatchColors() で決め直す
+let PLAYER_COLOR = 'red';
 // 自分の石のスキン(デザイン変更タブで選んだもの。自分の石にだけ使う)
 const MY_STONE_SKIN = getMyStoneSkin();
 applyBattleBackground();
-const CPU_COLOR = 'yellow';
+let CPU_COLOR = 'yellow';
 const ABEN_CHARGE_PENALTY = 50; // ソロモード専用(BAKATARE以外)：アベンチュリンは相手のチャージを減らす
 const ABEN_MAX_USES = 5;
 const BAKATARE_THINK_MS_PER_NODE = 0.1;  // BAKATARE思考時間係数: 探索ノード数 × この値(ms) が待機時間
@@ -1722,6 +1724,13 @@ function paleTint(hex, ratio = 0.1) {
     return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
+// 初戦の先攻(startingSide)から、この対戦での自分とCPUの色を決める。ラウンドが変わっても色はそのまま
+function assignMatchColors() {
+    PLAYER_COLOR = startingSide === 'player' ? 'red' : 'yellow';
+    CPU_COLOR = PLAYER_COLOR === 'red' ? 'yellow' : 'red';
+    applyPaneColors();
+}
+
 function applyPaneColors() {
     document.getElementById('leftPane').style.backgroundColor = paleTint(getDisplayColor(PLAYER_COLOR));
     document.getElementById('rightPane').style.backgroundColor = paleTint(getDisplayColor(CPU_COLOR));
@@ -1752,6 +1761,7 @@ async function resetGame() {
     playerTimeoutCount       = 0;
     cpuTimeoutCount          = 0;
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
+    assignMatchColors();
 
     // クロスターンエフェクトをリセット
     zhongliBlockedCols = [];
@@ -2026,6 +2036,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateWinIndicators();
     startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 通常マッチ同様、初戦の先攻はランダム
+    assignMatchColors();
     turn = startingSide;
     updateGaugeUI();
     drawBoard();
