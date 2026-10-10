@@ -1167,7 +1167,7 @@ function drawBoard() {
 }
 
 function drawPiece(column, y, role) {
-    _drawPiece(ctx, column, y, getDisplayColor(role), cellSize, role === PLAYER_COLOR ? MY_STONE_SKIN : null);
+    _drawPiece(ctx, column, y, getDisplayColor(role), cellSize, role === PLAYER_COLOR ? MY_STONE_SKIN : null, getDisplayColor(CPU_COLOR));
 }
 
 function animateStoneDrop(column, row, role) {
@@ -1206,7 +1206,7 @@ function dispTopStone() {
     const color = getDisplayColor(applyColorSwap(PLAYER_COLOR));
 
     _drawStoneAt(topCtx, nowCol * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, color,
-        applyColorSwap(PLAYER_COLOR) === PLAYER_COLOR ? MY_STONE_SKIN : null);
+        applyColorSwap(PLAYER_COLOR) === PLAYER_COLOR ? MY_STONE_SKIN : null, getDisplayColor(CPU_COLOR));
 
     highlightColumn(nowCol); // マウスが止まっていてもターン開始時にハイライトを復元
 }

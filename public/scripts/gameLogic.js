@@ -2007,7 +2007,7 @@ function disp_TopStone(turn, col) {
     }
     // 石を描画（'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする。見た目は盤面の石と共通）
     _drawStoneAt(topCtx, col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, getDisplayColor(color),
-        color === playerLeft_Color ? MY_STONE_SKIN : null);
+        color === playerLeft_Color ? MY_STONE_SKIN : null, getDisplayColor(playerLeft_Color === 'red' ? 'yellow' : 'red'));
 }
 
 // 背景を描画する関数（Firestoreのデータを使用して石も描画）
@@ -2043,7 +2043,8 @@ async function init_drawBoard(allstones = false) {
 function drawPiece(column, y, color) {
     // 'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする
     // 自分の色(playerLeft_Color)の石にだけ、デザイン変更で選んだスキンを使う
-    _drawPiece(ctx, column, y, getDisplayColor(color), cellSize, color === playerLeft_Color ? MY_STONE_SKIN : null);
+    _drawPiece(ctx, column, y, getDisplayColor(color), cellSize, color === playerLeft_Color ? MY_STONE_SKIN : null,
+        getDisplayColor(playerLeft_Color === 'red' ? 'yellow' : 'red')); // 相手の色(スキンとかぶる時だけ輪を付ける)
 }
 
 //------------------------------------------------------------------------------------------------

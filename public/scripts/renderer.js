@@ -9,9 +9,10 @@ import { drawSkinMark } from './designSettings.js';
  * @param {string} color - 石の色（#rrggbb）
  * @param {number} cellSize - セルのサイズ
  * @param {object|null} skin - 石のスキン(designSettings.js)。自分の石にだけ渡す。nullなら標準
+ * @param {string|null} oppColor - 相手の石の表示色。スキンの色とかぶる時だけ自分の色の輪を付けるのに使う
  */
-export function drawPiece(ctx, column, y, color, cellSize, skin = null) {
-    drawStoneAt(ctx, column * cellSize + cellSize / 2, y + cellSize / 2, (cellSize / 2) - 5, color, skin);
+export function drawPiece(ctx, column, y, color, cellSize, skin = null, oppColor = null) {
+    drawStoneAt(ctx, column * cellSize + cellSize / 2, y + cellSize / 2, (cellSize / 2) - 5, color, skin, oppColor);
 }
 
 // #rrggbb を明るく(amt>0)/暗く(amt<0)した色を返す。#rrggbb以外はそのまま返す
@@ -27,15 +28,54 @@ function shadeColor(hex, amt) {
  * 中心座標と半径を指定して碁石風の石を描く（盤面の石・盤面上のカーソル石で共通）。
  * 影はshadowBlurを使わずに描く(マスの外にはみ出すと、石を消した時に影の跡が残るため)。
  */
-export function drawStoneAt(ctx, cx, cy, R, color, skin = null) {
-    // 元素・国のスキンは、石そのものをテーマ色にして白いマークを重ねる
+export function drawStoneAt(ctx, cx, cy, R, color, skin = null, oppColor = null) {
+    // 元素・国のスキンは、石そのものをテーマ色にして白いマークを重ねる。
+    // ただしスキンの色が相手の石の色に近くて見分けにくい時(かぶった時)だけ、外側に自分の色(赤/黄)の
+    // 太い輪を残して、内側にスキンを小さめに描く(2026-10-11、案A)
+    if (skin && skin.color && oppColor && isSkinClash(skin.color, color, oppColor)) {
+        drawGoBody(ctx, cx, cy, R, color);
+        const r = R * 0.74;
+        drawGoBody(ctx, cx, cy - R * 0.02, r, skin.color, false);
+        if (skin.icon) drawSkinMark(ctx, cx, cy - R * 0.02, r, skin);
+        drawGoHighlight(ctx, cx, cy, R);
+        return;
+    }
     if (skin && skin.color) color = skin.color;
+    drawGoBody(ctx, cx, cy, R, color);
+    if (skin && skin.icon) drawSkinMark(ctx, cx, cy, R, skin);
+    drawGoHighlight(ctx, cx, cy, R);
+}
+
+// スキンの色(skinHex)が、相手の色(oppHex)に近くて自分の色(myHex)より相手に近い時に「かぶり」とみなす。
+// 例: 自分が黄・相手が赤で「炎」を選んでいる → かぶり。自分が赤で「炎」 → かぶらない(赤い石のまま自然に見える)
+function isSkinClash(skinHex, myHex, oppHex) {
+    const rgb = (h) => {
+        if (typeof h !== 'string' || !/^#[0-9a-f]{6}$/i.test(h)) return null;
+        const n = parseInt(h.slice(1), 16);
+        return [n >> 16, (n >> 8) & 255, n & 255];
+    };
+    const s = rgb(skinHex), m = rgb(myHex), o = rgb(oppHex);
+    if (!s || !m || !o) return false;
+    const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    const toOpp = dist(s, o);
+    return toOpp < 200 && toOpp <= dist(s, m);
+}
+
+// 碁石風の本体(接地の影・下側の厚み・上面)。withShadow=falseなら接地の影を省く(内側に重ねる時用)
+function drawGoBody(ctx, cx, cy, R, color, withShadow = true) {
     ctx.save();
-    // 接地の影(マスからはみ出さない大きさに抑える)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + R * 0.1, R * 0.98, R * 0.94, 0, 0, Math.PI * 2);
-    ctx.fill();
+    if (withShadow) {
+        // 接地の影(マスからはみ出さない大きさに抑える)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + R * 0.1, R * 0.98, R * 0.94, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    drawGoBodyRest(ctx, cx, cy, R, color);
+    ctx.restore();
+}
+
+function drawGoBodyRest(ctx, cx, cy, R, color) {
     // 下側の厚み
     ctx.fillStyle = shadeColor(color, -0.3);
     ctx.beginPath();
@@ -49,8 +89,11 @@ export function drawStoneAt(ctx, cx, cy, R, color, skin = null) {
     ctx.beginPath();
     ctx.ellipse(cx, cy - R * 0.03, R * 0.95, R * 0.89, 0, 0, Math.PI * 2);
     ctx.fill();
-    if (skin && skin.icon) drawSkinMark(ctx, cx, cy, R, skin);
-    // やわらかいハイライト
+}
+
+// やわらかいハイライト(石のいちばん上に重ねる)
+function drawGoHighlight(ctx, cx, cy, R) {
+    ctx.save();
     const h = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.4, 0, cx - R * 0.3, cy - R * 0.4, R * 0.5);
     h.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
     h.addColorStop(1, 'rgba(255, 255, 255, 0)');
