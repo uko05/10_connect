@@ -1871,3 +1871,7 @@ body.hub-page::before {
     background: linear-gradient(135deg, color-mix(in srgb, var(--skin-c) 45%, #fff), var(--skin-c));
 }
 .skin-preview.octagon img { position: relative; z-index: 1; }
+
+/* 石のデザインの見本(canvas。対戦中と同じ描き方) */
+.skin-preview-canvas { width: 52px; height: 52px; display: block; }
+.skin-option.locked .skin-preview-canvas { filter: grayscale(1); }

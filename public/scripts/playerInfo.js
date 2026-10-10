@@ -11,8 +11,9 @@ import { ACHIEVEMENT_GROUPS, ALL_ACHIEVEMENTS } from './achievements.js';
 import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement, debugForceResetAchievement, fitChipText } from './achievementManager.js';
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
+import { drawStoneAt } from './renderer.js';
 import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStoneSkinId, skinIconUrl,
-    getStoneShape, setStoneShape,
+    getStoneShape, setStoneShape, getStoneSkinById,
     BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId, applyBattleBackground,
     getHideOpponentSkin, setHideOpponentSkin } from './designSettings.js';
 
@@ -177,21 +178,27 @@ const isEn = () => localStorage.getItem('lang') === 'en';
 // いちばん上に「デフォルト(丸)」「デフォルト(四角)」を並べ、選んでいる形のスキンだけを下に出す。
 // 石は形ごとに別アイテムなので、その形で持っていないスキンはグレーアウトして押せないようにする。
 // 今はテストのため全スキンを持っている扱い(ガチャ実装時に所持チェックへ置き換える)
-function makeSkinPreview(colors, shape, icon) {
+// 見本の石は、対戦中と同じ描き方(renderer.js の drawStoneAt)でcanvasに描く(2026-10-11)。
+// CSSで似せて描くと、八角形のカットなどが実際の見た目と違ってしまうため。
+// マーク画像は読み込みに少し時間がかかるので、読み込み後にもう一度描き直す(skinPreviewDraws)
+const skinPreviewDraws = [];
+function makeSkinPreview(colors, skin) {
     const wrap = document.createElement('div');
     wrap.className = 'skin-preview-pair';
+    const SIZE = 52, dpr = Math.min(2, window.devicePixelRatio || 1);
     colors.forEach((c) => {
-        const dot = document.createElement('span');
-        dot.className = 'skin-preview' + (shape === 'round' ? '' : ' ' + shape);
-        dot.style.setProperty('--skin-c', c);
-        if (icon) {
-            const img = document.createElement('img');
-            img.src = icon;
-            img.alt = '';
-            img.loading = 'lazy';
-            dot.appendChild(img);
-        }
-        wrap.appendChild(dot);
+        const cv = document.createElement('canvas');
+        cv.className = 'skin-preview-canvas';
+        cv.width = cv.height = Math.round(SIZE * dpr);
+        const ctx = cv.getContext('2d');
+        const draw = () => {
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, SIZE, SIZE);
+            drawStoneAt(ctx, SIZE / 2, SIZE / 2, SIZE / 2 - 3, c, skin);
+        };
+        draw();
+        skinPreviewDraws.push(draw);
+        wrap.appendChild(cv);
     });
     return wrap;
 }
@@ -202,6 +209,12 @@ function renderStoneSkinSetting() {
     const currentId = getStoneSkinId();
     const shape = getStoneShape();
     list.innerHTML = '';
+    skinPreviewDraws.length = 0;
+    clearTimeout(renderStoneSkinSetting.t1);
+    clearTimeout(renderStoneSkinSetting.t2);
+    const redrawAll = () => skinPreviewDraws.forEach((f) => f());
+    renderStoneSkinSetting.t1 = setTimeout(redrawAll, 600);
+    renderStoneSkinSetting.t2 = setTimeout(redrawAll, 2000);
 
     const addOption = (grid, { label, preview, selected, owned, wide, onClick }) => {
         const btn = document.createElement('button');
@@ -232,7 +245,7 @@ function renderStoneSkinSetting() {
         ['octagon', isEn() ? 'Default (octagon)' : 'デフォルト（八角形）']].forEach(([sh, label]) => {
         addOption(basic, {
             label,
-            preview: makeSkinPreview([getDisplayColor('red'), getDisplayColor('yellow')], sh),
+            preview: makeSkinPreview([getDisplayColor('red'), getDisplayColor('yellow')], getStoneSkinById('go', sh)),
             selected: currentId === 'go' && shape === sh,
             owned: ownsStoneSkin('go', sh),
             wide: true,
@@ -249,7 +262,7 @@ function renderStoneSkinSetting() {
         skins.forEach((skin) => {
             addOption(grid, {
                 label: isEn() ? skin.nameEn : skin.name,
-                preview: makeSkinPreview([skin.color], shape, skinIconUrl(skin)),
+                preview: makeSkinPreview([skin.color], getStoneSkinById(skin.id, shape)),
                 selected: currentId === skin.id,
                 owned: ownsStoneSkin(skin.id, shape),
                 onClick: () => setStoneSkinId(skin.id),

@@ -39,11 +39,12 @@ export function drawStoneAt(ctx, cx, cy, R, color, skin = null, oppColor = null)
             drawStepCut(ctx, cx, cy, R, color);
             const r = R * 0.74;
             drawStepCut(ctx, cx, cy - R * 0.02, r, skin.color, false);
-            if (skin.icon) drawSkinMark(ctx, cx, cy - R * 0.02, r * 0.85, skin);
+            if (skin.icon) drawSkinMark(ctx, cx, cy - R * 0.01, r * 0.71, skin);
             return;
         }
         drawStepCut(ctx, cx, cy, R, skin?.color || color);
-        if (skin && skin.icon) drawSkinMark(ctx, cx, cy, R * 0.85, skin);
+        // マークは中央の平らな面(テーブル)に収まる大きさ(試作の案2と同じ、半径の約0.78倍)
+        if (skin && skin.icon) drawSkinMark(ctx, cx, cy + R * 0.01, R * 0.71, skin);
         return;
     }
     // 元素・国のスキンは、石そのものをテーマ色にして白いマークを重ねる。
