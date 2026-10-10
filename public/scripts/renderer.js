@@ -1,39 +1,59 @@
 // renderer.js - Canvas描画系の純粋なレンダリング処理
 
 /**
- * 石を1つ描画する（光沢付き円）
+ * 石を1つ描画する（碁石風: つや消し+ふちの丸み+下側の厚み、2026-10-10に変更）
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} column - 列番号
- * @param {number} y - Y座標（ピクセル）
- * @param {string} color - 石の色
+ * @param {number} y - Y座標（ピクセル、マスの上端）
+ * @param {string} color - 石の色（#rrggbb）
  * @param {number} cellSize - セルのサイズ
  */
 export function drawPiece(ctx, column, y, color, cellSize) {
-    // メインの円
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(
-        column * cellSize + cellSize / 2, // X座標
-        y + cellSize / 2, // Y座標
-        (cellSize / 2) - 5, // 半径
-        0,
-        Math.PI * 2
-    );
-    ctx.fill();
-    ctx.closePath();
+    drawStoneAt(ctx, column * cellSize + cellSize / 2, y + cellSize / 2, (cellSize / 2) - 5, color);
+}
 
-    // 光沢の円
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+// #rrggbb を明るく(amt>0)/暗く(amt<0)した色を返す。#rrggbb以外はそのまま返す
+function shadeColor(hex, amt) {
+    if (typeof hex !== 'string' || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+    const n = parseInt(hex.slice(1), 16);
+    const t = amt < 0 ? 0 : 255, p = Math.abs(amt);
+    const mix = (v) => Math.round((t - v) * p + v);
+    return `rgb(${mix(n >> 16)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
+
+/**
+ * 中心座標と半径を指定して碁石風の石を描く（盤面の石・盤面上のカーソル石で共通）。
+ * 影はshadowBlurを使わずに描く(マスの外にはみ出すと、石を消した時に影の跡が残るため)。
+ */
+export function drawStoneAt(ctx, cx, cy, R, color) {
+    ctx.save();
+    // 接地の影(マスからはみ出さない大きさに抑える)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
     ctx.beginPath();
-    ctx.arc(
-        column * cellSize + cellSize / 2 - 10, // X座標（少しずらす）
-        y + cellSize / 2 - 10, // Y座標（少しずらす）
-        (cellSize / 2) - 20, // 半径（小さめ）
-        0,
-        Math.PI * 2
-    );
+    ctx.ellipse(cx, cy + R * 0.1, R * 0.98, R * 0.94, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.closePath();
+    // 下側の厚み
+    ctx.fillStyle = shadeColor(color, -0.3);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + R * 0.05, R * 0.97, R * 0.92, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 上面(左上から光が当たるなめらかなグラデーション)
+    const g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
+    g.addColorStop(0, shadeColor(color, 0.35));
+    g.addColorStop(1, shadeColor(color, -0.2));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - R * 0.03, R * 0.95, R * 0.89, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // やわらかいハイライト
+    const h = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.4, 0, cx - R * 0.3, cy - R * 0.4, R * 0.5);
+    h.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+    h.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = h;
+    ctx.beginPath();
+    ctx.arc(cx - R * 0.3, cy - R * 0.4, R * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 }
 
 /**

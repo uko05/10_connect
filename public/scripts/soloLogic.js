@@ -2,7 +2,7 @@
 // キャラ選択・チャージ・必殺技は通常戦同様に使えるが、レート・キャラ別勝利数には一切影響しない。
 // アチーブメント（難易度別勝利）のみ、users/{uid}.achStats に記録する（rating/charaWinsとは完全に別フィールド）。
 
-import { drawPiece as _drawPiece, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
+import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty, getClickMode } from "./settingsManager.js";
@@ -1199,17 +1199,7 @@ function dispTopStone() {
     const centerY = topCanvas.height / 2;
     const color = getDisplayColor(applyColorSwap(PLAYER_COLOR));
 
-    topCtx.fillStyle = color;
-    topCtx.beginPath();
-    topCtx.arc(nowCol * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, 0, Math.PI * 2);
-    topCtx.fill();
-    topCtx.closePath();
-
-    topCtx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    topCtx.beginPath();
-    topCtx.arc(nowCol * cellSize + cellSize / 2 - 10, centerY - 10, (cellSize / 2) - 20, 0, Math.PI * 2);
-    topCtx.fill();
-    topCtx.closePath();
+    _drawStoneAt(topCtx, nowCol * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, color);
 
     highlightColumn(nowCol); // マウスが止まっていてもターン開始時にハイライトを復元
 }

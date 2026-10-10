@@ -9,7 +9,7 @@ import { onSnapshot, getDocs, getDoc } from './fsTracked.js'; // 読み取り件
 
 import { characterData } from "./characterData.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
-import { drawPiece as _drawPiece, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
+import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
 import { APP_VERSION } from "./version.js";
 import {
     chargeSound, moveSound, highlightSound, AbilityStandby,
@@ -2001,25 +2001,8 @@ function disp_TopStone(turn, col) {
     if (changeStone > 0 && color === playerLeft_Color) {
         color = color === 'red' ? 'yellow' : 'red'; // 色交換
     }
-    // メインの石を描画（'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする）
-    topCtx.fillStyle = getDisplayColor(color);
-    topCtx.beginPath();
-    topCtx.arc(col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, 0, Math.PI * 2);
-    topCtx.fill();
-    topCtx.closePath();
-
-    // ハイライトの円（光沢）を描画
-    topCtx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    topCtx.beginPath();
-    topCtx.arc(
-        col * cellSize + cellSize / 2 - 10, // X座標（少しずらす）
-        centerY - 10, // Y座標（少しずらす）
-        (cellSize / 2) - 20, // 半径（小さめ）
-        0,
-        Math.PI * 2
-    );
-    topCtx.fill();
-    topCtx.closePath();
+    // 石を描画（'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする。見た目は盤面の石と共通）
+    _drawStoneAt(topCtx, col * cellSize + cellSize / 2, centerY, (cellSize / 2) - 5, getDisplayColor(color));
 }
 
 // 背景を描画する関数（Firestoreのデータを使用して石も描画）
