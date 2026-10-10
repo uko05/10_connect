@@ -35,7 +35,7 @@ body {
     margin: 0;
     padding: 0;
     text-align: center;
-    background-image: url('./scripts/wallpaper/battleback001.png');
+    background-image: url('./scripts/wallpaper/battleback_001.png');
     background-size: cover; /* アスペクト比を維持しながら背景をカバー */
     background-position: center center; /* 中央に配置 */
     background-repeat: no-repeat;

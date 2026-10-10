@@ -33,7 +33,7 @@ body {
     background-size: cover; /* 画面全体に画像を拡大 */
     background-position: center; /* 画像を中央に配置 */
     background-repeat: no-repeat; /* 繰り返しを無効化 */
-    background-image: url('./scripts/wallpaper/battleback001.png');
+    background-image: url('./scripts/wallpaper/battleback_001.png');
 }
 
 h1 {
@@ -887,7 +887,7 @@ html, body {
     justify-content: center;
     align-items: center;
     height: 100vh; /* ビューポートに対して中央に配置 */
-    //background-image: url('./scripts/wallpaper/battleback001.png');
+    //background-image: url('./scripts/wallpaper/battleback_001.png');
 }
 
 /* ゲームボード */
