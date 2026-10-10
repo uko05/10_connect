@@ -213,7 +213,7 @@ function renderStoneSkinSetting() {
     });
 }
 
-// デザイン変更タブ「バトル中の背景」(designSettings.js)。今は標準の1枚だけ
+// デザイン変更タブ「バトル中の背景」(designSettings.js)
 function renderBattleBgSetting() {
     const grid = document.getElementById('bgSettingGrid');
     if (!grid) return;
@@ -223,10 +223,7 @@ function renderBattleBgSetting() {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'bg-option' + (bg.id === current ? ' selected' : '');
-        btn.innerHTML = `<img src="${bg.file}" alt="" loading="lazy">`;
-        const span = document.createElement('span');
-        span.textContent = isEn() ? bg.nameEn : bg.name;
-        btn.appendChild(span);
+        btn.innerHTML = `<img src="${bg.file}" alt="" loading="lazy">`; // 背景には名前を付けない(画像だけ)
         btn.addEventListener('click', () => {
             setBattleBgId(bg.id);
             renderBattleBgSetting();

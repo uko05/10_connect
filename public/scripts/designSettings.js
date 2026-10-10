@@ -107,9 +107,11 @@ export function drawSkinMark(ctx, cx, cy, R, skin) {
 }
 
 // ===== バトル中の背景 =====
-// 今は標準の1枚だけ。画像を用意したらここに足す(file: public/scripts/wallpaper/ 配下)
+// 画像を用意したらここに足す(public/scripts/wallpaper/battleback_XXX.png)。選択肢には名前を出さず画像だけ見せる
 export const BATTLE_BACKGROUNDS = [
-    { id: 'default', name: '標準（館の広間）', nameEn: 'Standard (Hall)', file: 'public/scripts/wallpaper/battleback_001.png' },
+    { id: 'default', file: 'public/scripts/wallpaper/battleback_001.png' },
+    { id: 'bb002', file: 'public/scripts/wallpaper/battleback_002.png' },
+    { id: 'bb003', file: 'public/scripts/wallpaper/battleback_003.png' },
 ];
 
 export function getBattleBgId() {
