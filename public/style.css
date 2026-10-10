@@ -1428,3 +1428,197 @@ footer.legal-footer {
 /* EN: 必殺技名・内容を縮小（キャラ選択画面、nameはさらに1px小さく） */
 html[lang="en"] .abilityName  { font-size: 14px; }
 html[lang="en"] .abilityDetail { font-size: 15px; }
+
+/* ===== ハブ画面(トップ)の新デザイン(2026-10-11) =====
+   左に大きなキャラ(ランダム)、右にタイトル・自分のランク・斜めのメニューボタン。
+   ゲームは横画面専用(縦持ちは「横画面にしてください」が出る)なので、横長の画面だけ考えればよい。 */
+body.hub-page {
+    --hub-gold: #f2cf7a;
+    --hub-gold2: #b8862e;
+    background-color: #1b1426;
+}
+body.hub-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 60% 50%, rgba(10, 6, 20, 0.35) 30%, rgba(10, 6, 20, 0.8) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
+.hub-page main { position: relative; z-index: 1; }
+
+.hub-hero {
+    position: fixed;
+    left: -4vw;
+    bottom: 0;
+    width: 62vw;
+    height: 96vh;
+    z-index: 1;
+    pointer-events: none;
+}
+.hub-hero img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    -webkit-mask: linear-gradient(90deg, #000 55%, transparent), linear-gradient(180deg, transparent, #000 15%, #000 82%, transparent);
+    -webkit-mask-composite: source-in;
+    mask: linear-gradient(90deg, #000 55%, transparent), linear-gradient(180deg, transparent, #000 15%, #000 82%, transparent);
+    mask-composite: intersect;
+    animation: hubHeroIn 0.8s ease-out both;
+}
+.hub-hero img:not([src]) { visibility: hidden; }
+@keyframes hubHeroIn { from { opacity: 0; transform: translateX(-30px); } }
+.hub-hero-name {
+    position: absolute;
+    left: 7vw;
+    bottom: 5vh;
+    color: #fff;
+    font-size: clamp(20px, 3vw, 34px);
+    font-weight: 900;
+    text-align: left;
+    text-shadow: 0 2px 8px #000;
+}
+.hub-hero-name small {
+    display: block;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--hub-gold);
+}
+
+.hub-panel {
+    position: fixed;
+    right: 5vw;
+    top: 50%;
+    transform: translateY(-50%);
+    width: min(440px, 42vw);
+    z-index: 2;
+    text-align: left;
+}
+.hub-logo {
+    margin: 0;
+    white-space: nowrap;
+    text-align: right;
+    font-size: clamp(22px, 3vw, 40px);
+    letter-spacing: 0.06em;
+    background: linear-gradient(180deg, #fff 25%, var(--hub-gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6));
+}
+.hub-logo small {
+    display: block;
+    font-size: 13px;
+    letter-spacing: 0.55em;
+    -webkit-text-fill-color: var(--hub-gold);
+    color: var(--hub-gold);
+}
+
+.hub-player {
+    margin: 16px 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(242, 207, 122, 0.35);
+    color: #fff;
+}
+.hub-player[hidden] { display: none; }
+.hub-rank-badge {
+    width: 58px;
+    height: 58px;
+    flex: none;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+.hub-rank-name { font-size: 11px; letter-spacing: 0.2em; color: var(--hub-gold); font-weight: 700; }
+.hub-player-name { font-weight: 900; }
+.hub-player-rate { font-size: 12px; opacity: 0.8; }
+
+.hub-page .hub-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    margin: 12px 0;
+    padding: 16px 22px;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    position: relative;
+    color: #fff;
+    text-align: left;
+    font-family: 'SDK_JP_WEB', sans-serif;
+    clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+    background: linear-gradient(90deg, rgba(20, 14, 34, 0.85), rgba(40, 30, 60, 0.75));
+    transition: transform 0.2s, background 0.2s;
+}
+.hub-page .hub-btn::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: var(--hub-c);
+}
+.hub-page .hub-btn:hover {
+    transform: translateX(-10px);
+    background: linear-gradient(90deg, rgba(60, 44, 90, 0.9), rgba(40, 30, 60, 0.8));
+}
+.hub-page .hub-btn-match { --hub-c: #4aa8ff; }
+.hub-page .hub-btn-cpu { --hub-c: #ff9a3c; }
+.hub-page .hub-btn-info { --hub-c: #e8c25a; }
+.hub-btn-ic {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1.5px solid rgba(242, 207, 122, 0.55);
+    background: radial-gradient(circle, rgba(242, 207, 122, 0.12), transparent 70%);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.hub-btn-ic svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--hub-gold);
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.hub-page .hub-btn:hover .hub-btn-ic { border-color: var(--hub-c); box-shadow: 0 0 10px var(--hub-c); }
+.hub-btn-text { display: flex; flex-direction: column; min-width: 0; }
+.hub-btn-title { font-size: 20px; font-weight: 900; white-space: nowrap; }
+.hub-btn-title small {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--hub-gold);
+    opacity: 0.8;
+    margin-left: 8px;
+    font-weight: 700;
+}
+.hub-btn-sub { font-size: 12px; opacity: 0.75; }
+.hub-btn-arrow { margin-left: auto; color: var(--hub-gold); font-size: 22px; }
+
+/* スマホの横持ちなど、高さが低い画面ではひと回り小さく */
+@media (max-height: 520px) {
+    .hub-panel { right: 72px; top: calc(50% + 10px); } /* 右上の設定ボタンと重ならないように */
+    .hub-logo { font-size: clamp(18px, 2.6vw, 28px); }
+    .hub-logo small { font-size: 10px; }
+    .hub-player { margin: 8px 0 8px; padding: 6px 10px; }
+    .hub-rank-badge { width: 40px; height: 40px; }
+    .hub-page .hub-btn { margin: 6px 0; padding: 9px 18px; }
+    .hub-btn-ic { width: 32px; height: 32px; }
+    .hub-btn-ic svg { width: 19px; height: 19px; }
+    .hub-btn-title { font-size: 16px; }
+    .hub-btn-sub { font-size: 10px; }
+    .hub-hero-name { bottom: 3vh; }
+}

@@ -37,7 +37,7 @@
       }
     </script>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
-    <link rel="stylesheet" href="public/style.css"> <!-- スタイルシートのリンク -->
+    <link rel="stylesheet" href="public/style.css?v=1.36.0"> <!-- スタイルシートのリンク -->
     <script type="module" src="public/scripts/main.js" defer></script> <!-- JavaScriptファイルの読み込み -->
 
     <!-- Favicon -->
@@ -61,10 +61,7 @@
   gtag('config', 'G-09K6476DPN');
 </script>
 </head>
-<body>
-    <header>
-        <h1 data-i18n="pageTitle">原壊：コネクトバトル</h1>
-    </header>
+<body class="hub-page">
 
     <main>
      <!-- ヘルプボタン（ログイン状態バッジをあそびかたの左に並べる） -->
@@ -169,12 +166,49 @@
     <!-- ② 縦画面ラベル: transform親の外に配置（position:fixedが正しく効くように） -->
     <div id="orientationLabel"></div>
 
-    <div id="hubWrap" class="hub-wrap">
-        <h2 class="hub-title" data-i18n="hubTitle">モードを選択</h2>
+    <!-- 左の大きなキャラ(開くたびにランダム、main.js) -->
+    <div id="hubHero" class="hub-hero" aria-hidden="true">
+        <img id="hubHeroImg" alt="">
+        <div class="hub-hero-name"><small>CHARACTER</small><span id="hubHeroName"></span></div>
+    </div>
 
-        <button id="goMatchButton" class="btn hub-btn hub-btn-match" data-i18n="btnMatch">マッチング対戦</button>
-        <button id="goCpuButton" class="btn hub-btn hub-btn-cpu" data-i18n="btnCpu">CPU対戦</button>
-        <button id="goPlayerInfoButton" class="btn hub-btn hub-btn-info" data-i18n="btnPlayerInfo">プレイヤー情報・アチーブメント</button>
+    <div id="hubWrap" class="hub-panel">
+        <h1 class="hub-logo"><span data-i18n="pageTitle">原壊：コネクトバトル</span><small>CONNECT BATTLE</small></h1>
+
+        <!-- 自分のランク(読み込めたら表示、main.js) -->
+        <div id="hubPlayer" class="hub-player" hidden>
+            <img id="hubRankBadge" class="hub-rank-badge" alt="">
+            <div class="hub-player-text">
+                <div id="hubRankName" class="hub-rank-name"></div>
+                <div id="hubPlayerName" class="hub-player-name"></div>
+                <div id="hubPlayerRate" class="hub-player-rate"></div>
+            </div>
+        </div>
+
+        <button id="goMatchButton" class="hub-btn hub-btn-match">
+            <span class="hub-btn-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l9 9M4 4h4M4 4v4"/><path d="M20 4l-9 9M20 4h-4M20 4v4"/><path d="M8 15l-3 3M16 15l3 3"/><path d="M6.5 13.5l4 4M17.5 13.5l-4 4"/></svg></span>
+            <span class="hub-btn-text">
+                <span class="hub-btn-title"><span data-i18n="btnMatch">マッチング対戦</span><small>RANKED</small></span>
+                <span class="hub-btn-sub" data-i18n="btnMatchSub">ほかのプレイヤーとランク戦</span>
+            </span>
+            <span class="hub-btn-arrow" aria-hidden="true">›</span>
+        </button>
+        <button id="goCpuButton" class="hub-btn hub-btn-cpu">
+            <span class="hub-btn-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg></span>
+            <span class="hub-btn-text">
+                <span class="hub-btn-title"><span data-i18n="btnCpu">CPU対戦</span><small>PRACTICE</small></span>
+                <span class="hub-btn-sub" data-i18n="btnCpuSub">練習・キャラ解放（レート変動なし）</span>
+            </span>
+            <span class="hub-btn-arrow" aria-hidden="true">›</span>
+        </button>
+        <button id="goPlayerInfoButton" class="hub-btn hub-btn-info">
+            <span class="hub-btn-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6M10 17h4"/></svg></span>
+            <span class="hub-btn-text">
+                <span class="hub-btn-title"><span data-i18n="btnPlayerInfo">プレイヤー情報</span><small>PROFILE</small></span>
+                <span class="hub-btn-sub" data-i18n="btnPlayerInfoSub">ランク・戦績・アチーブメント</span>
+            </span>
+            <span class="hub-btn-arrow" aria-hidden="true">›</span>
+        </button>
     </div>
     </main>
 
