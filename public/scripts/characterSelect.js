@@ -13,6 +13,10 @@ import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js'
 import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume } from './settingsManager.js';
 import { initLang, t, getCharaText, getAchText, getCharaAchText } from './i18n.js';
+import { applyBattleBackground } from './designSettings.js';
+
+// 背景(プレイヤー情報 > デザイン変更 で選んだもの)
+applyBattleBackground();
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');

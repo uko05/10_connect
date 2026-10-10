@@ -3,6 +3,10 @@ import { APP_VERSION } from './version.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 import { initLang, t, getCharaText } from './i18n.js';
 import { pickHubHero } from './hubHero.js';
+import { applyBattleBackground } from './designSettings.js';
+
+// 背景(プレイヤー情報 > デザイン変更 で選んだもの)
+applyBattleBackground();
 import { authReady } from './firebaseConfig.js';
 import { getUserRating } from './eloRating.js';
 import { getRankByRating, getRankBadgePath } from './rankConfig.js';

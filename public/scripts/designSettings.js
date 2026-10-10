@@ -131,10 +131,11 @@ export function setBattleBgId(id) {
     try { localStorage.setItem(BATTLE_BG_KEY, id || 'default'); } catch (e) { /* 保存できなくても続ける */ }
 }
 
-// バトル画面(solo.html / battle.html)で呼ぶ: 標準以外を選んでいたら背景を差し替える
+// すべての画面(トップ・キャラ選択・プレイヤー情報・CPU対戦・マッチング対戦)で呼ぶ: 選んだ背景にする。
+// 2026-10-11: バトル中だけでなく全画面の背景に変更。設定画面で選んだ瞬間にも呼んで、その場で切り替える
 export function applyBattleBackground() {
     const id = getBattleBgId();
-    if (id === 'default') return;
     const bg = BATTLE_BACKGROUNDS.find((b) => b.id === id);
-    if (bg) document.body.style.backgroundImage = `url('${bg.file}')`;
+    // 標準(001)はCSSの背景のままにする(インラインの指定を外す)
+    document.body.style.backgroundImage = bg && id !== 'default' ? `url('${bg.file}')` : '';
 }

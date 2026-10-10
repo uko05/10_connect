@@ -1450,7 +1450,8 @@ body.hub-page::before {
 .hub-hero {
     position: fixed;
     left: -2vw;
-    bottom: 0;
+    top: 50%;
+    transform: translateY(-50%); /* 縦の中央に置く(2026-10-11、以前は下寄せ) */
     width: 48vw; /* 2026-10-11: 大きすぎたので62vw×96vhから縮小 */
     height: 84vh;
     z-index: 1;

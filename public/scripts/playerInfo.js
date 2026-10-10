@@ -12,7 +12,10 @@ import { getAchievementViewModel, setEquippedTitle, debugForceUnlockAchievement,
 import { showAchievementToast, showCharacterUnlockModal } from './achievementToast.js';
 import { characterData } from './characterData.js';
 import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStoneSkinId, skinIconUrl,
-    BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId } from './designSettings.js';
+    BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId, applyBattleBackground } from './designSettings.js';
+
+// 背景(デザイン変更で選んだもの)
+applyBattleBackground();
 import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS } from './hubHero.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
@@ -213,7 +216,7 @@ function renderStoneSkinSetting() {
     });
 }
 
-// デザイン変更タブ「バトル中の背景」(designSettings.js)
+// デザイン変更タブ「背景」(designSettings.js)。すべての画面の背景になる
 function renderBattleBgSetting() {
     const grid = document.getElementById('bgSettingGrid');
     if (!grid) return;
@@ -226,6 +229,7 @@ function renderBattleBgSetting() {
         btn.innerHTML = `<img src="${bg.thumb || bg.file}" alt="" loading="lazy">`; // 背景には名前を付けない(画像だけ)
         btn.addEventListener('click', () => {
             setBattleBgId(bg.id);
+            applyBattleBackground(); // 選んだ瞬間にこの画面の背景も切り替える
             renderBattleBgSetting();
             flashSaved('bgSettingFeedback');
         });
