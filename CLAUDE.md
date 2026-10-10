@@ -120,3 +120,12 @@ Claude Code must:
 APP_VERSION is also what `public/scripts/versionGuard.js` compares when a player starts a CPU battle or matchmaking:
 if the published version.js differs, the tab is told to reload. Bumping APP_VERSION therefore makes stale tabs reload before their next battle.
 
+## 今後の予定（メモ）
+
+- **ガチャ機能（まだ先、2026-10-10時点の構想）**: コネクトバトルにガチャを用意し、景品として**石のスキン**などがもらえるようにする。
+  - 石の描画は v1.35.0 で `public/scripts/renderer.js` の `drawStoneAt(ctx, cx, cy, R, color)` に一本化済み
+    （盤面の石・盤面上のカーソル石、CPU戦・オンライン対戦のすべてがここを通る）。スキンはここで描き方を切り替えればよい。
+  - 通常の石は碁石風（v1.35.0〜）。スキン候補の試作: 宝石風・神の目風・キャラアイコン入り・ビー玉・元素オーブ・星穹（スタレ風）・カット宝石。
+  - 石に**元素マーク・国のマーク**を重ねるスキンも候補（アイコンは `99_SharedImage/01_Genshin/Genso`・`01_Genshin/country`・`02_Starrail/Genso` にある）。
+  - 決めること: ガチャを回す手段（UP／独自ポイント／対戦報酬）、相手のスキンも表示するか、どのスキンでも2人の石の色がはっきり区別できること、
+    おみくじのスタレ裏面（ダブり）と連動させるか。
