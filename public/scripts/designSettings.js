@@ -15,7 +15,7 @@ const ICON_BASE = 'https://cdn.jsdelivr.net/gh/uko05/99_SharedImage@main/';
 
 // group: 'basic' | 'element' | 'nation'
 export const STONE_SKINS = [
-    { id: 'go', group: 'basic', name: '碁石風', nameEn: 'Go stone' },
+    { id: 'go', group: 'basic', name: 'デフォルト', nameEn: 'Default' },
     { id: 'el_hi', group: 'element', name: '炎', nameEn: 'Pyro', color: '#e8452c', icon: '01_Genshin/Genso/hi.png' },
     { id: 'el_mizu', group: 'element', name: '水', nameEn: 'Hydro', color: '#2f8ff0', icon: '01_Genshin/Genso/mizu.png' },
     { id: 'el_kaze', group: 'element', name: '風', nameEn: 'Anemo', color: '#35c9a6', icon: '01_Genshin/Genso/kaze.png' },
