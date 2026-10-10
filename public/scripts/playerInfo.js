@@ -196,11 +196,13 @@ function renderStoneSkinSetting() {
                 prev.className = 'skin-preview';
                 prev.style.setProperty('--skin-c', skin.color);
             } else {
-                // デフォルトは赤・黄の2色(自分が赤とは限らないので両方見せる。色の設定に合わせる)
+                // デフォルトは赤・黄の2色(自分が赤とは限らないので両方見せる。色の設定に合わせる)。
+                // 1枠に詰め込まず、2枠分の幅を使って普通の大きさで並べる
+                btn.classList.add('skin-option-wide');
                 prev.className = 'skin-preview-pair';
                 ['red', 'yellow'].forEach((role) => {
                     const dot = document.createElement('span');
-                    dot.className = 'skin-preview skin-preview-mini';
+                    dot.className = 'skin-preview';
                     dot.style.setProperty('--skin-c', getDisplayColor(role));
                     prev.appendChild(dot);
                 });

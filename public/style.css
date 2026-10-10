@@ -1814,10 +1814,10 @@ body.hub-page::before {
     background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--skin-c) 55%, #fff), var(--skin-c) 55%, color-mix(in srgb, var(--skin-c) 70%, #000));
     box-shadow: 0 3px 0 color-mix(in srgb, var(--skin-c) 65%, #000), 0 4px 6px rgba(0, 0, 0, 0.3);
 }
-/* デフォルト(碁石): 赤と黄の2つを少し重ねて並べる */
-.skin-preview-pair { display: flex; justify-content: center; align-items: center; height: 48px; }
-.skin-preview.skin-preview-mini { width: 34px; height: 34px; margin: 0; }
-.skin-preview-pair .skin-preview-mini + .skin-preview-mini { margin-left: -8px; }
+/* デフォルト(碁石): 2枠分の幅を使って、普通の大きさの赤と黄を並べる */
+.skin-option.skin-option-wide { grid-column: span 2; }
+.skin-preview-pair { display: flex; justify-content: center; align-items: center; gap: 14px; }
+.skin-preview-pair .skin-preview { margin: 0; }
 .skin-preview img { width: 62%; height: 62%; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.25)); opacity: 0.92; }
 
 /* デザイン変更タブ: バトル中の背景 */
