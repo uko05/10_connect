@@ -1609,6 +1609,25 @@ body.hub-page::before {
 .hub-btn-sub { font-size: 12px; opacity: 0.75; }
 .hub-btn-arrow { margin-left: auto; color: var(--hub-gold); font-size: 22px; }
 
+/* 横に広いPC画面(1400px以上)では、メニューが右端に離れすぎないよう少し左に寄せ、ひと回り大きくする(2026-10-11) */
+@media (min-width: 1400px) and (min-height: 700px) {
+    .hub-panel { width: min(600px, 34vw); right: 11vw; }
+    .hub-logo { font-size: clamp(40px, 2.8vw, 52px); }
+    .hub-logo small { font-size: 15px; }
+    .hub-player { padding: 12px 18px; margin: 20px 0 22px; }
+    .hub-rank-badge { width: 70px; height: 70px; }
+    .hub-rank-name { font-size: 13px; }
+    .hub-player-name { font-size: 19px; }
+    .hub-player-rate { font-size: 14px; }
+    .hub-page .hub-btn { padding: 21px 28px; margin: 16px 0; gap: 18px; }
+    .hub-btn-ic { width: 50px; height: 50px; }
+    .hub-btn-ic svg { width: 29px; height: 29px; }
+    .hub-btn-title { font-size: 25px; }
+    .hub-btn-title small { font-size: 13px; }
+    .hub-btn-sub { font-size: 14px; }
+    .hub-btn-arrow { font-size: 26px; }
+}
+
 /* スマホの横持ちなど、高さが低い画面ではひと回り小さく */
 @media (max-height: 520px) {
     .hub-panel { right: 72px; top: calc(50% + 10px); } /* 右上の設定ボタンと重ならないように */
