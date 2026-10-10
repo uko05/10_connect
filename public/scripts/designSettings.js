@@ -13,9 +13,9 @@ export const TEST_OWN_ALL_SKINS = true;
 
 const ICON_BASE = 'https://cdn.jsdelivr.net/gh/uko05/99_SharedImage@main/';
 
-// group: 'basic' | 'element' | 'nation' | 'srElement'
+// group: 'basic' | 'element' | 'nation'
 export const STONE_SKINS = [
-    { id: 'go', group: 'basic', name: '標準（碁石風）', nameEn: 'Standard' },
+    { id: 'go', group: 'basic', name: '碁石風', nameEn: 'Go stone' },
     { id: 'el_hi', group: 'element', name: '炎', nameEn: 'Pyro', color: '#e8452c', icon: '01_Genshin/Genso/hi.png' },
     { id: 'el_mizu', group: 'element', name: '水', nameEn: 'Hydro', color: '#2f8ff0', icon: '01_Genshin/Genso/mizu.png' },
     { id: 'el_kaze', group: 'element', name: '風', nameEn: 'Anemo', color: '#35c9a6', icon: '01_Genshin/Genso/kaze.png' },
@@ -31,20 +31,12 @@ export const STONE_SKINS = [
     { id: 'na_natlan', group: 'nation', name: 'ナタ', nameEn: 'Natlan', color: '#e2632a', icon: '01_Genshin/country/Natlan.png' },
     { id: 'na_snezhnaya', group: 'nation', name: 'スネージナヤ', nameEn: 'Snezhnaya', color: '#8fb4d8', icon: '01_Genshin/country/Snezhnaya.png' },
     { id: 'na_nodkrai', group: 'nation', name: 'ナド・クライ', nameEn: 'Nod-Krai', color: '#4a5f8a', icon: '01_Genshin/country/NodKrai.png' },
-    { id: 'sr_butsuri', group: 'srElement', name: '物理', nameEn: 'Physical', color: '#9aa0a8', icon: '02_Starrail/Genso/butsuri.png' },
-    { id: 'sr_hi', group: 'srElement', name: '炎', nameEn: 'Fire', color: '#e8452c', icon: '02_Starrail/Genso/hi.png' },
-    { id: 'sr_koori', group: 'srElement', name: '氷', nameEn: 'Ice', color: '#6fcde6', icon: '02_Starrail/Genso/koori.png' },
-    { id: 'sr_kaminari', group: 'srElement', name: '雷', nameEn: 'Lightning', color: '#a35be0', icon: '02_Starrail/Genso/kaminari.png' },
-    { id: 'sr_kaze', group: 'srElement', name: '風', nameEn: 'Wind', color: '#35c9a6', icon: '02_Starrail/Genso/kaze.png' },
-    { id: 'sr_ryoushi', group: 'srElement', name: '量子', nameEn: 'Quantum', color: '#5a50c8', icon: '02_Starrail/Genso/ryoushi.png' },
-    { id: 'sr_kyosuu', group: 'srElement', name: '虚数', nameEn: 'Imaginary', color: '#e6c32a', icon: '02_Starrail/Genso/kyosuu.png' },
 ];
 
 export const STONE_SKIN_GROUPS = [
     { id: 'basic', name: '標準', nameEn: 'Standard' },
     { id: 'element', name: '原神の元素', nameEn: 'Genshin elements' },
     { id: 'nation', name: '原神の国', nameEn: 'Genshin nations' },
-    { id: 'srElement', name: 'スタレの属性', nameEn: 'Star Rail types' },
 ];
 
 export function ownsStoneSkin(skinId) {

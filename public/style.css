@@ -1704,15 +1704,36 @@ body.hub-page::before {
 .hero-setting-feedback { min-height: 1.2em; font-size: 12px; color: #28a745; margin-top: 6px; }
 
 /* デザイン変更タブ: 項目ごとの見出し / まだ固定にできないキャラ */
+/* 項目ごとの見出し(押すと開け閉めできる。<details>のsummary) */
+.design-section { margin: 0 0 10px; }
 .design-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-family: 'SDK_JP_WEB', sans-serif;
     font-size: 15px;
-    color: #333;
+    font-weight: bold;
+    color: #fff;
     text-align: left;
-    margin: 6px 0 2px;
-    padding-left: 8px;
-    border-left: 4px solid #c9962b;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #4a3a66, #2a2038);
+    border-left: 5px solid #c9962b;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
 }
+.design-section-title::-webkit-details-marker { display: none; }
+.design-section-title::after {
+    content: "\25BC";
+    margin-left: auto;
+    font-size: 11px;
+    color: #f2cf7a;
+    transition: transform 0.2s;
+}
+.design-section:not([open]) .design-section-title::after { transform: rotate(-90deg); }
+.design-section:not([open]) .design-section-title { opacity: 0.85; }
+.design-section-body { padding: 4px 2px 2px; }
 .hero-option.locked { cursor: default; }
 .hero-option.locked img { filter: grayscale(1) brightness(0.6); }
 .hero-option-lock {
