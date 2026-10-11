@@ -8,8 +8,10 @@
 const STONE_SKIN_KEY = 'connectStoneSkin';
 const BATTLE_BG_KEY = 'connectBattleBg';
 
-// テスト用: すべてのスキンを持っている扱いにする。ガチャを作ったら所持チェックに置き換える
-export const TEST_OWN_ALL_SKINS = true;
+// テスト用: すべての石・背景を持っている扱いにするか。
+// 2026-10-11: リリース時の「最初の状態」を確認するため false にした(元素・国の石と、000・001以外の背景は未所持=グレーアウト)。
+// ガチャを作ったら、ここを所持データでの判定に置き換える
+export const TEST_OWN_ALL_SKINS = false;
 
 const ICON_BASE = 'https://cdn.jsdelivr.net/gh/uko05/99_SharedImage@main/';
 
@@ -150,24 +152,33 @@ export function drawSkinMark(ctx, cx, cy, R, skin) {
     ctx.restore();
 }
 
-// ===== バトル中の背景 =====
-// 画像は public/scripts/wallpaper/battleback_001.jpg 〜 battleback_XXX.jpg(連番・JPG、1920×1080)。
+// ===== 背景 =====
+// 画像は public/scripts/wallpaper/battleback_000.jpg 〜 battleback_XXX.jpg(連番・JPG、1920×1080)。
+// 000がデフォルト(CSSの背景と同じ)。000・001は最初から全員が使える。それ以外はガチャで手に入れる予定(2026-10-11)。
 // 選択肢には名前を出さず画像だけ見せる。設定画面の一覧には軽いサムネイル(wallpaper/thumb/同じファイル名、384×216)を使う。
 // 背景を増やしたら、画像とサムネイルを置いて BATTLE_BG_COUNT を増やす。
-const BATTLE_BG_COUNT = 39;
+const BATTLE_BG_COUNT = 39; // 000〜038
+const FREE_BG_NUMS = ['000', '001'];
 export const BATTLE_BACKGROUNDS = Array.from({ length: BATTLE_BG_COUNT }, (_, i) => {
-    const num = String(i + 1).padStart(3, '0');
+    const num = String(i).padStart(3, '0');
     return {
-        id: i === 0 ? 'default' : `bb${num}`, // 001は最初からある標準の背景
+        id: i === 0 ? 'default' : `bb${num}`,
         file: `public/scripts/wallpaper/battleback_${num}.jpg`,
         thumb: `public/scripts/wallpaper/thumb/battleback_${num}.jpg`,
+        free: FREE_BG_NUMS.includes(num),
     };
 });
+
+// その背景を持っているか(000・001は全員。ほかはガチャを作ったら所持データで判定する)
+export function ownsBattleBg(id) {
+    const bg = BATTLE_BACKGROUNDS.find((b) => b.id === id);
+    return !!bg && (bg.free || TEST_OWN_ALL_SKINS);
+}
 
 export function getBattleBgId() {
     try {
         const id = localStorage.getItem(BATTLE_BG_KEY) || 'default';
-        return BATTLE_BACKGROUNDS.some((b) => b.id === id) ? id : 'default';
+        return ownsBattleBg(id) ? id : 'default';
     } catch (e) { return 'default'; }
 }
 
@@ -180,6 +191,6 @@ export function setBattleBgId(id) {
 export function applyBattleBackground() {
     const id = getBattleBgId();
     const bg = BATTLE_BACKGROUNDS.find((b) => b.id === id);
-    // 標準(001)はCSSの背景のままにする(インラインの指定を外す)
+    // デフォルト(000)はCSSの背景のままにする(インラインの指定を外す)
     document.body.style.backgroundImage = bg && id !== 'default' ? `url('${bg.file}')` : '';
 }

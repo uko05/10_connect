@@ -14,7 +14,7 @@ import { characterData } from './characterData.js';
 import { drawStoneAt } from './renderer.js';
 import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStoneSkinId, skinIconUrl,
     getStoneShape, setStoneShape, getStoneSkinById,
-    BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId, applyBattleBackground,
+    BATTLE_BACKGROUNDS, getBattleBgId, setBattleBgId, applyBattleBackground, ownsBattleBg,
     getHideOpponentSkin, setHideOpponentSkin } from './designSettings.js';
 
 // 背景(デザイン変更で選んだもの)
@@ -290,8 +290,10 @@ function renderBattleBgSetting() {
     BATTLE_BACKGROUNDS.forEach((bg) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'bg-option' + (bg.id === current ? ' selected' : '');
+        const owned = ownsBattleBg(bg.id);
+        btn.className = 'bg-option' + (bg.id === current ? ' selected' : '') + (owned ? '' : ' locked');
         btn.innerHTML = `<img src="${bg.thumb || bg.file}" alt="" loading="lazy">`; // 背景には名前を付けない(画像だけ)
+        if (!owned) { btn.disabled = true; grid.appendChild(btn); return; } // まだ持っていない背景はグレーアウト
         btn.addEventListener('click', () => {
             setBattleBgId(bg.id);
             applyBattleBackground(); // 選んだ瞬間にこの画面の背景も切り替える
