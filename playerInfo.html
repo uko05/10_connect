@@ -61,12 +61,12 @@
 
             <!-- タブ(2026-10-11)。設定項目が増えたらタブとパネルを足す -->
             <div class="pi-tabs" role="tablist">
-                <button type="button" class="pi-tab-btn active" data-pi-tab="ach" data-i18n="piTabAch">アチーブメント</button>
+                <button type="button" class="pi-tab-btn active" data-pi-tab="basic" data-i18n="piTabBasic">基本設定</button>
                 <button type="button" class="pi-tab-btn" data-pi-tab="design" data-i18n="piTabHero">デザイン変更</button>
-                <button type="button" class="pi-tab-btn" data-pi-tab="basic" data-i18n="piTabBasic">基本設定</button>
+                <button type="button" class="pi-tab-btn" data-pi-tab="ach" data-i18n="piTabAch">アチーブメント</button>
             </div>
 
-            <div class="pi-tab-panel" data-pi-panel="ach">
+            <div class="pi-tab-panel" data-pi-panel="ach" hidden>
                 <div id="achievementSummary" class="achievement-summary">---</div>
 
                 <div class="achievement-tabs">
@@ -80,7 +80,7 @@
             <!-- デザイン変更: 今後、石のスキン・バトル中の背景などもここに項目(見出し+中身)を足していく -->
             <!-- 項目ごとに見出しを押して開け閉めできる(<details>) -->
             <!-- 基本設定(2026-10-12): 以前は各画面右上の歯車にあった音量・クリック操作・言語をここにまとめた -->
-            <div class="pi-tab-panel" data-pi-panel="basic" id="basicSettingsPanel" hidden>
+            <div class="pi-tab-panel" data-pi-panel="basic" id="basicSettingsPanel">
                 <details class="design-section" open>
                     <summary class="design-section-title" data-i18n="settingsVolume">音量</summary>
                     <div class="design-section-body basic-settings">
