@@ -25,7 +25,7 @@ import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText
 
 initLang();
 setupSettingsModal('settingsButton', 'settingsModal');
-bindSettingsUI(document.getElementById('settingsModal'));
+bindSettingsUI(document.getElementById('basicSettingsPanel')); // 基本設定タブ(音量・クリック操作・言語)
 
 // 言語切替時にアチーブメント一覧・称号スロットを即時再描画
 document.querySelectorAll('input[name="langSelect"]').forEach(radio => {

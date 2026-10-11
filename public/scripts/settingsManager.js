@@ -150,6 +150,7 @@ export function getVoiceVolume() {
  * @param {function} [onColorChange] - 石カラー変更時に呼ばれるコールバック（再描画用）
  */
 export function bindSettingsUI(root, onColorChange, onLangChange) {
+    if (!root) return; // 歯車の設定は 設定・プレイヤー情報 > 基本設定 に移した(2026-10-12)。モーダルが無いページでは何もしない
     // 色スウォッチ
     const swatchButtons = root.querySelectorAll(".color-swatch");
     swatchButtons.forEach(btn => {

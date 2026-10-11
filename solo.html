@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>原壊：コネクトバトル（ソロモード）</title>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
-    <link rel="stylesheet" href="public/style_battle.css?v=1.59.0"> <!-- バトル画面と同じ盤面スタイルを再利用 -->
+    <link rel="stylesheet" href="public/style_battle.css?v=1.60.0"> <!-- バトル画面と同じ盤面スタイルを再利用 -->
     <link rel="stylesheet" href="public/style_solo.css"> <!-- ソロモード専用の追加スタイル -->
     <script type="module" src="public/scripts/soloLogic.js" defer></script>
 
@@ -21,8 +21,6 @@
     <!-- ヘルプボタン -->
     <button id="helpButton" class="help-btn" data-i18n="helpBtn">あそびかた</button>
 
-    <!-- 設定ボタン -->
-    <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
 
     <!-- Help Modal -->
     <div id="helpModal" class="modal">
@@ -45,42 +43,6 @@
       </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-
-
-
-        <div class="settings-section">
-          <h3 data-i18n="settingsVolume">音量</h3>
-          <div class="settings-volume-row">
-            <label for="systemvolumeSlider" data-i18n="settingsSysVol">システム音量: </label>
-            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
-          </div>
-          <div class="settings-volume-row">
-            <label for="voicevolumeSlider" data-i18n="settingsVoiceVol">ボイス音量: </label>
-            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3 data-i18n="settingsClickMode">クリック操作</h3>
-          <div class="intensity-radio-group">
-            <label><input type="radio" name="clickMode" value="single"> <span data-i18n="settingsClickSingle">1クリックで石を落とす</span></label>
-            <label><input type="radio" name="clickMode" value="double"> <span data-i18n="settingsClickDouble">2クリックで石を落とす（列選択→確定）</span></label>
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3 data-i18n="settingsLang">言語</h3>
-          <div class="intensity-radio-group" id="langRadioGroup">
-            <label><input type="radio" name="langSelect" value="ja"> <span data-i18n="langJa">日本語</span></label>
-            <label><input type="radio" name="langSelect" value="en"> <span data-i18n="langEn">English</span></label>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div id="leftPane">
         <div class="player-info">

@@ -1630,7 +1630,7 @@ body.hub-page::before {
 
 /* スマホの横持ちなど、高さが低い画面ではひと回り小さく */
 @media (max-height: 520px) {
-    .hub-panel { right: 72px; top: calc(50% + 10px); } /* 右上の設定ボタンと重ならないように */
+    .hub-panel { top: calc(50% + 10px); }
     .hub-logo { font-size: clamp(18px, 2.6vw, 28px); }
     .hub-logo small { font-size: 10px; }
     .hub-player { margin: 8px 0 8px; padding: 6px 10px; }
@@ -1906,3 +1906,10 @@ body.hub-page::before {
 }
 /* 裏面の時は名前をカードの上でも読めるように、影を強めに */
 .hub-hero.is-card .hub-hero-name { text-shadow: 0 2px 8px #000, 0 0 16px rgba(0, 0, 0, 0.85); z-index: 1; }
+
+/* 設定・プレイヤー情報 > 基本設定 */
+.basic-settings { text-align: left; padding: 8px 6px; display: flex; flex-direction: column; gap: 8px; color: #333; }
+.basic-settings label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.basic-settings .settings-volume-row { display: flex; align-items: center; gap: 10px; }
+.basic-settings .settings-volume-row label { min-width: 9em; }
+.basic-settings input[type="range"] { flex: 1; max-width: 320px; }

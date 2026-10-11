@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル（設定・プレイヤー情報）</title>
     <link rel="stylesheet" href="public/style_settings.css">
-    <link rel="stylesheet" href="public/style.css?v=1.59.0">
+    <link rel="stylesheet" href="public/style.css?v=1.60.0">
     <script type="module" src="public/scripts/playerInfo.js" defer></script>
 
     <!-- Favicon -->
@@ -18,41 +18,11 @@
     <link rel="icon" sizes="512x512" href="public/scripts/favicon_io/android-chrome-512x512.png">
 </head>
 <body class="simple-page">
-    <!-- 設定ボタン（このページには「あそびかた」ボタンが無いため、それ用に空けてあった上の隙間を詰めてtop:10pxに。
-         ログイン状態バッジを左に並べる） -->
+    <!-- ログイン状態バッジ(右上) -->
     <div style="position:fixed; top:10px; right:20px; z-index:1000000; display:flex; align-items:center; gap:8px;">
       <span id="uko-account-status-slot"></span>
-      <button id="settingsButton" class="settings-btn" style="position:static;" aria-label="設定">⚙</button>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2 data-i18n="settingsTitle">設定</h2>
-
-
-        <div class="settings-section">
-          <h3 data-i18n="settingsVolume">音量</h3>
-          <div class="settings-volume-row">
-            <label for="systemvolumeSlider" data-i18n="settingsSysVol">システム音量: </label>
-            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
-          </div>
-          <div class="settings-volume-row">
-            <label for="voicevolumeSlider" data-i18n="settingsVoiceVol">ボイス音量: </label>
-            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3 data-i18n="settingsLang">言語</h3>
-          <div class="intensity-radio-group" id="langRadioGroup">
-            <label><input type="radio" name="langSelect" value="ja"> <span data-i18n="langJa">日本語</span></label>
-            <label><input type="radio" name="langSelect" value="en"> <span data-i18n="langEn">English</span></label>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <main>
         <div id="portraitHint" class="portrait-hint" data-i18n="portraitHint">📱 この画面は端末を縦持ちにすると見やすくなります</div>
@@ -93,6 +63,7 @@
             <div class="pi-tabs" role="tablist">
                 <button type="button" class="pi-tab-btn active" data-pi-tab="ach" data-i18n="piTabAch">アチーブメント</button>
                 <button type="button" class="pi-tab-btn" data-pi-tab="design" data-i18n="piTabHero">デザイン変更</button>
+                <button type="button" class="pi-tab-btn" data-pi-tab="basic" data-i18n="piTabBasic">基本設定</button>
             </div>
 
             <div class="pi-tab-panel" data-pi-panel="ach">
@@ -108,6 +79,37 @@
 
             <!-- デザイン変更: 今後、石のスキン・バトル中の背景などもここに項目(見出し+中身)を足していく -->
             <!-- 項目ごとに見出しを押して開け閉めできる(<details>) -->
+            <!-- 基本設定(2026-10-12): 以前は各画面右上の歯車にあった音量・クリック操作・言語をここにまとめた -->
+            <div class="pi-tab-panel" data-pi-panel="basic" id="basicSettingsPanel" hidden>
+                <details class="design-section" open>
+                    <summary class="design-section-title" data-i18n="settingsVolume">音量</summary>
+                    <div class="design-section-body basic-settings">
+                        <div class="settings-volume-row">
+                            <label for="systemvolumeSlider" data-i18n="settingsSysVol">システム音量: </label>
+                            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
+                        </div>
+                        <div class="settings-volume-row">
+                            <label for="voicevolumeSlider" data-i18n="settingsVoiceVol">ボイス音量: </label>
+                            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
+                        </div>
+                    </div>
+                </details>
+                <details class="design-section" open>
+                    <summary class="design-section-title" data-i18n="settingsClickMode">クリック操作</summary>
+                    <div class="design-section-body basic-settings">
+                        <label><input type="radio" name="clickMode" value="single"> <span data-i18n="settingsClickSingle">1クリックで石を落とす</span></label>
+                        <label><input type="radio" name="clickMode" value="double"> <span data-i18n="settingsClickDouble">2クリックで石を落とす（列選択→確定）</span></label>
+                    </div>
+                </details>
+                <details class="design-section" open>
+                    <summary class="design-section-title" data-i18n="settingsLang">言語</summary>
+                    <div class="design-section-body basic-settings">
+                        <label><input type="radio" name="langSelect" value="ja"> <span data-i18n="langJa">日本語</span></label>
+                        <label><input type="radio" name="langSelect" value="en"> <span data-i18n="langEn">English</span></label>
+                    </div>
+                </details>
+            </div>
+
             <!-- 並び順: 石のデザイン → 背景 → タイトル画面のキャラ。最初は全部閉じておく(2026-10-11) -->
             <div class="pi-tab-panel" data-pi-panel="design" hidden>
                 <details class="design-section">

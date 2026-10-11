@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル</title>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
-    <link rel="stylesheet" href="public/style.css?v=1.59.0"> <!-- スタイルシートのリンク -->
+    <link rel="stylesheet" href="public/style.css?v=1.60.0"> <!-- スタイルシートのリンク -->
     <script type="module" src="public/scripts/characterSelect.js" defer></script>
 
     <!-- Favicon -->
@@ -39,8 +39,6 @@
      <!-- ヘルプボタン -->
     <button id="helpButton" class="help-btn" data-i18n="helpBtn">あそびかた</button>
 
-    <!-- 設定ボタン -->
-    <button id="settingsButton" class="settings-btn" aria-label="設定">⚙</button>
 
     <!-- Help Modal -->
     <div id="helpModal" class="modal">
@@ -66,35 +64,6 @@
       </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2 data-i18n="settingsTitle">設定</h2>
-
-
-
-        <div class="settings-section">
-          <h3 data-i18n="settingsVolume">音量</h3>
-          <div class="settings-volume-row">
-            <label for="systemvolumeSlider" data-i18n="settingsSysVol">システム音量: </label>
-            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
-          </div>
-          <div class="settings-volume-row">
-            <label for="voicevolumeSlider" data-i18n="settingsVoiceVol">ボイス音量: </label>
-            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3 data-i18n="settingsLang">言語</h3>
-          <div class="intensity-radio-group" id="langRadioGroup">
-            <label><input type="radio" name="langSelect" value="ja"> <span data-i18n="langJa">日本語</span></label>
-            <label><input type="radio" name="langSelect" value="en"> <span data-i18n="langEn">English</span></label>
-          </div>
-        </div>
-      </div>
-    </div>
 
      <!-- ----------------------------モーダル------------------------------------------- -->
 
