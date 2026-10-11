@@ -1468,7 +1468,7 @@ body.hub-page::before {
     -webkit-mask-composite: source-in;
     mask: linear-gradient(90deg, #000 55%, transparent), linear-gradient(180deg, transparent, #000 15%, #000 82%, transparent);
     mask-composite: intersect;
-    animation: hubHeroIn 0.8s ease-out both;
+    /* 出てくる動きは付けない(2026-10-11。カードが下から中央へ動いて見えていたため) */
 }
 .hub-hero img:not([src]) { visibility: hidden; }
 @keyframes hubHeroIn { from { opacity: 0; transform: translateX(-30px); } }
@@ -1895,7 +1895,7 @@ body.hub-page::before {
     -webkit-mask-composite: source-in;
     mask: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%), linear-gradient(180deg, transparent 0, #000 9%, #000 91%, transparent 100%);
     mask-composite: intersect;
-    animation: hubHeroIn 0.8s ease-out both;
+    /* 出てくる動きは付けない(2026-10-11。カードが下から中央へ動いて見えていたため) */
 }
 .hub-hero-card[hidden] { display: none; }
 .hub-hero-card img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
