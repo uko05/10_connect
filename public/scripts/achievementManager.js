@@ -4,7 +4,7 @@ import { db } from './firebaseConfig.js';
 import {
   doc, updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getDoc } from './fsTracked.js'; // 読み取り件数の集計(調査用、fsTracked.js参照)
+import { getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { ALL_ACHIEVEMENTS } from './achievements.js';
 import { characterData } from './characterData.js';
 import { t, getAchText, getCharaAchText, getCharaText } from './i18n.js';

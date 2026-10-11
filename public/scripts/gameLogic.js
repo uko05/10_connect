@@ -5,7 +5,7 @@ import {
   getFirestore, collection, addDoc, query, where, deleteDoc, doc, runTransaction, writeBatch, updateDoc, increment, // ★これを追加！
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { onSnapshot, getDocs, getDoc } from './fsTracked.js'; // 読み取り件数の集計(調査用、fsTracked.js参照)
+import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 import { characterData } from "./characterData.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
