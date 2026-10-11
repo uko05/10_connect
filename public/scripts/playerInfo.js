@@ -19,7 +19,7 @@ import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStone
 
 // 背景(デザイン変更で選んだもの)
 applyBattleBackground();
-import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS } from './hubHero.js';
+import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS, syncHubArtUnlocks } from './hubHero.js';
 import { setupSettingsModal, bindSettingsUI, getDisplayColor } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
@@ -99,6 +99,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTitleSlots(latestUserData);
         renderAchievements();
         renderHeroSetting();
+        // 原神おみくじの裏面(10枚)の解放を反映してから、タイトル画面のキャラの選択肢を描き直す
+        syncHubArtUnlocks(currentUid, latestUserData).then((d) => { latestUserData = d || latestUserData; renderHeroSetting(); });
         renderStoneSkinSetting();
         renderBattleBgSetting();
     } catch (error) {
@@ -157,7 +159,7 @@ function renderHeroSetting() {
     };
     makeOption('random', '<div class="hero-option-random">?</div>', t('heroRandom'));
     candidates.forEach((c) => {
-        const rest = HERO_FIXED_MIN_WINS - heroWins(latestUserData, c.charaID);
+        const rest = c.kind === 'card' ? 0 : HERO_FIXED_MIN_WINS - heroWins(latestUserData, c.charaID);
         makeOption(c.charaID, `<img src="${c.src}" alt="" loading="lazy">`, getCharaText(c.charaID, 'name') || c.name,
             rest > 0 ? t('heroWinsLeft').replace('{n}', rest) : '');
     });

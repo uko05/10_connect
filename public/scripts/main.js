@@ -2,7 +2,7 @@
 import { APP_VERSION } from './version.js';
 import { setupSettingsModal, bindSettingsUI } from './settingsManager.js';
 import { initLang, t, getCharaText } from './i18n.js';
-import { pickHubHero } from './hubHero.js';
+import { pickHubHero, syncHubArtUnlocks, cardEdgeDarkness } from './hubHero.js';
 import { applyBattleBackground } from './designSettings.js';
 
 // 背景(プレイヤー情報 > デザイン変更 で選んだもの)
@@ -85,7 +85,10 @@ document.getElementById('goPlayerInfoButton').addEventListener('click', () => {
 const myDataPromise = (async () => {
     try {
         const user = await authReady;
-        return user ? await getUserRating(user.uid) : null;
+        if (!user) return null;
+        const data = await getUserRating(user.uid);
+        // 原神おみくじで同じ裏面を10枚持った裏面を解放済みに追加する(一度解放したらずっと使える)
+        return data ? await syncHubArtUnlocks(user.uid, data) : data;
     } catch (e) {
         console.warn('[hub] user data load failed', e);
         return undefined; // 読み込み失敗(ランク欄は出さない)
@@ -98,6 +101,22 @@ function showHero(userData) {
     const pick = pickHubHero(userData);
     if (!pick) return;
     img.dataset.shown = '1';
+    if (pick.kind === 'card') {
+        // 裏面: カード全体を表示し、明るい裏面ほど端を暗くしてなじませる
+        const card = document.getElementById('hubHeroCard');
+        const cardImg = document.getElementById('hubHeroCardImg');
+        cardImg.onload = () => {
+            card.style.aspectRatio = `${cardImg.naturalWidth} / ${cardImg.naturalHeight}`;
+            card.style.setProperty('--edge-dark', cardEdgeDarkness(cardImg));
+            card.hidden = false;
+        };
+        cardImg.src = pick.src;
+        img.removeAttribute('src');
+        document.getElementById('hubHero').classList.add('is-card');
+        document.getElementById('hubHeroNameLabel').textContent = 'CARD BACK';
+        document.getElementById('hubHeroName').textContent = pick.name;
+        return;
+    }
     img.src = pick.src;
     document.getElementById('hubHeroName').textContent = getCharaText(pick.charaID, 'name') || pick.name;
 }

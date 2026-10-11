@@ -37,7 +37,7 @@
       }
     </script>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
-    <link rel="stylesheet" href="public/style.css?v=1.57.0"> <!-- スタイルシートのリンク -->
+    <link rel="stylesheet" href="public/style.css?v=1.58.0"> <!-- スタイルシートのリンク -->
     <script type="module" src="public/scripts/main.js" defer></script> <!-- JavaScriptファイルの読み込み -->
 
     <!-- Favicon -->
@@ -169,7 +169,12 @@
     <!-- 左の大きなキャラ(開くたびにランダム、main.js) -->
     <div id="hubHero" class="hub-hero" aria-hidden="true">
         <img id="hubHeroImg" alt="">
-        <div class="hub-hero-name"><small>CHARACTER</small><span id="hubHeroName"></span></div>
+        <!-- 原神おみくじの裏面を出す時(2026-10-11): カード全体を画面の高さいっぱいに出し、端をぼかして背景になじませる -->
+        <div id="hubHeroCard" class="hub-hero-card" hidden>
+            <img id="hubHeroCardImg" alt="" crossorigin="anonymous">
+            <div class="hub-hero-card-dark"></div>
+        </div>
+        <div class="hub-hero-name"><small id="hubHeroNameLabel">CHARACTER</small><span id="hubHeroName"></span></div>
     </div>
 
     <div id="hubWrap" class="hub-panel">

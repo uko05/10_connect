@@ -1879,3 +1879,30 @@ body.hub-page::before {
 /* 背景: まだ持っていないものはグレーアウト */
 .bg-option.locked { cursor: default; opacity: 0.5; }
 .bg-option.locked img { filter: grayscale(1); }
+
+/* トップ画面: 原神おみくじの裏面を出す時(2026-10-11)。カード全体を画面の高さいっぱいに出し、
+   上下左右の端をぼかして背景になじませる。明るい裏面は端を暗くする(--edge-dark は main.js が明るさから決める)。
+   画像と暗くする層をまとめてぼかすので、境目に線が出ない */
+.hub-hero.is-card > img#hubHeroImg { display: none; }
+.hub-hero-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: 100vh;
+    transform: translate(-50%, -50%);
+    --edge-dark: 0;
+    -webkit-mask: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%), linear-gradient(180deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%), linear-gradient(180deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+    mask-composite: intersect;
+    animation: hubHeroIn 0.8s ease-out both;
+}
+.hub-hero-card[hidden] { display: none; }
+.hub-hero-card img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hub-hero-card-dark {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 55% at 50% 42%, transparent 35%, rgba(12, 8, 20, var(--edge-dark)) 100%);
+}
+/* 裏面の時は名前をカードの上でも読めるように、影を強めに */
+.hub-hero.is-card .hub-hero-name { text-shadow: 0 2px 8px #000, 0 0 16px rgba(0, 0, 0, 0.85); z-index: 1; }
