@@ -93,8 +93,10 @@ export function getCpuSearchDepth() {
     return (level || CPU_DIFFICULTY_LEVELS[1]).depth;
 }
 
+// 2026-10-11: 設定画面から「石の色」を外したので、以前の選択に関係なくいつもクラシック(赤・黄)にする
+// (選べないまま別の色に固定されるのを防ぐため)
 function getActivePreset() {
-    return STONE_COLOR_PRESETS.find(p => p.id === currentSettings.stoneColorPreset) || STONE_COLOR_PRESETS[0];
+    return STONE_COLOR_PRESETS[0];
 }
 
 /**
@@ -108,8 +110,9 @@ export function getDisplayColor(role) {
     return role; // 想定外の値が来た場合はそのまま返す
 }
 
+// 2026-10-11: 設定画面から「必殺技演出の強度」を外したので、いつも「強」にする
 export function getUltIntensity() {
-    return currentSettings.ultIntensity;
+    return 'strong';
 }
 
 export function setClickMode(id) {
