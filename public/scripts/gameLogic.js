@@ -155,8 +155,11 @@ let disconnectTimer = null; // 相手切断検知用の猶予タイマー
 
 // 部屋離脱検知用ハートビート：対局中は自分の生存時刻を定期的に書き込み、
 // 相手の生存時刻が一定時間更新されなければ「離脱」とみなして既存のleave処理を起動する
-const HEARTBEAT_INTERVAL_MS = 10 * 1000;
-const STALE_THRESHOLD_MS = 30 * 1000;
+// 2026-10-11: 書き込み削減のため10秒→30秒に。石を置いた書き込みでも生存時刻を一緒に送るので、
+// 手を打っている間はハートビートを別に送らない(lastBeatSentMs)。離脱判定はハートビート2回分強の75秒
+const HEARTBEAT_INTERVAL_MS = 30 * 1000;
+const STALE_THRESHOLD_MS = 75 * 1000;
+let lastBeatSentMs = 0; // 自分の生存時刻を最後に送った時刻(石を置いた時も更新)
 let heartbeatIntervalId = null;
 let enemyStaleCheckIntervalId = null;
 let enemyLastActiveMs = null; // 直近で観測した相手のlastActive（サーバー時刻のミリ秒）
@@ -719,6 +722,9 @@ function startHeartbeat() {
     const sendBeat = () => {
         if (document.visibilityState !== 'visible') return;
         if (isMatchFinalized || !firestoreRoomDocRef) return;
+        // 直近に石を置いて生存時刻を送ったばかりなら、ハートビートは送らない
+        if (Date.now() - lastBeatSentMs < HEARTBEAT_INTERVAL_MS - 2000) return;
+        lastBeatSentMs = Date.now();
         const field = player_info === 'P1' ? 'player1_LastActive' : 'player2_LastActive';
         updateDoc(firestoreRoomDocRef, { [field]: serverTimestamp() }).catch((e) => {
             console.error("[heartbeat] failed:", e);
@@ -1819,10 +1825,13 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
       },
       turn: nextTurn,
       turnCount: currentTurnCount + 1,
-      changeStone: nextChangeStone
+      changeStone: nextChangeStone,
+      // 石を置いた書き込みで生存時刻も送る(ハートビートの書き込みを減らすため)
+      [player_info === 'P1' ? 'player1_LastActive' : 'player2_LastActive']: serverTimestamp(),
     };
 
     await updateDoc(docSnap.ref, updatePayload);
+    lastBeatSentMs = Date.now();
   }
 }
 
