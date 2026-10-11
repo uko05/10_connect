@@ -16,10 +16,10 @@ const HUB_HERO_KEY = 'connectHubHero';
 // 1人に固定できるのは、そのキャラでランク戦にこの回数以上勝ったキャラだけ(2026-10-11)
 export const HERO_FIXED_MIN_WINS = 5;
 // 同じ裏面をこの枚数持ったら、トップ画面に使えるようになる(本番は10枚)
-// 2026-10-11: 確認のため一時的に1枚にしている。テスト中は解放をサーバーに記録しない(TEST_UNLOCK_NO_SAVE)。
+// 2026-10-11: 確認のため一時的に2枚にしている。テスト中は解放をサーバーに記録しない(TEST_UNLOCK_NO_SAVE)。
 // 記録すると「一度解放したらずっと」なので、テストで解放した裏面が本番でも残ってしまうため。
 // 確認が終わったら CARD_UNLOCK_COPIES = 10、TEST_UNLOCK_NO_SAVE = false に戻すこと
-export const CARD_UNLOCK_COPIES = 1;
+export const CARD_UNLOCK_COPIES = 2;
 const TEST_UNLOCK_NO_SAVE = true;
 const CARD_PREFIX = 'card:';
 const CARD_BY_ID = new Map(ALL_CARD_DESIGNS.map((d) => [d.id, d]));
