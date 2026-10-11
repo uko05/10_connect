@@ -195,8 +195,9 @@ const WAITING_EXPIRE_MS = 15 * 60 * 1000; // 5分
 
 // 部屋離脱検知用ハートビート：waiting中はP1が自分の生存時刻を定期的に書き込み、
 // 他のクライアントはこれが古い（既定で30秒超）場合に「不在」と判定する
-const HEARTBEAT_INTERVAL_MS = 10 * 1000;
-const STALE_THRESHOLD_MS = 30 * 1000;
+// 2026-10-11: 書き込み削減のため10秒→30秒に(不在判定もそれに合わせて30秒→75秒)
+const HEARTBEAT_INTERVAL_MS = 30 * 1000;
+const STALE_THRESHOLD_MS = 75 * 1000;
 let heartbeatIntervalId = null;
 
 function stopHeartbeat() {
@@ -880,7 +881,10 @@ function listenForMatches() {
     }
     let playerUUID = getUUIDFromCookie(); //クッキーからUUIDを読み込む
 
-    onSnapshot(roomsRef, async (snapshot) => {
+    // 自分が入っている部屋だけを見張る(2026-10-11)。以前は対戦部屋を全部見張っていたため、
+    // ほかの人の対戦で石が置かれるたびに、待っている全員に読み取りが発生していた。
+    // P1として作った部屋(player1_ID)と、P2として参加した部屋(player2_ID)の2つの条件で見張る
+    const handleRoomsSnapshot = async (snapshot) => {
 
         const addedDocs = snapshot.docChanges().filter(change => change.type === "added");
         const modifiedDocs = snapshot.docChanges().filter(change => change.type === "modified");
@@ -941,7 +945,9 @@ function listenForMatches() {
                 }, 5000);
             }
         });
-    });
+    };
+    onSnapshot(query(roomsRef, where("player1_ID", "==", playerUUID)), handleRoomsSnapshot);
+    onSnapshot(query(roomsRef, where("player2_ID", "==", playerUUID)), handleRoomsSnapshot);
 }
 
 //matchingを表示するための関数
