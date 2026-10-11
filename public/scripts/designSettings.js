@@ -20,7 +20,7 @@ export const STONE_SKINS = [
     { id: 'go', group: 'basic', name: 'デフォルト', nameEn: 'Default' },
     { id: 'el_hi', group: 'element', name: '炎', nameEn: 'Pyro', color: '#e8452c', icon: '01_Genshin/Genso/hi.png' },
     { id: 'el_mizu', group: 'element', name: '水', nameEn: 'Hydro', color: '#2f8ff0', icon: '01_Genshin/Genso/mizu.png' },
-    { id: 'el_kaze', group: 'element', name: '風', nameEn: 'Anemo', color: '#35c9a6', icon: '01_Genshin/Genso/kaze.png' },
+    { id: 'el_kaze', group: 'element', name: '風', nameEn: 'Anemo', color: '#36c2c0', icon: '01_Genshin/Genso/kaze.png' },
     { id: 'el_kaminari', group: 'element', name: '雷', nameEn: 'Electro', color: '#a35be0', icon: '01_Genshin/Genso/kaminari.png' },
     { id: 'el_kusa', group: 'element', name: '草', nameEn: 'Dendro', color: '#7fc02a', icon: '01_Genshin/Genso/kusa.png' },
     { id: 'el_koori', group: 'element', name: '氷', nameEn: 'Cryo', color: '#6fcde6', icon: '01_Genshin/Genso/koori.png' },
