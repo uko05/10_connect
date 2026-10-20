@@ -1705,14 +1705,21 @@ function initCharacters() {
     const voiceVol = getVoicePlaybackVolume();
     playerUltAudio = new Audio(playerChara.voice_ult);
     playerUltAudio.volume = voiceVol;
-    cpuUltAudio = new Audio(cpuChara.voice_ult);
-    cpuUltAudio.volume = voiceVol;
     playerAttackAudio = new Audio(playerChara.voice_attack);
     playerAttackAudio.volume = voiceVol;
-    cpuAttackAudio = new Audio(cpuChara.voice_attack);
-    cpuAttackAudio.volume = voiceVol;
+    setCpuVoices();
 
     return true;
+}
+
+// CPUキャラの声(石を置く時・必殺技)を、今の cpuChara で作り直す。
+// 「もう一度」で相手が変わった時も呼ぶ(以前は作り直しておらず、初戦の相手の声のままだった、2026-10-20)
+function setCpuVoices() {
+    const voiceVol = getVoicePlaybackVolume();
+    cpuUltAudio = new Audio(cpuChara.voice_ult);
+    cpuUltAudio.volume = voiceVol;
+    cpuAttackAudio = new Audio(cpuChara.voice_attack);
+    cpuAttackAudio.volume = voiceVol;
 }
 
 // 通常戦のbackcolor_player()(#ffe5e5 / #ffffe5 の不透明な薄色)と同じ見た目になるよう、
@@ -1776,6 +1783,7 @@ async function resetGame() {
 
     cpuChara = pickCpuCharacter();
     displayCharaPanel('cpu', cpuChara);
+    setCpuVoices();
     updateWinIndicators();
 
     if (highlightedColumn) {
