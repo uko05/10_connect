@@ -1,17 +1,18 @@
 // audioManager.js - システムSEの生成・初期化・音量制御
+import { getSystemVolume } from './settingsManager.js';
 
 // システムSE
 export const chargeSound = new Audio('public/scripts/sound/charge.mp3');
-chargeSound.volume = 0.2;
+chargeSound.volume = getSystemVolume();
 
 export const moveSound = new Audio('public/scripts/sound/moveSound.wav');
-moveSound.volume = 0.2;
+moveSound.volume = getSystemVolume();
 
 export const highlightSound = new Audio('public/scripts/sound/stone_highlight.wav');
-highlightSound.volume = 0.2;
+highlightSound.volume = getSystemVolume();
 
 export const AbilityStandby = new Audio('public/scripts/sound/AbilityStandby.mp3');
-AbilityStandby.volume = 0.2;
+AbilityStandby.volume = getSystemVolume();
 
 /**
  * 初回クリック時に音声再生を初期化する（ブラウザの自動再生制限対策）
@@ -21,8 +22,7 @@ export function initializeAudioPlayback(voiceAudios) {
     const audioFiles = [...voiceAudios, chargeSound];
 
     audioFiles.forEach(audio => {
-        // 再生前にミュートを設定
-        audio.volume = 0.2;
+        // 再生前にミュートを設定(音量は設定どおりのまま。ここで上書きしない)
         audio.muted = true;
         // 再生を試みる
         audio.play()
@@ -60,6 +60,7 @@ export function setupSystemVolumeSlider(slider) {
         slider.addEventListener('input', handler);
         slider.addEventListener('change', handler); // iOS Safari対策
     } else {
-        console.error("systemvolumeSlider が見つかりません");
+        // 音量バーは「設定・プレイヤー情報」に移した(2026-10-12)ので、普段はバーが無い。保存済みの設定を使う
+        [chargeSound, moveSound, highlightSound, AbilityStandby].forEach((a) => { a.volume = getSystemVolume(); });
     }
 }

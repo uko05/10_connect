@@ -20,7 +20,7 @@ import { STONE_SKINS, STONE_SKIN_GROUPS, ownsStoneSkin, getStoneSkinId, setStone
 // 背景(デザイン変更で選んだもの)
 applyBattleBackground();
 import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS, syncHubArtUnlocks } from './hubHero.js';
-import { setupSettingsModal, bindSettingsUI, getDisplayColor } from './settingsManager.js';
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, VOICE_GAIN } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
 
 initLang();
@@ -54,7 +54,7 @@ document.getElementById('voicevolumeSlider')?.addEventListener('change', (e) => 
     if (!previewVoice || previewVoice.dataset.chara !== previewChara.charaID) {
         previewVoice = new Audio(previewChara.voice_attack); previewVoice.dataset.chara = previewChara.charaID;
     }
-    playPreview(previewVoice, Number(e.target.value));
+    playPreview(previewVoice, Number(e.target.value) * VOICE_GAIN); // 声は実際のゲームと同じく半分の音量
 });
 
 // 言語切替時にアチーブメント一覧・称号スロットを即時再描画

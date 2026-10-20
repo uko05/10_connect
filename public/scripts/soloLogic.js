@@ -6,7 +6,7 @@ import { getMyStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
-import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty, getClickMode } from "./settingsManager.js";
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty, getClickMode, getVoicePlaybackVolume, VOICE_GAIN } from "./settingsManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
@@ -1701,7 +1701,8 @@ function initCharacters() {
     applyPaneColors();
 
     // 音声 Audio オブジェクトを生成
-    const voiceVol = parseFloat(document.getElementById('voicevolumeSlider')?.value ?? 0.2);
+    // 音量バーは設定画面に移した(2026-10-12)ので、保存済みの設定を使う(声は半分の音量で鳴らす)
+    const voiceVol = getVoicePlaybackVolume();
     playerUltAudio = new Audio(playerChara.voice_ult);
     playerUltAudio.volume = voiceVol;
     cpuUltAudio = new Audio(cpuChara.voice_ult);
@@ -1968,7 +1969,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const voicevolumeSlider = document.getElementById('voicevolumeSlider');
     if (voicevolumeSlider) {
         const voiceHandler = (e) => {
-            const v = parseFloat(e.target.value);
+            const v = parseFloat(e.target.value) * VOICE_GAIN;
             if (playerUltAudio) playerUltAudio.volume = v;
             if (cpuUltAudio) cpuUltAudio.volume = v;
             if (playerAttackAudio) playerAttackAudio.volume = v;

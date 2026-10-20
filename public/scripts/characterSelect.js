@@ -11,7 +11,7 @@ import { setupScaledLayout } from './layoutScaler.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName, syncSharedUserId } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
 import { applyTitleDisplay } from './achievementManager.js';
-import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume } from './settingsManager.js';
+import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume, VOICE_GAIN } from './settingsManager.js';
 import { initLang, t, getCharaText, getAchText, getCharaAchText } from './i18n.js';
 import { applyBattleBackground, getMyStoneSkinCode } from './designSettings.js';
 
@@ -313,7 +313,7 @@ function playSelectVoices(img, withVoice) {
     selectSound.play().catch(err => console.error('システム音の再生に失敗しました:', err));
     charaSoundUrl = img.getAttribute('data-voice');
     charaSound = new Audio(charaSoundUrl);
-    charaSound.volume = voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : getVoiceVolume();
+    charaSound.volume = (voicevolumeSlider ? parseFloat(voicevolumeSlider.value) : getVoiceVolume()) * VOICE_GAIN;
     charaSound.play().catch(err => console.error('音声の再生に失敗しました:', err));
 }
 
@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         systemvolumeSlider.addEventListener('input', (e) => { selectSound.volume = parseFloat(e.target.value); });
     }
     if (voicevolumeSlider) {
-        voicevolumeSlider.addEventListener('input', (e) => { if (charaSound) charaSound.volume = parseFloat(e.target.value); });
+        voicevolumeSlider.addEventListener('input', (e) => { if (charaSound) charaSound.volume = parseFloat(e.target.value) * VOICE_GAIN; });
     }
 
     localStorage.setItem("timeRemaining", 1000); //残り時間を保存

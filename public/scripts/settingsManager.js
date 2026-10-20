@@ -35,8 +35,8 @@ const DEFAULT_SETTINGS = {
     ultIntensity: "strong",
     cpuDifficulty: "normal",
     clickMode: "single",
-    systemVolume: 0.2,
-    voiceVolume: 0.2,
+    systemVolume: 0.4, // 既定は10段階の4つ目(2026-10-20)
+    voiceVolume: 0.4,
 };
 
 function loadSettings() {
@@ -131,7 +131,7 @@ export function setSystemVolume(v) {
 }
 
 export function getSystemVolume() {
-    return currentSettings.systemVolume ?? 0.2;
+    return currentSettings.systemVolume ?? 0.4;
 }
 
 export function setVoiceVolume(v) {
@@ -140,7 +140,14 @@ export function setVoiceVolume(v) {
 }
 
 export function getVoiceVolume() {
-    return currentSettings.voiceVolume ?? 0.2;
+    return currentSettings.voiceVolume ?? 0.4;
+}
+
+// キャラの声のファイルは効果音より5〜11dB大きい(体感で約2倍)ため、実際に鳴らすときは設定値の半分にする(2026-10-20)。
+// 声を鳴らす所は、設定値をそのまま使わず必ずこれを通す
+export const VOICE_GAIN = 0.5;
+export function getVoicePlaybackVolume() {
+    return getVoiceVolume() * VOICE_GAIN;
 }
 
 /**

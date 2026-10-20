@@ -28,7 +28,7 @@ import {
 } from "./abilities.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
-import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getClickMode } from "./settingsManager.js";
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getClickMode, getSystemVolume, getVoicePlaybackVolume, VOICE_GAIN } from "./settingsManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
 import { recordPvpMatchAchievements, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
@@ -436,20 +436,20 @@ async function displayThumbnails() {
     // 攻撃音声
     playerLeft_Attack = charaInfo1.voice_attack;
     pLeft_Attack = new Audio(playerLeft_Attack);
-    pLeft_Attack.volume = 0.2;
+    pLeft_Attack.volume = getVoicePlaybackVolume();
     
     playerRight_Attack = charaInfo2.voice_attack;
     pRight_Attack = new Audio(playerRight_Attack);
-    pRight_Attack.volume = 0.2;
+    pRight_Attack.volume = getVoicePlaybackVolume();
     
     // 必殺技音声
     playerLeft_ult = charaInfo1.voice_ult;
     pLeft_ult = new Audio(playerLeft_ult);
-    pLeft_ult.volume = 0.2;
+    pLeft_ult.volume = getVoicePlaybackVolume();
     
     playerRight_ult = charaInfo2.voice_ult;
     pRight_ult = new Audio(playerRight_ult);
-    pRight_ult.volume = 0.2;
+    pRight_ult.volume = getVoicePlaybackVolume();
     timeLimit = isTurnPlayer() ? playerLeft_TimeLimit : playerRight_TimeLimit; 
     timeRemaining = timeLimit; 
             
@@ -550,7 +550,8 @@ async function dispP1Info(charaInfo, player_Name) {
             // 音声を再生
             selectSoundUrl = img1.getAttribute('data-voice'); // 音声URLを取得
             selectSound = new Audio(selectSoundUrl); // Audioオブジェクトを作成
-            AbilityStandby.volume = 0.2; // 音量を30%に設定
+            selectSound.volume = getVoicePlaybackVolume();
+            AbilityStandby.volume = getSystemVolume();
             AbilityStandby.play().catch(err => console.error('音声の再生に失敗しました:', err));
             
             nowCol = null;
@@ -975,7 +976,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (voicevolumeSlider) {
         const voiceHandler = (event) => {
-            const newVolume = parseFloat(event.target.value);
+            const newVolume = parseFloat(event.target.value) * VOICE_GAIN;
             if (selectSound) selectSound.volume = newVolume;
             if (pLeft_Attack) pLeft_Attack.volume = newVolume;
             if (pRight_Attack) pRight_Attack.volume = newVolume;
@@ -984,8 +985,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         voicevolumeSlider.addEventListener('input', voiceHandler);
         voicevolumeSlider.addEventListener('change', voiceHandler); // iOS Safari対策
-    } else {
-        console.error("voicevolumeSlider が見つかりません");
     }
 });
 
