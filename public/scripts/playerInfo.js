@@ -39,8 +39,6 @@ function pickPreviewChara() {
     const list = heroCandidates(latestUserData).filter((c) => c.kind === 'chara' && c.voice_attack);
     if (!list.length) return;
     previewChara = list[Math.floor(Math.random() * list.length)];
-    const label = document.getElementById('voicePreviewName');
-    if (label) label.textContent = document.documentElement.lang === 'en' ? `(Voice: ${previewChara.name})` : `（声：${previewChara.name}）`;
 }
 function playPreview(audio, volume) {
     [previewSe, previewVoice].forEach((a) => { if (a) { a.pause(); a.currentTime = 0; } });

@@ -1912,5 +1912,4 @@ body.hub-page::before {
 .basic-settings label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .basic-settings .settings-volume-row { display: flex; align-items: center; gap: 10px; }
 .basic-settings .settings-volume-row label { min-width: 9em; }
-.basic-settings .voice-preview-name { font-size: 0.85em; color: #777; white-space: nowrap; }
 .basic-settings input[type="range"] { flex: 1; max-width: 320px; }
