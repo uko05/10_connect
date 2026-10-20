@@ -999,12 +999,6 @@ function initializeAudioPlayback() {
 const isMobileLayout = window.matchMedia('(max-width: 1024px)').matches;
 let refreshBoardLayout; // 手動再計算用
 
-// PC版: localStorage から保存済みサイズを復元
-if (!isMobileLayout) {
-    const saved = parseInt(localStorage.getItem('boardSize'));
-    if (saved === 80 || saved === 95 || saved === 110) cellSize = saved;
-}
-
 if (isMobileLayout) {
     // スマホ: CSS実寸でレイアウト（transform:scaleを使わない）
     // 全体アスペクト比 770:(110+660+30)=770:800
@@ -1018,29 +1012,6 @@ if (isMobileLayout) {
     });
 }
 
-// PC版の盤面サイズ変更
-function changeBoardSize(newCellSize) {
-    if (isMobileLayout) return;
-    cellSize = newCellSize;
-    canvas.width = cellSize * cols;
-    canvas.height = cellSize * rows;
-    topCanvas.width = cellSize * cols;
-    topCanvas.height = cellSize;
-    if (refreshBoardLayout.updateSize) {
-        refreshBoardLayout.updateSize(cellSize * cols, cellSize + cellSize * rows + 30);
-    }
-    init_drawBoard();
-    disp_TopStone(turn, nowCol);
-    localStorage.setItem('boardSize', newCellSize);
-}
-
-// ラジオボタン初期化（PC版のみ）
-if (!isMobileLayout) {
-    document.querySelectorAll('input[name="boardSize"]').forEach(radio => {
-        if (parseInt(radio.value) === cellSize) radio.checked = true;
-        radio.addEventListener('change', (e) => changeBoardSize(parseInt(e.target.value)));
-    });
-}
 
 //------------------------------------------------------------------------------------------------
 
