@@ -776,7 +776,7 @@ details[open] > .achievement-group-header::after {
     flex-direction: column; /* 縦に並べる */
     align-items: flex-start; /* 左上揃え */
     margin-left: 20px; /* containerとcharalistの間にスペースを作る */
-    max-width: 770px; /* 最大幅を設定 */
+    max-width: 900px; /* 最大幅を設定(2026-10-21: キャラ選択を横5列にしたので770→900) */
 }
 
 .thumbnail {
@@ -1916,3 +1916,22 @@ body.hub-page::before {
 
 /* 必殺技の説明が長くて欄からあふれる時は、欄の中でスクロールする(2026-10-21、アベンチュリンのダイスロールなど) */
 .abilityDetail { overflow-y: auto; overscroll-behavior: contain; }
+
+/* キャラ選択の一覧: 横5列 x 縦4行(2026-10-21。以前は横4列)。対戦画面のアイコンも .thumbnail-container を使うので id で限定する */
+#thumbnailContainer {
+    display: grid;
+    grid-template-columns: repeat(5, max-content);
+    gap: 5px;
+}
+/* まだキャラが決まっていない空き枠(クリック不可) */
+.thumbnail-empty {
+    display: block;
+    width: 168px;
+    height: 168px;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.25);
+    border: 2px dashed rgba(255, 255, 255, 0.25);
+    box-shadow: none;
+    cursor: default;
+}
+.thumbnail-empty:hover { transform: none; }

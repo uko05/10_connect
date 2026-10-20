@@ -285,6 +285,19 @@ function displayThumbnails() {
         container.appendChild(wrapper);
     });
 
+    // まだキャラが決まっていない空き枠(2026-10-21: 4x4 → 横5列x縦4行に)。
+    // キャラ数を5の倍数(最低20)まで埋めるので、キャラを追加すると空き枠が自動で減る
+    const SLOT_COLS = 5, MIN_SLOTS = 20;
+    const totalSlots = Math.max(MIN_SLOTS, Math.ceil(characterData.length / SLOT_COLS) * SLOT_COLS);
+    for (let i = characterData.length; i < totalSlots; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'thumbnail-wrapper';
+        const empty = document.createElement('div');
+        empty.className = 'thumbnail thumbnail-empty';
+        wrapper.appendChild(empty);
+        container.appendChild(wrapper);
+    }
+
     // 直前に使ったキャラ（と前回のCPUの相手）を選択状態に戻す。自動選択なのでボイスは鳴らさない
     const mode = requestedMode === 'match' ? 'match' : 'cpu';
     const lastImg = findThumbnail(loadStored(LAST_CHARA_KEY[mode]));
