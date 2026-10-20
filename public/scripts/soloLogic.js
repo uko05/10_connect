@@ -10,7 +10,7 @@ import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, g
 import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
-import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor } from "./winCheck.js";
+import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
 import { recordSoloWin, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
@@ -231,6 +231,11 @@ function isBoardFull() {
         if (getDropRow(c) >= 0) return false;
     }
     return true;
+}
+
+function randomValidColumn() {
+    const v = getValidColumns();
+    return v.length ? v[Math.floor(Math.random() * v.length)] : -1;
 }
 
 function getValidColumns() {
@@ -956,6 +961,7 @@ async function executeAbility(side, charaID) {
                 const col = validCols[Math.floor(Math.random() * validCols.length)];
                 const role = side === 'player' ? PLAYER_COLOR : CPU_COLOR;
                 await dropAt(col, applyColorSwap(role));
+                turnCount++; // 対人戦と同じく、追加投下も1ターンと数える(必殺技の「○ターン目から」に影響、2026-10-21)
             }
             break;
         }
@@ -1033,8 +1039,9 @@ async function executeAbility(side, charaID) {
             break;
         }
         case '010': { // ルアン・メェイ：相手3個変換→自分6個破壊(重力あり)
-            const myColor = applyColorSwap(side === 'player' ? PLAYER_COLOR : CPU_COLOR);
-            const opponentColor = applyColorSwap(side === 'player' ? CPU_COLOR : PLAYER_COLOR);
+            // 花火の色反転は「打つ石」だけに効くので、ここは本来の色を使う(対人戦と同じ、2026-10-21)
+            const myColor = side === 'player' ? PLAYER_COLOR : CPU_COLOR;
+            const opponentColor = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
 
             // Phase 1: 相手の石をランダムに3個選んで自分の色に変換
             const opponentKeys = Object.keys(stones).filter(k => stones[k] === opponentColor);
@@ -1343,6 +1350,29 @@ function updateWinIndicators() {
 
 async function checkGameEnd() {
     if (gameOver) return true; // 銀狼など盤外終了の場合
+    // 両者が同時に4つ並んだ場合(必殺技などで起きる)は、対人戦と同じく両者に1ポイント。
+    // 両者同時に3ポイントに達したら試合引き分け。次ラウンドの先攻はランダム(2026-10-21 対人戦に合わせた)
+    const both = collectWinPositions(sharedBoardFromStones(stones, rows, cols));
+    if (both[PLAYER_COLOR] && both[CPU_COLOR]) {
+        gameOver = true;
+        updateSpecialMoveButtonVisibility();
+        await Promise.all([highlightWinningCells(both[PLAYER_COLOR]), highlightWinningCells(both[CPU_COLOR])]);
+        playerRoundWins++; cpuRoundWins++;
+        updateWinIndicators();
+        if (playerRoundWins >= 3 && cpuRoundWins >= 3) {
+            await showFinalResult('draw');
+        } else if (playerRoundWins >= 3 || cpuRoundWins >= 3) {
+            // 片方だけ3ポイント(もう片方は2以下) → 3ポイントの側の勝ち
+            const playerWon = playerRoundWins >= 3;
+            if (playerWon && currentUid) await recordSoloWinSafe();
+            await showFinalResult(playerWon ? 'win' : 'lose');
+        } else {
+            startingSide = Math.random() < 0.5 ? 'player' : 'cpu';
+            await showRoundResult('draw');
+            await startNextRound();
+        }
+        return true;
+    }
     const winResult = checkWinLocal();
     if (winResult) {
         gameOver = true;
@@ -1375,14 +1405,25 @@ async function checkGameEnd() {
         return true;
     }
     if (isBoardFull()) {
-        gameOver = true;
-        updateSpecialMoveButtonVisibility();
-        startingSide = Math.random() < 0.5 ? 'player' : 'cpu'; // 引き分けはランダムで次ラウンドの先攻を決定
-        await showRoundResult('draw');
-        await startNextRound();
-        return true;
+        // 盤面が全部埋まったら、対人戦(handleFullBoard)と同じくランダムな縦1列を全部消して試合を続ける(2026-10-21。以前はラウンド引き分け)
+        const keys = getStonesToDeleteLocal(getRandomTopStonesLocal(1), 6);
+        await highlightStonesLocal(keys, 450);
+        await deleteStonesLocal(keys);
     }
     return false;
+}
+
+async function recordSoloWinSafe() {
+    try {
+        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+        newlyUnlocked.forEach((id) => {
+            showAchievementToast(id);
+            const unlocked = characterData.find(c => c.requiredAchievementId === id);
+            if (unlocked) showCharacterUnlockModal(unlocked);
+        });
+    } catch (e) {
+        console.error("[Achievement] ソロ勝利の記録に失敗:", e);
+    }
 }
 
 // ラウンド結果（BO3未決着時）：短く表示して次ラウンドへ自動的に進む
@@ -1430,6 +1471,9 @@ async function showFinalResult(result) {
         winLabel.innerHTML = `${t('winLabelWin')}<br>${score}`;
         fxFlash('rgba(255, 215, 0, 0.4)', 250);
         fxParticles(burstX, burstY, ['#ffd700', '#ff7a00', '#fff6cc', '#5cff5c', '#5cc8ff'], 26);
+    } else if (result === 'draw') {
+        winLabel.innerHTML = `${t('winLabelDraw')}<br>${score}`;
+        fxFlash('rgba(200, 200, 200, 0.3)', 200);
     } else {
         winLabel.innerHTML = `${t('winLabelLose')}<br>${score}`;
         fxFlash('rgba(180, 0, 0, 0.45)', 220);
@@ -1510,9 +1554,9 @@ async function handlePlayerDrop(column) {
         if (cerluaActive && cerluaCasterSide === 'cpu') {
             cerluaActive = false;
             cerluaCasterSide = null;
-            const extraCol = getDropRow(column) >= 0 ? column
-                : getValidColumns().find(c => zhongliCasterSide !== 'cpu' || !zhongliBlockedCols.includes(c)) ?? -1;
-            if (extraCol >= 0) await dropAt(extraCol, droppedColor);
+            // 対人戦と同じく: 追加の石は投下した側の本来の色。その列が満杯ならランダムな空き列(2026-10-21)
+            const extraCol = getDropRow(column) >= 0 ? column : randomValidColumn();
+            if (extraCol >= 0) await dropAt(extraCol, PLAYER_COLOR);
         }
 
         playerCharge = Math.min(200, playerCharge + playerChara.charge);
@@ -1610,9 +1654,8 @@ async function cpuTurn() {
     if (cerluaActive && cerluaCasterSide === 'player') {
         cerluaActive = false;
         cerluaCasterSide = null;
-        const extraCol = getDropRow(finalCol) >= 0 ? finalCol
-            : getValidColumns().find(c => zhongliCasterSide !== 'player' || !zhongliBlockedCols.includes(c)) ?? -1;
-        if (extraCol >= 0) await dropAt(extraCol, droppedColor);
+        const extraCol = getDropRow(finalCol) >= 0 ? finalCol : randomValidColumn();
+        if (extraCol >= 0) await dropAt(extraCol, CPU_COLOR);
     }
 
     if (changeStone > 0) changeStone--;

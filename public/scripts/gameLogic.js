@@ -595,7 +595,8 @@ document.getElementById('leaveButton').addEventListener('click', async () => {
 
 document.getElementById('specialMoveButton').addEventListener('click', () => {
     
-    if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 6) {
+    // アベンチュリンは説明どおり5回まで(以前は >= 6 で6回使えていた。CPU戦は5回、2026-10-21)
+    if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 5) {
         // アベンチュリンの場合の専用処理
         // 通常状態に戻す
         nowCol = 3;
@@ -1754,10 +1755,9 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
       [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
       nextChangeStone = roomData.changeStone ?? 0;
 
-      // ホタル専用（ターン継続？）
-      if (playerLeft_CharaID === "009") {
-        nextTurn = (nextTurn === "P1") ? "P2" : "P1";
-      }
+      // 必殺技による追加投下(ホタル。サフェルがホタルを模倣した時も)はターンを続ける。
+      // 以前は playerLeft_CharaID === "009" の時だけで、サフェルの模倣ではターンが相手に渡っていた(2026-10-21)
+      nextTurn = (nextTurn === "P1") ? "P2" : "P1";
 
     } else if (ultAfter) {
       // 必殺技直後の通常攻撃
