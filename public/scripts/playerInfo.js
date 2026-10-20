@@ -27,6 +27,38 @@ initLang();
 setupSettingsModal('settingsButton', 'settingsModal');
 bindSettingsUI(document.getElementById('basicSettingsPanel')); // 基本設定タブ(音量・クリック操作・言語)
 
+// ---------- 音量バーの試聴(2026-10-20) ----------
+// バーから指を離した時(change)に、その音量で1回だけ鳴らす。ドラッグ中(input)は鳴らさない。
+// システム音量は石を置く音、ボイス音量は石を置いた時のキャラの声(ランダムに選んだ1人。画面を開いている間は同じキャラ)。
+// 未解放の隠しキャラは声でネタバレになるので選ばない(heroCandidates と同じ判定)。
+const previewSe = new Audio('public/scripts/sound/moveSound.wav');
+let previewVoice = null;
+let previewChara = null;
+let previewPlayed = false;
+function pickPreviewChara() {
+    const list = heroCandidates(latestUserData).filter((c) => c.kind === 'chara' && c.voice_attack);
+    if (!list.length) return;
+    previewChara = list[Math.floor(Math.random() * list.length)];
+    const label = document.getElementById('voicePreviewName');
+    if (label) label.textContent = document.documentElement.lang === 'en' ? `(Voice: ${previewChara.name})` : `（声：${previewChara.name}）`;
+}
+function playPreview(audio, volume) {
+    [previewSe, previewVoice].forEach((a) => { if (a) { a.pause(); a.currentTime = 0; } });
+    if (!audio || volume <= 0) return;
+    audio.volume = volume; audio.currentTime = 0;
+    audio.play().catch(() => {});
+    previewPlayed = true;
+}
+document.getElementById('systemvolumeSlider')?.addEventListener('change', (e) => playPreview(previewSe, Number(e.target.value)));
+document.getElementById('voicevolumeSlider')?.addEventListener('change', (e) => {
+    if (!previewChara) pickPreviewChara();
+    if (!previewChara) return;
+    if (!previewVoice || previewVoice.dataset.chara !== previewChara.charaID) {
+        previewVoice = new Audio(previewChara.voice_attack); previewVoice.dataset.chara = previewChara.charaID;
+    }
+    playPreview(previewVoice, Number(e.target.value));
+});
+
 // 言語切替時にアチーブメント一覧・称号スロットを即時再描画
 document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -57,6 +89,7 @@ document.getElementById('backToHubButton').addEventListener('click', () => {
 
 let currentUid = null;
 let latestUserData = {};
+pickPreviewChara(); // 音量の試聴に使うキャラ(未ログインの間は隠しキャラ以外から)。latestUserData の宣言より後で呼ぶ
 let currentSlot = 0; // 称号スロット（0=アチーブメント1, 1=アチーブメント2）。タブで切り替える
 let isAdminUser = false;    // ロール「管理者」: 全アチーブメントを解放・リセットできる
 let isDebugUser = false;    // ロール「デバッガー」(または「コネクトバトル」の印): 新キャラ解放アチーブだけ解放・リセットできる
@@ -83,6 +116,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const myRating = await getUserRating(user.uid);
         latestUserData = myRating || {};
+        // 解放済みの隠しキャラも候補に入れて選び直す(まだ一度も試聴していない時だけ。鳴らした後に声が変わらないように)
+        if (!previewPlayed) pickPreviewChara();
 
         const roleSnap = await getDoc(doc(db, 'sharedUserRoles', getSharedUserId()));
         // 管理者は全アチーブメント、デバッガーは新キャラ解放アチーブだけ(2026-10-02)

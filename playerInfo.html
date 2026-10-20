@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル（設定・プレイヤー情報）</title>
     <link rel="stylesheet" href="public/style_settings.css">
-    <link rel="stylesheet" href="public/style.css?v=1.60.0">
+    <link rel="stylesheet" href="public/style.css?v=1.60.3">
     <script type="module" src="public/scripts/playerInfo.js" defer></script>
 
     <!-- Favicon -->
@@ -86,11 +86,12 @@
                     <div class="design-section-body basic-settings">
                         <div class="settings-volume-row">
                             <label for="systemvolumeSlider" data-i18n="settingsSysVol">システム音量: </label>
-                            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.01" value="0.2">
+                            <input type="range" id="systemvolumeSlider" min="0" max="1" step="0.1" value="0.2">
                         </div>
                         <div class="settings-volume-row">
                             <label for="voicevolumeSlider" data-i18n="settingsVoiceVol">ボイス音量: </label>
-                            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.01" value="0.2">
+                            <input type="range" id="voicevolumeSlider" min="0" max="1" step="0.1" value="0.2">
+                            <span id="voicePreviewName" class="voice-preview-name"></span>
                         </div>
                     </div>
                 </details>
