@@ -583,7 +583,14 @@ function cpuAbilityConditionByID(charaID) {
     // ケリュドラ：相手に追加手を与えるだけなので使わない
     if (charaID === '015') return false;
     // ホタル・銀狼・アベンチュリン：チャージが溜まったら即使う
-    if (charaID === '009' || charaID === '016' || charaID === '008') return true;
+    if (charaID === '009' || charaID === '016' || charaID === '017') return true;
+    // 魈：入れ替えでCPUだけが4つ並ぶ組み合わせが、相手が並ぶ組み合わせより多い時。
+    // または相手に即詰めの脅威があり、入れ替えで相手が並ぶ組み合わせが無い時(崩しに賭ける)
+    if (charaID === '008') {
+        const { cpuOnly, playerAny } = columnSwapOutcomes();
+        if (cpuOnly > playerAny) return true;
+        return playerAny === 0 && hasImmediateThreat(PLAYER_COLOR);
+    }
     // 花火：セットアップが成立するときのみ使う
     if (charaID === '005') {
         hanabiSetupCol = findHanabiSetupCol();
@@ -943,9 +950,20 @@ async function executeAbility(side, charaID) {
         case '007': // キャストリス：左右の縦4列からランダム3列を全消し
             await deleteStonesLocal(getStonesToDeleteLocal(getRandomThreeNumbers(), 6));
             break;
-        case '008': // アベンチュリン：ダイスロール(2026-10-21。対人戦と同じ)
+        case '017': // アベンチュリン：ダイスロール(2026-10-21。対人戦と同じ。ID 008→017)
             await soloDiceRoll(side);
             break;
+        case '008': { // 魈：ランダムな縦2列を列ごと入れ替える(対人戦と同じ)
+            const pair = pickColumnSwapPairLocal();
+            if (pair) {
+                const [a, b] = pair;
+                const keys = Object.keys(stones).filter((k) => [a, b].includes(Number(k.split('_')[0])));
+                await highlightStonesLocal(keys, 450);
+                swapColumnsIn(stones, a, b);
+                drawBoard();
+            }
+            break;
+        }
         case 'downThinkingTime': { // 旧アベンチュリンの効果(今は使っていない。別キャラで使う時用に残してある)
             const isBakatare = getCpuDifficulty() === 'bakatare';
             if (isBakatare && side === 'player') {
@@ -1108,6 +1126,48 @@ async function useAbility(side) {
         abilityInProgress = false;
         updateGaugeUI();
     }
+}
+
+//------------------------------------------------------------------------------------------------
+// 魈：列の入れ替え(2026-10-21)
+function columnKeyLocal(st, c) {
+    let k = '';
+    for (let r = 0; r < rows; r++) k += st[`${c}_${r}`] || '-';
+    return k;
+}
+// 中身が違う2列の組み合わせ(同じ中身どうしは入れ替えても変わらないので除く)
+function columnSwapPairsLocal(st = stones) {
+    const pairs = [];
+    for (let a = 0; a < cols; a++) for (let b = a + 1; b < cols; b++) {
+        if (columnKeyLocal(st, a) !== columnKeyLocal(st, b)) pairs.push([a, b]);
+    }
+    return pairs;
+}
+function pickColumnSwapPairLocal() {
+    const pairs = columnSwapPairsLocal();
+    return pairs.length ? pairs[Math.floor(Math.random() * pairs.length)] : null;
+}
+function swapColumnsIn(st, a, b) {
+    for (let r = 0; r < rows; r++) {
+        const ka = `${a}_${r}`, kb = `${b}_${r}`;
+        const va = st[ka], vb = st[kb];
+        delete st[ka]; delete st[kb];
+        if (vb) st[ka] = vb;
+        if (va) st[kb] = va;
+    }
+}
+// CPUの判断用: 全部の組み合わせを試して、CPUだけが並ぶ数・相手が並ぶ数を数える
+function columnSwapOutcomes() {
+    let cpuOnly = 0, playerAny = 0;
+    for (const [a, b] of columnSwapPairsLocal()) {
+        const sim = { ...stones };
+        swapColumnsIn(sim, a, b);
+        const board = sharedBoardFromStones(sim, rows, cols);
+        const p = hasLineOfColor(board, PLAYER_COLOR);
+        if (p) playerAny++;
+        else if (hasLineOfColor(board, CPU_COLOR)) cpuOnly++;
+    }
+    return { cpuOnly, playerAny };
 }
 
 //------------------------------------------------------------------------------------------------

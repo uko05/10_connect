@@ -187,7 +187,8 @@ const abilities = {
     ult_durin,
     ult_cerylua,
     ult_silverwolf,
-    ult_dice
+    ult_dice,
+    ult_columnSwap
 };
 
 // アベンチュリンのダイスロール(2026-10-21)
@@ -3976,5 +3977,55 @@ async function applyDiceEffect(n) {
     });
     stonesData = localStones;
     init_drawBoard(true);
+}
+
+//------------------------------------------------------------------------------------------------
+// 魈：靖妖儺舞(2026-10-21) — ランダムな縦2列を選び、2列の石を列ごと入れ替える。
+// 中身が同じ2列(どちらも空など)を入れ替えても何も起きないので、中身が違う組み合わせから選ぶ
+function pickColumnSwapPair(stonesRef) {
+    const colKey = (c) => {
+        const parts = [];
+        for (let r = 0; r < rows; r++) parts.push(stonesRef[`${c}_${r}`]?.color || '-');
+        return parts.join('');
+    };
+    const pairs = [];
+    for (let a = 0; a < cols; a++) for (let b = a + 1; b < cols; b++) if (colKey(a) !== colKey(b)) pairs.push([a, b]);
+    return pairs.length ? pairs[Math.floor(Math.random() * pairs.length)] : null;
+}
+
+async function ult_columnSwap() {
+    try {
+        const q = roomQuery();
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const localStones = Object.assign({}, roomData.stones || {});
+        for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+
+        const pair = pickColumnSwapPair(localStones);
+        if (pair) {
+            const [a, b] = pair;
+            const keys = Object.keys(localStones).filter((k) => [a, b].includes(Number(k.split('_')[0])));
+            await highlightStones(keys, 400);
+            for (let r = 0; r < rows; r++) {
+                const ka = `${a}_${r}`, kb = `${b}_${r}`;
+                const va = localStones[ka], vb = localStones[kb];
+                delete localStones[ka]; delete localStones[kb];
+                if (vb) localStones[ka] = vb;
+                if (va) localStones[kb] = va;
+            }
+        }
+        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+            stones: localStones,
+        });
+        stonesData = localStones;
+        init_drawBoard(true);
+    } catch (error) {
+        console.error("魈の必殺技処理中にエラーが発生しました:", error);
+    }
 }
 

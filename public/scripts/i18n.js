@@ -230,7 +230,7 @@ const charaDict = {
     '005': { name: 'Sparkle',            Ability: 'The Hero with a Thousand Faces',              AbilityDetail: "[EUPHORIA] For this turn and the opponent's next turn, placed stones appear in the opposite color. Win conditions use original colors. (Cannot be used if the opponent used this ability the previous turn.)" },
     '006': { name: 'The Herta',          Ability: 'Told Ya! Magic Happens',                      AbilityDetail: '[BREAK] Selects 1 random column. Destroys all stones in that column. (Even empty columns can be selected)' },
     '007': { name: 'Castorice',          Ability: "Doomshriek, Dawn's Chime",                    AbilityDetail: '[BREAK] Selects 3 random columns from the 4 outer columns (2 on each side). Destroys all stones in those columns. (Available from turn 6)' },
-    '008': { name: 'Aventurine',         Ability: 'Roulette Shark',                              AbilityDetail: "[FATE] Roll a die. The result decides the effect.\n1: Destroy 2 of your stones\n2: Opponent +50 charge\n3: Destroy 1 enemy stone\n4: Convert 1 enemy stone\n5: Drop 1 extra stone + your charge +50\n6: Destroy 3 enemy stones" },
+    '008': { name: 'Xiao',               Ability: 'Bane of All Evil',                            AbilityDetail: '[SWAP] Selects 2 random columns and swaps all of their stones. (Available from turn 6)' },
     '009': { name: 'Firefly',            Ability: 'Fyrefly Type-IV: Complete Combustion',        AbilityDetail: '[CONSECUTIVE] Selects 1 random column. Drops your stone into that column. (Available from turn 5)' },
     '010': { name: 'Ruan Mei',           Ability: "Petals to Stream, Repose in Dream",           AbilityDetail: '[CONVERT/BREAK] Converts 3 random opponent stones to yours. Then destroys 6 of your stones at random. (Available from turn 18)' },
     '011': { name: 'Lohen',              Ability: 'Manifest Judgment',                           AbilityDetail: '[BREAK] Destroys all stones in the 2nd row from the bottom. Stones above fall due to gravity. (Available from turn 15)' },
@@ -239,6 +239,7 @@ const charaDict = {
     '014': { name: 'Durin',              Ability: 'Principle of Darkness: As the Stars Smolder', AbilityDetail: '[BREAK] Selects 2 random stones and destroys them. Reactivates at the start of your next turn with new stones. (Available from turn 8)' },
     '015': { name: 'Cerydra',            Ability: "Veni, vidi, vici.",                           AbilityDetail: "[CURSE] On the opponent's next turn, after they place a stone, an additional opponent stone drops in the same column. If that column is full, it drops in a random column." },
     '016': { name: 'Silver Wolf LV.999', Ability: 'God Mode: ON!',                               AbilityDetail: '[VICTORY] Adds +1 to your victory points. If you reach 3 points, the match ends immediately.' },
+    '017': { name: 'Aventurine',         Ability: 'Roulette Shark',                              AbilityDetail: "[FATE] Roll a die. The result decides the effect.\n1: Destroy 2 of your stones\n2: Opponent +50 charge\n3: Destroy 1 enemy stone\n4: Convert 1 enemy stone\n5: Drop 1 extra stone + your charge +50\n6: Destroy 3 enemy stones" },
   },
 };
 

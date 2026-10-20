@@ -106,22 +106,21 @@ export const characterData = [
         voice_ult: 'public/scripts/sound/kyasu_ult.mp3',
         process: 'ult_madness' // 関数名を文字列として保持
     },
-    { 
-        src: 'public/chara/aben.png', 
+    {
+        // 2026-10-21: アベンチュリン(ダイスロール)の位置に魈を追加。アベンチュリンはID 017にして末尾(隠しキャラ候補)へ移動
+        src: 'public/chara/Xiao.png',
         charaID: '008',
-        name: 'アベンチュリン',
-        charge: 18,
+        name: '魈',
+        charge: 15,
         chargeMax: 200,
-        Ability: 'ロード・オブ・ルーレット', 
-        // 2026-10-21: 必殺技を「相手の思考時間を19秒減少(5回まで)」(ult_downThinkingTime)からダイスロールに変更。
-        // 旧効果の処理は別キャラで使えるよう gameLogic.js / soloLogic.js に残してある
-        AbilityDetail: '【運命】サイコロを振り、出目で効果が決まる。\n1：自分の石を2個破壊\n2：相手のチャージ+50\n3：相手の石を1個破壊\n4：相手の石1個を自分の石に変換\n5：石を1個追加投下＋自分のチャージ+50\n6：相手の石を3個破壊',
-        AbilityUseTurn: 1,  
-        AbilityCutImage: 'public/chara/ult_aben.png', 
-        voice_select: 'public/scripts/sound/aben_select.mp3',
-        voice_attack: 'public/scripts/sound/aben_attack.mp3',
-        voice_ult: 'public/scripts/sound/aben_ult.mp3',  
-        process: 'ult_dice' // 関数名を文字列として保持
+        Ability: '靖妖儺舞',
+        AbilityDetail: '【入替】ランダムな縦2列を選択し、その2列の石を列ごと入れ替える。(6ターン目から発動可能)',
+        AbilityUseTurn: 6,
+        AbilityCutImage: 'public/chara/ult_Xiao.png',
+        voice_select: 'public/scripts/sound/Xiao_select.wav',
+        voice_attack: 'public/scripts/sound/Xiao_attack.wav',
+        voice_ult: 'public/scripts/sound/Xiao_ult.wav',
+        process: 'ult_columnSwap' // 関数名を文字列として保持
     },
     {
         src: 'public/chara/hotaru.png',
@@ -256,5 +255,22 @@ export const characterData = [
         requiredAchievementId: 'solo_bakatare_all',
         requiredAchievementLabel: 'チート？使ってないよ？',
         process: 'ult_silverwolf'
-    }
+    },
+    { 
+        src: 'public/chara/aben.png', 
+        charaID: '017',
+        name: 'アベンチュリン',
+        charge: 18,
+        chargeMax: 200,
+        Ability: 'ロード・オブ・ルーレット', 
+        // 2026-10-21: 必殺技を「相手の思考時間を19秒減少(5回まで)」(ult_downThinkingTime)からダイスロールに変更。
+        // 旧効果の処理は別キャラで使えるよう gameLogic.js / soloLogic.js に残してある
+        AbilityDetail: '【運命】サイコロを振り、出目で効果が決まる。\n1：自分の石を2個破壊\n2：相手のチャージ+50\n3：相手の石を1個破壊\n4：相手の石1個を自分の石に変換\n5：石を1個追加投下＋自分のチャージ+50\n6：相手の石を3個破壊',
+        AbilityUseTurn: 1,  
+        AbilityCutImage: 'public/chara/ult_aben.png', 
+        voice_select: 'public/scripts/sound/aben_select.mp3',
+        voice_attack: 'public/scripts/sound/aben_attack.mp3',
+        voice_ult: 'public/scripts/sound/aben_ult.mp3',  
+        process: 'ult_dice' // 関数名を文字列として保持
+    },
 ];
