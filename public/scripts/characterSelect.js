@@ -129,7 +129,8 @@ document.getElementById('soloModeButton').addEventListener('click', async () => 
 document.getElementById('version').textContent = APP_VERSION;
 
 // スマホ対応：ロビー画面のスケーリング
-const setupLobbyLayout = setupScaledLayout('lobbyWrap', 1200, 730);
+// 幅は .parent-container と同じ(2026-10-21: キャラ一覧を横5列にして1200→1310)
+const setupLobbyLayout = setupScaledLayout('lobbyWrap', 1310, 730);
 
 const orientationLabel = document.getElementById('orientationLabel');
 if (orientationLabel) {
