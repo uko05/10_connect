@@ -113,13 +113,15 @@ export const characterData = [
         charge: 18,
         chargeMax: 200,
         Ability: 'ロード・オブ・ルーレット', 
-        AbilityDetail: '【サポート】相手の思考時間を19秒減少させる。この必殺技は5回まで使用可能。',
+        // 2026-10-21: 必殺技を「相手の思考時間を19秒減少(5回まで)」(ult_downThinkingTime)からダイスロールに変更。
+        // 旧効果の処理は別キャラで使えるよう gameLogic.js / soloLogic.js に残してある
+        AbilityDetail: '【運命】サイコロを振り、出目で効果が決まる。\n1：自分の石を2個破壊\n2：相手のチャージ+50\n3：相手の石を1個破壊\n4：相手の石1個を自分の石に変換\n5：石を1個追加投下＋自分のチャージ+50\n6：相手の石を3個破壊',
         AbilityUseTurn: 1,  
         AbilityCutImage: 'public/chara/ult_aben.png', 
         voice_select: 'public/scripts/sound/aben_select.mp3',
         voice_attack: 'public/scripts/sound/aben_attack.mp3',
         voice_ult: 'public/scripts/sound/aben_ult.mp3',  
-        process: 'ult_downThinkingTime' // 関数名を文字列として保持
+        process: 'ult_dice' // 関数名を文字列として保持
     },
     {
         src: 'public/chara/hotaru.png',

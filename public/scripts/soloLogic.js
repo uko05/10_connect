@@ -10,6 +10,7 @@ import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, g
 import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
+import { playDiceRoll } from "./diceRoll.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -912,7 +913,8 @@ function abilityAvailable(side) {
     if (!chara) return false;
     if (charge < 150) return false;
     if (turnCount < chara.AbilityUseTurn) return false;
-    if (chara.charaID === '008' && ultCount >= ABEN_MAX_USES) return false;
+    // 「思考時間を減らす」系(旧アベンチュリン)は5回まで。アベンチュリンは2026-10-21にダイスロールになったので種類で判定
+    if (chara.process === 'ult_downThinkingTime' && ultCount >= ABEN_MAX_USES) return false;
     if (chara.charaID === '005' && changeStone > 0) return false; // 花火：色反転が有効な間は再使用不可
     return true;
 }
@@ -941,7 +943,10 @@ async function executeAbility(side, charaID) {
         case '007': // キャストリス：左右の縦4列からランダム3列を全消し
             await deleteStonesLocal(getStonesToDeleteLocal(getRandomThreeNumbers(), 6));
             break;
-        case '008': { // アベンチュリン（ソロ専用）
+        case '008': // アベンチュリン：ダイスロール(2026-10-21。対人戦と同じ)
+            await soloDiceRoll(side);
+            break;
+        case 'downThinkingTime': { // 旧アベンチュリンの効果(今は使っていない。別キャラで使う時用に残してある)
             const isBakatare = getCpuDifficulty() === 'bakatare';
             if (isBakatare && side === 'player') {
                 // PvP同様: 相手(CPU)の1ターン持ち時間上限を恒久削減 → 次ターン以降に反映
@@ -1103,6 +1108,53 @@ async function useAbility(side) {
         abilityInProgress = false;
         updateGaugeUI();
     }
+}
+
+//------------------------------------------------------------------------------------------------
+// アベンチュリン：ダイスロール(2026-10-21)。効果は対人戦(gameLogic.js の applyDiceEffect)と同じ。
+// 効果の色は花火の色反転に関係なく本来の色。5 の追加投下だけはホタルと同じく「打つ石」なので色反転の影響を受ける
+async function soloDiceRoll(side) {
+    const n = 1 + Math.floor(Math.random() * 6);
+    await playDiceRoll(document.getElementById('boardWrap'), n);
+    const myColor = side === 'player' ? PLAYER_COLOR : CPU_COLOR;
+    const oppColor = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+    const keysOf = (color) => Object.keys(stones).filter((k) => stones[k] === color);
+    const destroy = async (keys) => {
+        if (keys.length === 0) return;
+        await highlightStonesLocal(keys, 450);
+        await deleteStonesLocal(keys);
+        await animateGravitySmoothLocal(keys);
+    };
+    const addCharge = (who, v) => {
+        if (who === 'player') playerCharge = Math.min(200, playerCharge + v);
+        else cpuCharge = Math.min(200, cpuCharge + v);
+    };
+    const other = side === 'player' ? 'cpu' : 'player';
+    switch (n) {
+        case 1: await destroy(getRandomElements(keysOf(myColor), 2)); break;
+        case 2: addCharge(other, 50); break;
+        case 3: await destroy(getRandomElements(keysOf(oppColor), 1)); break;
+        case 4: {
+            const keys = getRandomElements(keysOf(oppColor), 1);
+            if (keys.length > 0) {
+                await highlightStonesLocal(keys, 450);
+                for (const key of keys) stones[key] = myColor;
+                drawBoard();
+            }
+            break;
+        }
+        case 5: {
+            const col = randomValidColumn();
+            if (col >= 0) {
+                await dropAt(col, applyColorSwap(myColor));
+                turnCount++; // ホタルと同じく追加投下も1ターンと数える
+            }
+            addCharge(side, 50);
+            break;
+        }
+        case 6: await destroy(getRandomElements(keysOf(oppColor), 3)); break;
+    }
+    updateGaugeUI();
 }
 
 //------------------------------------------------------------------------------------------------
@@ -1684,7 +1736,8 @@ async function cpuTurn() {
 // キャラクター情報表示
 
 function abilityDetailText(chara) {
-    if (chara.charaID === '008') {
+    // 旧アベンチュリンの「思考時間を減らす」系だけ、CPU戦用の説明に差し替える(今は該当キャラなし)
+    if (chara.process === 'ult_downThinkingTime') {
         if (getCpuDifficulty() === 'bakatare') {
             return `【BAKATARE専用】相手の1ターンの持ち時間上限を19秒恒久削減する（PvP同一仕様）。効果は次のターンから反映。(${ABEN_MAX_USES}回まで使用可能)`;
         }

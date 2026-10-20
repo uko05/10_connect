@@ -8,6 +8,7 @@ import {
 import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 import { characterData } from "./characterData.js";
+import { playDiceRoll } from "./diceRoll.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
@@ -185,8 +186,14 @@ const abilities = {
     ult_saphel,
     ult_durin,
     ult_cerylua,
-    ult_silverwolf
+    ult_silverwolf,
+    ult_dice
 };
+
+// アベンチュリンのダイスロール(2026-10-21)
+let diceInProgress = false;   // 自分が振っている間は石を置けないようにする(効果の処理とぶつからないよう)
+let lastDiceSeq = null;       // 最後に見た出目の番号(同じ出目を2回転がさない)
+let diceSeen = false;         // 最初の受信では、過去の出目を転がさない
 
 // 設定の必殺技演出強度に応じて、画面フラッシュ・シェイク・パーティクルの強さを調整するラッパー
 // （renderer.jsの関数自体は強度を意識しない「素の」演出プリミティブとして保つ）
@@ -595,8 +602,9 @@ document.getElementById('leaveButton').addEventListener('click', async () => {
 
 document.getElementById('specialMoveButton').addEventListener('click', () => {
     
-    // アベンチュリンは説明どおり5回まで(以前は >= 6 で6回使えていた。CPU戦は5回、2026-10-21)
-    if (playerLeft_CharaID === '008' && playerLeft_UltCount >= 5) {
+    // 「思考時間を19秒減少」(ult_downThinkingTime)は5回まで。2026-10-21にアベンチュリンはダイスロールに変わったので、
+    // キャラIDではなく必殺技の種類で判定する(以前は >= 6 で6回使えていた)
+    if (getCharacterDataByID(playerLeft_CharaID)?.process === 'ult_downThinkingTime' && playerLeft_UltCount >= 5) {
         // アベンチュリンの場合の専用処理
         // 通常状態に戻す
         nowCol = 3;
@@ -1230,6 +1238,19 @@ async function watchRoomUpdates() {
               return;
             }
 
+            // アベンチュリンのダイスロール: 相手が振った出目を、こちらの画面でも同じように転がして見せる(2026-10-21)
+            // turnCount が変わらない書き込みなので、下の「turnCountが変わらない更新はスキップ」より前で見る
+            {
+                const dice = data.abilityState?.dice;
+                if (!diceSeen) {
+                    diceSeen = true;
+                    lastDiceSeq = dice?.seq ?? null;
+                } else if (dice && dice.seq !== lastDiceSeq) {
+                    lastDiceSeq = dice.seq;
+                    if (dice.by !== player_info) playDiceRoll(document.getElementById('boardWrap'), dice.n);
+                }
+            }
+
             // ハートビート等でturnCountが変わらない更新はゲーム処理を全スキップ
             // （showTurnLabel/resetTimeLimit/init_drawBoard等の誤発火を防止）
             if (isInitialLoad) {
@@ -1663,6 +1684,8 @@ async function dropStone(column, attackType = 1) {
 
   // 鍾離封鎖中の列には投下不可（相手が発動した場合のみ自分に適用）
   if (pvpZhongliBlocked && pvpZhongliBlocked.includes(column) && pvpZhongliCasterColor !== playerLeft_Color) return;
+  // ダイスロールの演出・効果の処理中は通常の投下をしない
+  if (diceInProgress && attackType === 1) return;
 
   let color = playerLeft_Color;
   if (changeStone > 0) {
@@ -3858,4 +3881,100 @@ async function ult_silverwolf() {
     }
 }
 
+//------------------------------------------------------------------------------------------------
+// アベンチュリン：ダイスロール(2026-10-21)
+// 振った側が出目を決め、abilityState.dice に書く(相手の画面でも同じ出目を転がすため)。
+// 演出(diceRoll.js)が終わってから効果を処理する。効果の色は花火の色反転に関係なく本来の色(ルアン・メェイと同じ)。
+// ただし 5 の追加投下はホタルと同じく「打つ石」なので色反転の影響を受ける。
+async function ult_dice() {
+    diceInProgress = true;
+    try {
+        const n = 1 + Math.floor(Math.random() * 6);
+        const seq = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        lastDiceSeq = seq;
+        await updateDoc(firestoreRoomDocRef, { 'abilityState.dice': { n, seq, by: player_info } });
+        await playDiceRoll(document.getElementById('boardWrap'), n);
+        await applyDiceEffect(n);
+    } catch (error) {
+        console.error("ダイスロールの処理中にエラーが発生しました:", error);
+    } finally {
+        diceInProgress = false;
+    }
+}
+
+async function applyDiceEffect(n) {
+    const q = roomQuery();
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return;
+    const roomDoc = querySnapshot.docs[0];
+    const roomData = roomDoc.data();
+    const roomDocRef = doc(db, "connectRooms", roomDoc.id);
+    const localStones = Object.assign({}, roomData.stones || {});
+    for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
+    const myColor = playerLeft_Color;
+    const oppColor = myColor === 'red' ? 'yellow' : 'red';
+    const keysOf = (color) => Object.keys(localStones).filter((k) => localStones[k]?.color === color);
+
+    // 必殺技のチャージ消費(150)。getcharge(false) は1回だけ呼ぶこと(呼ぶたびに150減る)
+    let [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+    const addMyCharge = (v) => {
+        playerLeft_ChargeNow = Math.min(200, playerLeft_ChargeNow + v);
+        if (player_info === 'P1') p1_chargeNow = playerLeft_ChargeNow; else p2_chargeNow = playerLeft_ChargeNow;
+    };
+    const addOppCharge = (v) => {
+        playerRight_ChargeNow = Math.min(200, (playerRight_ChargeNow ?? 0) + v);
+        if (player_info === 'P1') p2_chargeNow = playerRight_ChargeNow; else p1_chargeNow = playerRight_ChargeNow;
+    };
+
+    // 石を壊して重力で落とす(ドゥリン・ルアン・メェイと同じ見せ方)
+    const destroy = async (keys) => {
+        if (keys.length === 0) return;
+        await highlightStones(keys, 400);
+        for (const key of keys) delete localStones[key];
+        stonesData = localStones;
+        init_drawBoard(true);
+        await wait(400);
+        await animateGravitySmooth(localStones, keys);
+    };
+
+    const payload = {};
+    switch (n) {
+        case 1: await destroy(getRandomElements(keysOf(myColor), 2)); break;
+        case 2: addOppCharge(50); break;
+        case 3: await destroy(getRandomElements(keysOf(oppColor), 1)); break;
+        case 4: {
+            const keys = getRandomElements(keysOf(oppColor), 1);
+            if (keys.length > 0) {
+                await highlightStones(keys, 400);
+                for (const key of keys) localStones[key] = Object.assign({}, localStones[key], { color: myColor });
+            }
+            break;
+        }
+        case 5: {
+            // ホタルと同じ追加投下(ターンは続く)。ターン数は1進める(ホタルと同じ)
+            const col = pvpGetNonFullCols(1)[0];
+            if (col !== undefined) {
+                const row = findAvailableRow(col, localStones);
+                const color = changeStone > 0 ? oppColor : myColor;
+                const currentTurnCount = roomData.turnCount ?? 1;
+                localStones[`${col}_${row}`] = { color, turnCount: currentTurnCount };
+                payload.turnCount = currentTurnCount + 1;
+                moveSound.currentTime = 0;
+                moveSound.play().catch(() => {});
+            }
+            addMyCharge(50);
+            break;
+        }
+        case 6: await destroy(getRandomElements(keysOf(oppColor), 3)); break;
+    }
+
+    await updateDoc(roomDocRef, {
+        ...payload,
+        player1_ChargeNow: p1_chargeNow,
+        player2_ChargeNow: p2_chargeNow,
+        stones: localStones,
+    });
+    stonesData = localStones;
+    init_drawBoard(true);
+}
 

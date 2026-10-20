@@ -1555,3 +1555,6 @@ html[lang="en"] .abilityDetail { font-size: 17px; }
   html[lang="en"] .abilityName,
   html[lang="en"] .abilityDetail { font-size: 11px; }
 }
+
+/* 必殺技の説明が長くて欄からあふれる時は、欄の中でスクロールする(2026-10-21、アベンチュリンのダイスロールなど) */
+.abilityDetail { overflow-y: auto; overscroll-behavior: contain; }

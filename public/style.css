@@ -1913,3 +1913,6 @@ body.hub-page::before {
 .basic-settings .settings-volume-row { display: flex; align-items: center; gap: 10px; }
 .basic-settings .settings-volume-row label { min-width: 9em; }
 .basic-settings input[type="range"] { flex: 1; max-width: 320px; }
+
+/* 必殺技の説明が長くて欄からあふれる時は、欄の中でスクロールする(2026-10-21、アベンチュリンのダイスロールなど) */
+.abilityDetail { overflow-y: auto; overscroll-behavior: contain; }
