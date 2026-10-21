@@ -156,3 +156,21 @@ export function pickMaxEnemyColumn(colorAt, rows, cols, enemyColor) {
     }
     return best;
 }
+
+// マダム・ヘルタ(2026-10-22): 相手の石が一番多い横1段を選ぶ。同じ数なら「相手の石 − 自分の石」が大きい段。
+// colorAt(c, r) はそのマスの色。相手の石が1つも無ければ -1。戻り値は行番号(0が一番上)
+export function pickMaxEnemyRow(colorAt, rows, cols, enemyColor) {
+    let best = -1, bestKey = -Infinity;
+    for (let r = 0; r < rows; r++) {
+        let nOp = 0, nMe = 0;
+        for (let c = 0; c < cols; c++) {
+            const v = colorAt(c, r);
+            if (!v) continue;
+            if (v === enemyColor) nOp++; else nMe++;
+        }
+        if (nOp === 0) continue;
+        const k = nOp * 100 + (nOp - nMe);
+        if (k > bestKey) { bestKey = k; best = r; }
+    }
+    return best;
+}

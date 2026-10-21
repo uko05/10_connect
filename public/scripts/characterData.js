@@ -80,16 +80,17 @@ export const characterData = [
         src: 'public/chara/helta.png', 
         charaID: '006', 
         name: 'マダム・ヘルタ', 
-        charge: 17, 
+        charge: 10, 
         chargeMax: 200,
         Ability: '魔法だって言ったでしょ', 
-        AbilityDetail: '【破壊】ランダムな縦1列を選択する。その列の石を全て破壊する。(石がない列も対象)', 
+        // 2026-10-22: 「ランダムな縦1列を全破壊(チャージ17)」から変更。旧処理 ult_randomVerticalAllDelete は盤面が埋まった時にも使うので残してある
+        AbilityDetail: '【破壊】相手の石が一番多い横1段を選択し、その段の石を全て破壊する。破壊された石より上の石は重力で落下する。', 
         AbilityUseTurn: 1,  
         AbilityCutImage: 'public/chara/ult_helta.png', 
         voice_select: 'public/scripts/sound/helta_select.mp3',
         voice_attack: 'public/scripts/sound/helta_attack.mp3',
         voice_ult: 'public/scripts/sound/helta_ult.mp3', 
-        process: 'ult_randomVerticalAllDelete' // 関数名を文字列として保持
+        process: 'ult_maxRowWipe' // 関数名を文字列として保持
     },
     { 
         src: 'public/chara/kyasu.png', 

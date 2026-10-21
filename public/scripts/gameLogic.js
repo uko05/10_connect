@@ -9,7 +9,7 @@ import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/
 
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow } from "./specialAbilities.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
@@ -191,6 +191,7 @@ const abilities = {
     ult_dice,
     ult_columnSwap,
     ult_maxColumnWipe,
+    ult_maxRowWipe,
     ult_gravityFlip,
     ult_bomb,
     ult_flipTouch
@@ -4215,6 +4216,40 @@ async function ult_maxColumnWipe() {
         init_drawBoard(true);
     } catch (error) {
         console.error("魈の必殺技処理中にエラーが発生しました:", error);
+    }
+}
+
+//------------------------------------------------------------------------------------------------
+// マダム・ヘルタ：魔法だって言ったでしょ(2026-10-22) — 相手の石が一番多い横1段の石を全て破壊し、上の石を重力で落とす
+async function ult_maxRowWipe() {
+    try {
+        const q = roomQuery();
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const localStones = Object.assign({}, roomData.stones || {});
+        for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        const row = pickMaxEnemyRow((c, r) => localStones[`${c}_${r}`]?.color || null, rows, cols, otherColor(playerLeft_Color));
+        if (row >= 0) {
+            const keys = Object.keys(localStones).filter((k) => Number(k.split('_')[1]) === row);
+            await highlightStones(keys, 400);
+            for (const k of keys) delete localStones[k];
+            stonesData = localStones;
+            init_drawBoard(true);
+            await wait(400);
+            await animateGravitySmooth(localStones, keys);
+        }
+        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+            stones: localStones,
+        });
+        stonesData = localStones;
+        init_drawBoard(true);
+    } catch (error) {
+        console.error("マダム・ヘルタの必殺技処理中にエラーが発生しました:", error);
     }
 }
 

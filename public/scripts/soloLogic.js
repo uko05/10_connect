@@ -11,7 +11,7 @@ import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -367,14 +367,7 @@ function characterBonus(board, charaID = cpuChara?.charaID) {
                 else if (board[4][c] === PLAYER_COLOR) bonus += 5;
             }
             break;
-        case '006': // マダム・ヘルタ: ランダム1列を全消し → 自石を1列に集めず拡散させる
-            for (let c = 0; c < cols; c++) {
-                let ownInCol = 0;
-                for (let r = 0; r < rows; r++) {
-                    if (board[r][c] === CPU_COLOR) ownInCol++;
-                }
-                if (ownInCol >= 3) bonus -= (ownInCol - 2) * 5;
-            }
+        case '006': // マダム・ヘルタ(2026-10-22〜): 相手の石が一番多い横1段を消す技なので、置き方の補正はしない
             break;
     }
     return bonus;
@@ -521,13 +514,12 @@ function wouldWinAfterAbility(charaID) {
             for (let c = 0; c < cols; c++) for (let r = 0; r < 3; r++) delete sim[`${c}_${r}`];
             return checkWinInSim(sim);
         }
-        case '006': { // マダム・ヘルタ：7列のいずれかを全消しで勝てるか全試行
-            for (let c = 0; c < cols; c++) {
-                const sim = {...stones};
-                for (let r = 0; r < rows; r++) delete sim[`${c}_${r}`];
-                if (checkWinInSim(sim)) return true;
-            }
-            return false;
+        case '006': { // マダム・ヘルタ：相手の石が一番多い横1段を消して、重力落下後に勝てるか
+            const row = pickMaxEnemyRow((c, r) => stones[`${c}_${r}`] || null, rows, cols, PLAYER_COLOR);
+            if (row < 0) return false;
+            const sim = {...stones};
+            for (let c = 0; c < cols; c++) delete sim[`${c}_${row}`];
+            return checkWinInSim(applyGravityToSim(sim));
         }
         case '003': { // アルハイゼン：中央3列(2,3,4)から2列全消し → C(3,2)=3パターン
             const mid = [2, 3, 4];
@@ -604,6 +596,17 @@ function cpuAbilityConditionByID(charaID) {
         if (cpuOnly > playerAny) return true;
         return playerAny === 0 && hasImmediateThreat(PLAYER_COLOR);
     }
+    // マダム・ヘルタ：狙う段で相手の石が自分より2個以上多い時、またはその段を消すと相手の即詰めが消える時
+    if (proc === 'ult_maxRowWipe') {
+        const row = pickMaxEnemyRow((c, r) => stones[`${c}_${r}`] || null, rows, cols, PLAYER_COLOR);
+        if (row < 0) return false;
+        let nOp = 0, nMe = 0;
+        for (let c = 0; c < cols; c++) { const v = stones[`${c}_${row}`]; if (v === PLAYER_COLOR) nOp++; else if (v) nMe++; }
+        if (nOp - nMe >= 2) return true;
+        const sim = { ...stones };
+        for (let c = 0; c < cols; c++) delete sim[`${c}_${row}`];
+        return hasImmediateThreat(PLAYER_COLOR) && !immediateThreatIn(applyGravityToSim(sim), PLAYER_COLOR);
+    }
     // 魈：狙う列で相手の石が自分より2個以上多い時、またはその列を消すと相手の即詰めが消える時
     if (proc === 'ult_maxColumnWipe') {
         const col = pickMaxEnemyColumn((c, r) => stones[`${c}_${r}`] || null, rows, cols, PLAYER_COLOR);
@@ -661,13 +664,6 @@ function cpuAbilityConditionByID(charaID) {
     if (charaID === '004') {
         const opp = Object.keys(stones).filter(k => parseInt(k.split('_')[1]) <= 2 && stones[k] === PLAYER_COLOR).length;
         return opp >= 2;
-    }
-    // マダム・ヘルタ：いずれかの列に相手石が3個以上
-    if (charaID === '006') {
-        for (let c = 0; c < cols; c++) {
-            if (Object.keys(stones).filter(k => k.startsWith(`${c}_`) && stones[k] === PLAYER_COLOR).length >= 3) return true;
-        }
-        return false;
     }
     // キャストリス：端4列（列0,1,5,6）に相手石が4個以上
     if (charaID === '007') {
@@ -977,6 +973,7 @@ async function executeAbility(side, charaID) {
     if (proc === 'ult_bomb') { await soloStartBomb(side); return; }
     if (proc === 'ult_flipTouch') { flipTouchPendingSide = side; return; }
     if (proc === 'ult_maxColumnWipe') { await soloMaxColumnWipe(side); return; }
+    if (proc === 'ult_maxRowWipe') { await soloMaxRowWipe(side); return; }
     if (proc === 'ult_columnSwap') { await soloColumnSwap(); return; }
     switch (charaID) {
         case '001': // 放浪者：ランダム4列、上から2個
@@ -1310,6 +1307,16 @@ async function soloMaxColumnWipe(side) {
     const keys = Object.keys(stones).filter((k) => Number(k.split('_')[0]) === col);
     await highlightStonesLocal(keys, 450);
     await deleteStonesLocal(keys);
+}
+// マダム・ヘルタ(2026-10-22): 相手の石が一番多い横1段を破壊し、上の石を重力で落とす
+async function soloMaxRowWipe(side) {
+    const enemy = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+    const row = pickMaxEnemyRow((c, r) => stones[`${c}_${r}`] || null, rows, cols, enemy);
+    if (row < 0) return;
+    const keys = Object.keys(stones).filter((k) => Number(k.split('_')[1]) === row);
+    await highlightStonesLocal(keys, 450);
+    await deleteStonesLocal(keys);
+    await animateGravitySmoothLocal(keys);
 }
 // 列の入れ替え(旧・魈の技。別キャラ用に残してある)
 async function soloColumnSwap() {
