@@ -11,7 +11,7 @@ import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, flipBoardAnimation, BOMB_TURNS } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -1181,11 +1181,22 @@ if (['localhost', '127.0.0.1'].includes(location.hostname)) {
 // 新しい必殺技(2026-10-21): 重力反転・爆弾・反転の一手。効果は対人戦(gameLogic.js)と同じ
 async function soloGravityFlip() {
     const { stones: flipped, moved } = gravityFlip(stones, rows, cols);
-    await flipBoardAnimation(canvas, async () => {
-        stones = flipped;
-        if (soloBomb) soloBomb.key = moved[soloBomb.key] || soloBomb.key;
-        drawBoard();
+    await playGravityFlipAnimation({
+        canvas, stones, rows, cols, cellSize,
+        drawPieces: (pieces) => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+                ctx.strokeStyle = '#fff';
+                ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
+            }
+            for (const p of pieces) drawPiece(p.c, p.y, p.value);
+        },
     });
+    stones = flipped;
+    if (soloBomb) soloBomb.key = moved[soloBomb.key] || soloBomb.key;
+    drawBoard();
 }
 
 async function soloStartBomb(side) {

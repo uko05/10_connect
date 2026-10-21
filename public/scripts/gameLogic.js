@@ -9,7 +9,7 @@ import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/
 
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, flipBoardAnimation, BOMB_TURNS } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS } from "./specialAbilities.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
@@ -2089,6 +2089,20 @@ async function init_drawBoard(allstones = false) {
     }
 }
 
+// グリッドと、指定した位置の石だけを描く(重力反転の落下演出用)
+function drawGridAndPieces(pieces) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+            ctx.strokeStyle = '#fff';
+            ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
+        }
+    }
+    for (const p of pieces) drawPiece(p.c, p.y, p.color);
+}
+
 function drawPiece(column, y, color) {
     // 'red'/'yellow'は役割名。実際の表示色は設定に応じてマッピングする
     // 自分の色(playerLeft_Color)の石にだけ、デザイン変更で選んだスキンを使う
@@ -4071,10 +4085,12 @@ async function ult_gravityFlip() {
         const roomData = roomDoc.data();
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         const { stones: flipped } = gravityFlip(roomData.stones || {}, rows, cols);
-        await flipBoardAnimation(document.getElementById('connect4Canvas'), async () => {
-            stonesData = flipped;
-            init_drawBoard(true);
+        await playGravityFlipAnimation({
+            canvas: document.getElementById('connect4Canvas'), stones: roomData.stones || {}, rows, cols, cellSize,
+            drawPieces: (pieces) => drawGridAndPieces(pieces.map((p) => ({ c: p.c, y: p.y, color: p.value.color }))),
         });
+        stonesData = flipped;
+        init_drawBoard(true);
         await updateDoc(doc(db, "connectRooms", roomDoc.id), {
             player1_ChargeNow: p1_chargeNow,
             player2_ChargeNow: p2_chargeNow,

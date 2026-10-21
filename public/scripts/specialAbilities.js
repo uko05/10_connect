@@ -81,14 +81,60 @@ export function drawBombMarker(ctx, col, row, cellSize, turnsLeft) {
     ctx.restore();
 }
 
-// 重力反転の演出: 盤面(canvas)を縦にくるっと回し、真ん中(見えない瞬間)で盤面を入れ替える
-export async function flipBoardAnimation(canvas, onMiddle) {
-    if (!canvas || !canvas.animate) { await onMiddle(); return; }
-    const t = 260;
-    await canvas.animate([{ transform: 'perspective(800px) rotateX(0deg)' }, { transform: 'perspective(800px) rotateX(90deg)' }],
-        { duration: t, easing: 'ease-in', fill: 'forwards' }).finished;
-    await onMiddle();
-    await canvas.animate([{ transform: 'perspective(800px) rotateX(-90deg)' }, { transform: 'perspective(800px) rotateX(0deg)' }],
-        { duration: t, easing: 'ease-out', fill: 'forwards' }).finished;
-    canvas.getAnimations().forEach((a) => a.cancel());
+// 重力反転の演出(2026-10-21、Downloads\コネバト演出試作\重力反転試作.html と同じ):
+// ① 盤面(canvas)ごと奥に向かってひっくり返る(上下だけ反転。左右はそのまま)
+// ② 石が上側に張り付いた状態を一呼吸見せる
+// ③ 重力で下へ落ちる(各列、下にある石から少しずつ遅れて落ち、着地で小さく弾む)
+// ④ 着地で盤面が軽く揺れる
+// drawPieces(pieces) は呼び出し側の描画(グリッド+石)。pieces は [{ c, y(px), value }]。
+// 戻り値の盤面の確定(stonesの差し替え)は呼び出し側で行う。
+export async function playGravityFlipAnimation({ canvas, stones, rows, cols, cellSize, drawPieces }) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    if (canvas && canvas.animate) {
+        await canvas.animate([{ transform: 'perspective(1400px) rotateX(0deg)' }, { transform: 'perspective(1400px) rotateX(180deg)' }],
+            { duration: 700, easing: 'cubic-bezier(.55,0,.35,1)', fill: 'forwards' }).finished;
+    }
+    // ひっくり返った見た目(行 r → rows-1-r)を、向きを戻した盤面に描き直す(見た目は同じなので継ぎ目なし)
+    const pieces = [];
+    for (const key in stones) {
+        if (stones[key] === undefined || stones[key] === null) continue;
+        const [c, r] = key.split('_').map(Number);
+        const mr = rows - 1 - r;
+        pieces.push({ c, r: mr, y: mr * cellSize, value: stones[key] });
+    }
+    if (canvas) canvas.getAnimations().forEach((a) => a.cancel());
+    drawPieces(pieces);
+    await wait(350);
+
+    for (let c = 0; c < cols; c++) {
+        pieces.filter((p) => p.c === c).sort((a, b) => b.r - a.r)   // 下にある順
+            .forEach((p, i) => { p.target = (rows - 1 - i) * cellSize; p.delay = i * 40; p.v = 0; p.done = false; p.bounced = false; });
+    }
+    const g = 0.0072 * cellSize / 110;   // 4マス分を約0.35秒で落ちる重力(px/ms²)
+    await new Promise((resolve) => {
+        const t0 = performance.now();
+        let last = t0;
+        function frame(now) {
+            const dt = Math.min(32, now - last); last = now;
+            let allDone = true;
+            for (const p of pieces) {
+                if (p.done) continue;
+                if (now - t0 < p.delay) { allDone = false; continue; }
+                p.v += g * dt;
+                p.y += p.v * dt;
+                if (p.y >= p.target) {
+                    if (!p.bounced && p.v > 0.6 * cellSize / 110) { p.y = p.target; p.v = -p.v * 0.22; p.bounced = true; }
+                    else { p.y = p.target; p.done = true; }
+                }
+                if (!p.done) allDone = false;
+            }
+            drawPieces(pieces);
+            if (!allDone) requestAnimationFrame(frame); else resolve();
+        }
+        requestAnimationFrame(frame);
+    });
+    if (canvas && canvas.animate) {
+        canvas.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(5px)' }, { transform: 'translateY(-3px)' }, { transform: 'translateY(2px)' }, { transform: 'translateY(0)' }],
+            { duration: 300 });
+    }
 }
