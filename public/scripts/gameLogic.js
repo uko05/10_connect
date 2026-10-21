@@ -1822,7 +1822,7 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 
     const currentTurnCount = roomData.turnCount ?? 1;
 
-    // 反転の一手(2026-10-21): 置いた石の下・左・右の色を反転し、置いた石自身も相手の色にする。
+    // 反転の一手(2026-10-21): 置いた石の左右の色を反転し、置いた石自身も相手の色にする。
     // 同じ書き込みに入れるので、相手の画面でも途中の盤面は見えない
     let flipPayload = {};
     let flipColor = false;

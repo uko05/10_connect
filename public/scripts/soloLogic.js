@@ -1223,7 +1223,7 @@ async function bombPreTurnEffect(side) {
     await animateGravitySmoothLocal(blast);
 }
 
-// 反転の一手: 置いた石の下・左・右の色を反転し、置いた石自身も相手の色にする
+// 反転の一手: 置いた石の左右の色を反転し、置いた石自身も相手の色にする
 async function applySoloFlipTouch(side, column) {
     if (flipTouchPendingSide !== side) return;
     flipTouchPendingSide = null;

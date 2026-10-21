@@ -5,8 +5,9 @@
 //   重力反転   ult_gravityFlip : 盤面を上下にひっくり返し、石が重力で落ち直す(各列の積み順が逆になる)
 //   爆弾       ult_bomb        : 相手の石を1つランダムに爆弾にし、4ターン後の自分の番の開始時に
 //                                周り8マス(と爆弾自身)を敵味方関係なく破壊する。残りターン数は両者の番ごとに1減る
-//   反転の一手 ult_flipTouch   : 必殺技を使ったターンに置いた石の下・左・右の色を反転し、
+//   反転の一手 ult_flipTouch   : 必殺技を使ったターンに置いた石の左・右の色を反転し、
 //                                最後に置いた石自身も相手の色になる
+//                                (2026-10-21: 最初は下も反転していたが、ふさいだ石の上に置くだけで勝てて強すぎたので左右だけに)
 // 両者が同時に4つ並んだ場合は、通常どおり両者に1ポイント。
 
 export const BOMB_TURNS = 4; // 爆発までのターン数(相手の番も1ターンと数える。4なら使った人の2回後の番の開始時)
@@ -32,10 +33,9 @@ export function gravityFlip(stones, rows, cols) {
     return { stones: out, moved };
 }
 
-// 置いた石(col,row)の下・左・右のマス(盤面の内側だけ)
+// 置いた石(col,row)の左・右のマス(盤面の内側だけ)。下は反転しない(上の説明を参照)
 export function flipTouchNeighbors(col, row, rows, cols) {
     const keys = [];
-    if (row + 1 < rows) keys.push(`${col}_${row + 1}`);
     if (col - 1 >= 0) keys.push(`${col - 1}_${row}`);
     if (col + 1 < cols) keys.push(`${col + 1}_${row}`);
     return keys;
