@@ -11,6 +11,7 @@ import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, flipBoardAnimation, BOMB_TURNS } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -75,6 +76,12 @@ let cpuUltAudio = null;
 let playerAttackAudio = null;
 let cpuAttackAudio = null;
 let hanabiSetupCol = -1; // 花火CPUセットアップ列（-1=なし）
+// 新しい必殺技(2026-10-21、specialAbilities.js 参照)
+// 爆弾: CPU戦の石は色の文字列だけなので、爆弾の石の位置(key)を別に持ち、石が動く処理で一緒に動かす。
+// pendingShift: 爆弾より下の石が壊された数(次の重力落下で、その分だけ爆弾も下がる)
+let soloBomb = null;            // { key, turnsLeft, casterSide, pendingShift }
+let flipTouchPendingSide = null; // 反転の一手: 'player' | 'cpu'(そのターンに置く石で発動)
+let flipTouchCol = -1;           // CPUが反転の一手で狙う列(-1=なし)
 let currentUid = null; // アチーブメント記録用（認証は裏で進める。対局の進行はブロックしない）
 authReady.then(async (user) => {
     currentUid = user.uid;
@@ -580,6 +587,11 @@ function wouldWinAfterAbility(charaID) {
 
 // キャラIDごとの発動条件判定（cpuShouldUseAbility・サフェルコピー共用）
 function cpuAbilityConditionByID(charaID) {
+    // 新しい必殺技(2026-10-21)は技の種類で判断する
+    const proc = characterData.find((c) => c.charaID === charaID)?.process;
+    if (proc === 'ult_gravityFlip') return cpuShouldGravityFlip();
+    if (proc === 'ult_bomb') return cpuShouldBomb();
+    if (proc === 'ult_flipTouch') return cpuShouldFlipTouch();
     // ケリュドラ：相手に追加手を与えるだけなので使わない
     if (charaID === '015') return false;
     // ホタル・銀狼・アベンチュリン：チャージが溜まったら即使う
@@ -770,7 +782,25 @@ async function deleteStonesLocal(keys) {
     await wait(450);
     cells.forEach(cell => cell.remove());
     validKeys.forEach(key => delete stones[key]);
+    trackBombOnDelete(validKeys);
     drawBoard();
+}
+
+// 爆弾の追従(2026-10-21): 爆弾の石が壊されたら不発。爆弾より下の石が壊されたら、次の重力落下でその分下がる
+function trackBombOnDelete(keys) {
+    if (!soloBomb) return;
+    if (keys.includes(soloBomb.key)) { soloBomb = null; return; }
+    const [bc, br] = soloBomb.key.split('_').map(Number);
+    soloBomb.pendingShift = (soloBomb.pendingShift || 0) +
+        keys.filter((k) => { const [c, r] = k.split('_').map(Number); return c === bc && r > br; }).length;
+}
+function trackBombOnGravity(affectedCols) {
+    if (!soloBomb || !soloBomb.pendingShift) return;
+    const [bc, br] = soloBomb.key.split('_').map(Number);
+    if ([...affectedCols].map(Number).includes(bc)) {
+        soloBomb.key = `${bc}_${br + soloBomb.pendingShift}`;
+        soloBomb.pendingShift = 0;
+    }
 }
 
 // 鍾離：封鎖列のビジュアルオーバーレイ（×マーク表示）
@@ -844,6 +874,7 @@ async function durinPreTurnEffect(side) {
 
 function applyGravityLocal(deletedKeys) {
     const affectedCols = new Set(deletedKeys.map(k => k.split('_')[0]));
+    trackBombOnGravity(affectedCols);
     for (const col of affectedCols) {
         const colStones = [];
         for (let r = rows - 1; r >= 0; r--) {
@@ -862,6 +893,7 @@ function applyGravityLocal(deletedKeys) {
 function animateGravitySmoothLocal(deletedKeys) {
     return new Promise(resolve => {
         const affectedCols = new Set(deletedKeys.map(k => k.split('_')[0]));
+        trackBombOnGravity(affectedCols);
         const movingStones = [];
 
         for (const col of affectedCols) {
@@ -927,6 +959,11 @@ function abilityAvailable(side) {
 }
 
 async function executeAbility(side, charaID) {
+    // 新しい必殺技(2026-10-21)はキャラIDではなく技の種類で動かす(まだどのキャラにも付いていない)
+    const proc = characterData.find((c) => c.charaID === charaID)?.process;
+    if (proc === 'ult_gravityFlip') { await soloGravityFlip(); return; }
+    if (proc === 'ult_bomb') { await soloStartBomb(side); return; }
+    if (proc === 'ult_flipTouch') { flipTouchPendingSide = side; return; }
     switch (charaID) {
         case '001': // 放浪者：ランダム4列、上から2個
             await deleteStonesLocal(getStonesToDeleteLocal(getRandomTopStonesLocal(4), 2));
@@ -1128,6 +1165,113 @@ async function useAbility(side) {
     }
 }
 
+// 確認用(自分のPCで開いた時だけ): ブラウザのコンソールから必殺技を直接試せる。公開サイトでは無効
+if (['localhost', '127.0.0.1'].includes(location.hostname)) {
+    window.__soloDebug = {
+        useAbility, executeAbility,
+        get stones() { return stones; }, set stones(v) { stones = v; drawBoard(); },
+        get bomb() { return soloBomb; }, get flipTouch() { return flipTouchPendingSide; },
+        setCharge(v) { playerCharge = v; cpuCharge = v; updateGaugeUI(); },
+        bombPreTurnEffect, applySoloFlipTouch, dropAt, checkGameEnd, deleteStonesLocal, animateGravitySmoothLocal, swapColumnsIn, soloGravityFlip,
+        cpuShouldGravityFlip, cpuShouldBomb, cpuShouldFlipTouch, PLAYER_COLOR: () => PLAYER_COLOR, CPU_COLOR: () => CPU_COLOR,
+    };
+}
+
+//------------------------------------------------------------------------------------------------
+// 新しい必殺技(2026-10-21): 重力反転・爆弾・反転の一手。効果は対人戦(gameLogic.js)と同じ
+async function soloGravityFlip() {
+    const { stones: flipped, moved } = gravityFlip(stones, rows, cols);
+    await flipBoardAnimation(canvas, async () => {
+        stones = flipped;
+        if (soloBomb) soloBomb.key = moved[soloBomb.key] || soloBomb.key;
+        drawBoard();
+    });
+}
+
+async function soloStartBomb(side) {
+    const oppColor = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+    const target = getRandomElements(Object.keys(stones).filter((k) => stones[k] === oppColor), 1)[0];
+    if (!target) return;
+    await highlightStonesLocal([target], 450);
+    // 爆弾は同時に1つだけ(前の爆弾が残っていたら、そちらは消える)
+    soloBomb = { key: target, turnsLeft: BOMB_TURNS, casterSide: side, pendingShift: 0 };
+    drawBoard();
+}
+
+// 爆弾: 使った人の番の開始時に残り回数を減らし、0で爆発(周り8マスと爆弾自身を壊して重力で落とす)
+async function bombPreTurnEffect(side) {
+    if (!soloBomb || soloBomb.casterSide !== side) return;
+    soloBomb.turnsLeft--;
+    if (soloBomb.turnsLeft > 0) { drawBoard(); return; }
+    const blast = bombBlastKeys(soloBomb.key, rows, cols).filter((k) => stones[k]);
+    soloBomb = null;
+    if (blast.length === 0) { drawBoard(); return; }
+    await highlightStonesLocal(blast, 450);
+    await deleteStonesLocal(blast);
+    await animateGravitySmoothLocal(blast);
+}
+
+// 反転の一手: 置いた石の下・左・右の色を反転し、置いた石自身も相手の色にする
+async function applySoloFlipTouch(side, column) {
+    if (flipTouchPendingSide !== side) return;
+    flipTouchPendingSide = null;
+    const row = getDropRow(column) + 1; // 今置いた石の行
+    if (row < 0 || row >= rows || !stones[`${column}_${row}`]) return;
+    const keys = flipTouchNeighbors(column, row, rows, cols).filter((k) => stones[k]);
+    await highlightStonesLocal([...keys, `${column}_${row}`], 350);
+    for (const k of keys) stones[k] = otherColor(stones[k]);
+    stones[`${column}_${row}`] = otherColor(stones[`${column}_${row}`]);
+    drawBoard();
+}
+
+// --- CPUの使いどころ ---
+// 盤面 sim で、color が次の1手で4つ並べられるか
+function immediateThreatIn(sim, color) {
+    for (let c = 0; c < cols; c++) {
+        let r = rows - 1;
+        while (r >= 0 && sim[`${c}_${r}`]) r--;
+        if (r < 0) continue;
+        const s2 = { ...sim, [`${c}_${r}`]: color };
+        if (hasLineOfColor(sharedBoardFromStones(s2, rows, cols), color)) return true;
+    }
+    return false;
+}
+// 重力反転: 反転でCPUだけ並ぶなら使う。相手が並ぶなら使わない。相手の即詰めを反転で消せるなら使う
+function cpuShouldGravityFlip() {
+    const sim = gravityFlip(stones, rows, cols).stones;
+    const board = sharedBoardFromStones(sim, rows, cols);
+    if (hasLineOfColor(board, PLAYER_COLOR)) return false;
+    if (hasLineOfColor(board, CPU_COLOR)) return true;
+    return hasImmediateThreat(PLAYER_COLOR) && !immediateThreatIn(sim, PLAYER_COLOR);
+}
+// 爆弾: 相手の石のどれが爆弾になっても、平均で「壊れる相手の石 − 壊れる自分の石」が1.5以上なら使う
+function cpuShouldBomb() {
+    const targets = Object.keys(stones).filter((k) => stones[k] === PLAYER_COLOR);
+    if (targets.length === 0) return false;
+    let total = 0;
+    for (const t of targets) {
+        for (const k of bombBlastKeys(t, rows, cols)) {
+            if (stones[k] === PLAYER_COLOR) total++;
+            else if (stones[k] === CPU_COLOR) total--;
+        }
+    }
+    return total / targets.length >= 1.5;
+}
+// 反転の一手: 反転した結果CPUだけが並ぶ列があれば、その列に置く前提で使う
+function cpuShouldFlipTouch() {
+    flipTouchCol = -1;
+    const dropColor = applyColorSwap(CPU_COLOR);
+    for (const c of getValidColumns()) {
+        const r = getDropRow(c);
+        const sim = { ...stones, [`${c}_${r}`]: dropColor };
+        for (const k of flipTouchNeighbors(c, r, rows, cols)) if (sim[k]) sim[k] = otherColor(sim[k]);
+        sim[`${c}_${r}`] = otherColor(sim[`${c}_${r}`]);
+        const board = sharedBoardFromStones(sim, rows, cols);
+        if (hasLineOfColor(board, CPU_COLOR) && !hasLineOfColor(board, PLAYER_COLOR)) { flipTouchCol = c; return true; }
+    }
+    return false;
+}
+
 //------------------------------------------------------------------------------------------------
 // 魈：列の入れ替え(2026-10-21)
 function columnKeyLocal(st, c) {
@@ -1148,6 +1292,11 @@ function pickColumnSwapPairLocal() {
     return pairs.length ? pairs[Math.floor(Math.random() * pairs.length)] : null;
 }
 function swapColumnsIn(st, a, b) {
+    if (st === stones && soloBomb) {
+        const [bc, br] = soloBomb.key.split('_').map(Number);
+        if (bc === a) soloBomb.key = `${b}_${br}`;
+        else if (bc === b) soloBomb.key = `${a}_${br}`;
+    }
     for (let r = 0; r < rows; r++) {
         const ka = `${a}_${r}`, kb = `${b}_${r}`;
         const va = st[ka], vb = st[kb];
@@ -1280,6 +1429,7 @@ function drawBoard() {
             const key = `${c}_${r}`;
             if (stones[key] && key !== droppingKey) {
                 drawPiece(c, r * cellSize, stones[key]);
+                if (soloBomb && soloBomb.key === key) drawBombMarker(ctx, c, r, cellSize, soloBomb.turnsLeft);
             }
         }
     }
@@ -1622,6 +1772,9 @@ async function startNextRound() {
     durinCasterSide = null;
     cerluaActive = false;
     cerluaCasterSide = null;
+    soloBomb = null;
+    flipTouchPendingSide = null;
+    flipTouchCol = -1;
 
     if (highlightedColumn) {
         highlightedColumn.remove();
@@ -1661,6 +1814,7 @@ async function handlePlayerDrop(column) {
         const droppedColor = applyColorSwap(PLAYER_COLOR);
         const ok = await dropAt(column, droppedColor);
         if (!ok) return;
+        await applySoloFlipTouch('player', column);
 
         // ケリュドラ：CPUが発動した場合、プレイヤーの投下後に追加投下
         if (cerluaActive && cerluaCasterSide === 'cpu') {
@@ -1696,6 +1850,7 @@ async function cpuTurn() {
     // CPUターン開始時のプレターンエフェクト
     zhongliPreTurnCheck('cpu');
     await durinPreTurnEffect('cpu');
+    await bombPreTurnEffect('cpu');
     if (await checkGameEnd()) return;
 
     showTurnLabel(t('turnCpu'));
@@ -1709,7 +1864,7 @@ async function cpuTurn() {
 
         // 先にminimax計算を走らせてノード数から思考時間を算出
         const usesAbility = cpuShouldUseAbility();
-        finalCol = hanabiSetupCol >= 0 ? hanabiSetupCol : pickAiColumn();
+        finalCol = hanabiSetupCol >= 0 ? hanabiSetupCol : flipTouchCol >= 0 ? flipTouchCol : pickAiColumn();
 
         const thinkMs = Math.min(BAKATARE_THINK_MAX_MS, minimaxNodeCount * BAKATARE_THINK_MS_PER_NODE);
         const cpuTimedOut = await cpuThinkWithTimer(thinkMs);
@@ -1754,12 +1909,14 @@ async function cpuTurn() {
             await wait(400);
         }
 
-        finalCol = hanabiSetupCol >= 0 ? hanabiSetupCol : pickAiColumn();
+        finalCol = hanabiSetupCol >= 0 ? hanabiSetupCol : flipTouchCol >= 0 ? flipTouchCol : pickAiColumn();
     }
 
     hanabiSetupCol = -1;
+    flipTouchCol = -1;
     const droppedColor = applyColorSwap(CPU_COLOR);
     await dropAt(finalCol, droppedColor);
+    await applySoloFlipTouch('cpu', finalCol);
     cpuCharge = Math.min(200, cpuCharge + cpuChara.charge);
 
     // ケリュドラ：プレイヤーが発動した場合、CPUの投下後に追加投下
@@ -1783,6 +1940,7 @@ async function cpuTurn() {
     // プレイヤーターン開始前のプレターンエフェクト
     zhongliPreTurnCheck('player');
     await durinPreTurnEffect('player');
+    await bombPreTurnEffect('player');
     if (await checkGameEnd()) return;
 
     turn = 'player';
@@ -1936,6 +2094,9 @@ async function resetGame() {
     durinCasterSide = null;
     cerluaActive = false;
     cerluaCasterSide = null;
+    soloBomb = null;
+    flipTouchPendingSide = null;
+    flipTouchCol = -1;
 
     cpuChara = pickCpuCharacter();
     displayCharaPanel('cpu', cpuChara);

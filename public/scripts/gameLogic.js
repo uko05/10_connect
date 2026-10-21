@@ -9,6 +9,7 @@ import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/
 
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, flipBoardAnimation, BOMB_TURNS } from "./specialAbilities.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
@@ -188,8 +189,15 @@ const abilities = {
     ult_cerylua,
     ult_silverwolf,
     ult_dice,
-    ult_columnSwap
+    ult_columnSwap,
+    ult_gravityFlip,
+    ult_bomb,
+    ult_flipTouch
 };
+
+// 新しい必殺技(2026-10-21、specialAbilities.js 参照)
+let pvpBomb = null;               // 爆弾: { casterColor, turnsLeft }。爆弾の石は stones の値に bomb: true
+let pvpFlipTouchPending = false;  // 反転の一手: 必殺技を使った後、このターンに置く石で発動(自分の画面だけで持つ)
 
 // アベンチュリンのダイスロール(2026-10-21)
 let diceInProgress = false;   // 自分が振っている間は石を置けないようにする(効果の処理とぶつからないよう)
@@ -1335,6 +1343,9 @@ async function watchRoomUpdates() {
             pvpDurinCasterColor = data.abilityState?.durinCasterColor || null;
             pvpCerluaActive = data.abilityState?.cerluaActive || false;
             pvpCerluaCasterColor = data.abilityState?.cerluaCasterColor || null;
+            pvpBomb = data.abilityState?.bomb || null;
+            // 自分の番でなくなったら、使わずに終わった「反転の一手」は消す(時間切れなど)
+            if (data.turn !== player_info) pvpFlipTouchPending = false;
 
             stonesData = data.stones || {};
             turn = data.turn;
@@ -1539,6 +1550,8 @@ async function deleteStonesAndUpdate() {
     pvpDurinCasterColor = null;
     pvpCerluaActive = false;
     pvpCerluaCasterColor = null;
+    pvpBomb = null;
+    pvpFlipTouchPending = false;
 
     const q = roomQuery();
     const updates = {
@@ -1555,7 +1568,8 @@ async function deleteStonesAndUpdate() {
         'abilityState.durinPending': false,
         'abilityState.durinCasterColor': null,
         'abilityState.cerluaActive': false,
-        'abilityState.cerluaCasterColor': null
+        'abilityState.cerluaCasterColor': null,
+        'abilityState.bomb': null
     };
 
     try {
@@ -1808,15 +1822,28 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
 
     const currentTurnCount = roomData.turnCount ?? 1;
 
+    // 反転の一手(2026-10-21): 置いた石の下・左・右の色を反転し、置いた石自身も相手の色にする。
+    // 同じ書き込みに入れるので、相手の画面でも途中の盤面は見えない
+    let flipPayload = {};
+    let flipColor = false;
+    if (pvpFlipTouchPending && attackType === 1) {
+      for (const key of flipTouchNeighbors(column, row, rows, cols)) {
+        if (stones[key]) flipPayload[`stones.${key}.color`] = otherColor(stones[key].color);
+      }
+      flipColor = true;
+      pvpFlipTouchPending = false;
+    }
+
     const updatePayload = {
       player1_ChargeNow: p1_chargeNow,
       player1_UltCount: p1_UltCount,
       player2_ChargeNow: p2_chargeNow,
       player2_UltCount: p2_UltCount,
       [`stones.${column}_${row}`]: {
-        color: playerColor,
+        color: flipColor ? otherColor(playerColor) : playerColor,
         turnCount: currentTurnCount
       },
+      ...flipPayload,
       turn: nextTurn,
       turnCount: currentTurnCount + 1,
       changeStone: nextChangeStone,
@@ -2055,6 +2082,7 @@ async function init_drawBoard(allstones = false) {
                     // 石の色を設定
                     const stoneColor = stonesData[stoneKey].color;
                     drawPiece(c, r * cellSize, stoneColor);
+                    if (stonesData[stoneKey].bomb) drawBombMarker(ctx, c, r, cellSize, pvpBomb?.turnsLeft);
                 }
             }
         }
@@ -3592,6 +3620,9 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
     if (!turnJustChangedToMe || !isTurnPlayer()) return;
 
     try {
+        // ⓪ 爆弾：使った人の番の開始時に残り回数を減らし、0で爆発(2026-10-21)
+        await processPvpBomb();
+
         // ① ドゥリン：自分のターン開始時に自動破壊
         if (pvpDurinPending && playerLeft_Color === pvpDurinCasterColor) {
             const q = roomQuery();
@@ -4026,6 +4057,117 @@ async function ult_columnSwap() {
         init_drawBoard(true);
     } catch (error) {
         console.error("魈の必殺技処理中にエラーが発生しました:", error);
+    }
+}
+
+//------------------------------------------------------------------------------------------------
+// 重力反転(2026-10-21): 盤面を上下にひっくり返し、各列の積み順を逆にして落とし直す
+async function ult_gravityFlip() {
+    try {
+        const q = roomQuery();
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        const { stones: flipped } = gravityFlip(roomData.stones || {}, rows, cols);
+        await flipBoardAnimation(document.getElementById('connect4Canvas'), async () => {
+            stonesData = flipped;
+            init_drawBoard(true);
+        });
+        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+            stones: flipped,
+        });
+    } catch (error) {
+        console.error("重力反転の処理中にエラーが発生しました:", error);
+    }
+}
+
+// 爆弾(2026-10-21): 相手の石を1つランダムに爆弾にする。爆発は使った人の2回後の自分の番の開始時(processPvpCrossTurnEffects)
+async function ult_bomb() {
+    try {
+        const q = roomQuery();
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        const localStones = Object.assign({}, roomData.stones || {});
+        for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
+        const oppColor = otherColor(playerLeft_Color);
+        // 爆弾は同時に1つだけ(前の爆弾が残っていたら、そちらは消える)
+        for (const key in localStones) if (localStones[key].bomb) delete localStones[key].bomb;
+        const target = getRandomElements(Object.keys(localStones).filter((k) => localStones[k].color === oppColor), 1)[0];
+        const payload = { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow };
+        if (target) {
+            await highlightStones([target], 400);
+            localStones[target].bomb = true;
+            pvpBomb = { casterColor: playerLeft_Color, turnsLeft: BOMB_TURNS };
+            payload['abilityState.bomb'] = pvpBomb;
+        }
+        payload.stones = localStones;
+        await updateDoc(doc(db, "connectRooms", roomDoc.id), payload);
+        stonesData = localStones;
+        init_drawBoard(true);
+    } catch (error) {
+        console.error("爆弾の処理中にエラーが発生しました:", error);
+    }
+}
+
+// 爆弾: 使った人の番の開始時に呼ぶ。残り回数を減らし、0になったら爆発させる
+async function processPvpBomb() {
+    if (!pvpBomb || pvpBomb.casterColor !== playerLeft_Color) return;
+    const q = roomQuery();
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return;
+    const roomDoc = querySnapshot.docs[0];
+    const roomRef = doc(db, "connectRooms", roomDoc.id);
+    const localStones = Object.assign({}, roomDoc.data().stones || {});
+    for (const k in localStones) localStones[k] = Object.assign({}, localStones[k]);
+    const bombKey = Object.keys(localStones).find((k) => localStones[k].bomb);
+    if (!bombKey) {
+        // 爆弾の石が先に壊された → 不発
+        pvpBomb = null;
+        await updateDoc(roomRef, { 'abilityState.bomb': null });
+        return;
+    }
+    const left = (pvpBomb.turnsLeft ?? BOMB_TURNS) - 1;
+    if (left > 0) {
+        pvpBomb = { ...pvpBomb, turnsLeft: left };
+        await updateDoc(roomRef, { 'abilityState.bomb': pvpBomb });
+        init_drawBoard(true);
+        return;
+    }
+    const blast = bombBlastKeys(bombKey, rows, cols).filter((k) => localStones[k]);
+    await highlightStones(blast, 450);
+    for (const k of blast) delete localStones[k];
+    stonesData = localStones;
+    init_drawBoard(true);
+    await wait(400);
+    await animateGravitySmooth(localStones, blast);
+    pvpBomb = null;
+    await updateDoc(roomRef, { stones: localStones, 'abilityState.bomb': null });
+    stonesData = localStones;
+    init_drawBoard(true);
+}
+
+// 反転の一手(2026-10-21): このターンに置く石で発動する(実際の反転は updateRoomWithStone で行う)
+async function ult_flipTouch() {
+    try {
+        const q = roomQuery();
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+        const roomData = querySnapshot.docs[0].data();
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        await updateDoc(doc(db, "connectRooms", querySnapshot.docs[0].id), {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+        });
+        pvpFlipTouchPending = true;
+    } catch (error) {
+        console.error("反転の一手の処理中にエラーが発生しました:", error);
     }
 }
 
