@@ -310,7 +310,7 @@ export const characterData = [
         src: 'public/chara/hanabi.png',
         charaID: '020',
         name: '花火',
-        charge: 15,
+        charge: 10,
         chargeMax: 200,
         Ability: '一人千役',
         AbilityDetail: '【反転】このターンに置いた石の下・左・右の石の色を反転させ、最後に置いた石自身も相手の色になる。(6ターン目から発動可能)',
