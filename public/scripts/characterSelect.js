@@ -4,7 +4,7 @@ import {
   getFirestore, collection, writeBatch, addDoc, query, where, deleteDoc, doc, runTransaction, updateDoc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { characterData } from './characterData.js';
+import { characterData, TEST_ALL_CHARAS_UNLOCKED } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { ensureLatestVersion } from './versionGuard.js';
 import { setupScaledLayout } from './layoutScaler.js';
@@ -238,7 +238,7 @@ function displayThumbnails() {
 
     // charaID順にすべてのキャラを描画（解放状態にかかわらず）
     characterData.forEach((character) => {
-        const isLocked = character.requiredAchievementId && !myAchievements.has(character.requiredAchievementId);
+        const isLocked = !TEST_ALL_CHARAS_UNLOCKED && character.requiredAchievementId && !myAchievements.has(character.requiredAchievementId);
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
 

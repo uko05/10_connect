@@ -273,4 +273,56 @@ export const characterData = [
         voice_ult: 'public/scripts/sound/aben_ult.mp3',  
         process: 'ult_dice' // 関数名を文字列として保持
     },
+    {
+        // 仮キャラ(2026-10-21): 新しい必殺技の動作確認用。名前・技名・画像・ボイスは charaID 004 から借りている(後で差し替える)
+        src: 'public/chara/Navia.png',
+        charaID: '018',
+        name: 'ナヴィア',
+        charge: 16,
+        chargeMax: 200,
+        Ability: '晴天を衝く霰弾のサルート',
+        AbilityDetail: '【爆弾】相手の石をランダムに1個選び爆弾にする。自分の2回後の番の開始時に爆発し、周り8マスと爆弾の石を敵味方関係なく破壊する。(6ターン目から発動可能)',
+        AbilityUseTurn: 6,
+        AbilityCutImage: 'public/chara/ult_Navia.png',
+        voice_select: 'public/scripts/sound/navia_select.mp3',
+        voice_attack: 'public/scripts/sound/navia_attack.mp3',
+        voice_ult: 'public/scripts/sound/navia_ult.mp3',
+        process: 'ult_bomb'
+    },
+    {
+        // 仮キャラ(2026-10-21): 新しい必殺技の動作確認用。名前・技名・画像・ボイスは charaID 006 から借りている(後で差し替える)
+        src: 'public/chara/helta.png',
+        charaID: '019',
+        name: 'マダム・ヘルタ',
+        charge: 15,
+        chargeMax: 200,
+        Ability: '魔法だって言ったでしょ',
+        AbilityDetail: '【反転】盤面を上下にひっくり返し、石を重力で落とし直す(各列の石の積み順が逆になる)。(8ターン目から発動可能)',
+        AbilityUseTurn: 8,
+        AbilityCutImage: 'public/chara/ult_helta.png',
+        voice_select: 'public/scripts/sound/helta_select.mp3',
+        voice_attack: 'public/scripts/sound/helta_attack.mp3',
+        voice_ult: 'public/scripts/sound/helta_ult.mp3',
+        process: 'ult_gravityFlip'
+    },
+    {
+        // 仮キャラ(2026-10-21): 新しい必殺技の動作確認用。名前・技名・画像・ボイスは charaID 005 から借りている(後で差し替える)
+        src: 'public/chara/hanabi.png',
+        charaID: '020',
+        name: '花火',
+        charge: 15,
+        chargeMax: 200,
+        Ability: '一人千役',
+        AbilityDetail: '【反転】このターンに置いた石の下・左・右の石の色を反転させ、最後に置いた石自身も相手の色になる。(6ターン目から発動可能)',
+        AbilityUseTurn: 6,
+        AbilityCutImage: 'public/chara/ult_hanabi.png',
+        voice_select: 'public/scripts/sound/hanabi_select.mp3',
+        voice_attack: 'public/scripts/sound/hanabi_attack.mp3',
+        voice_ult: 'public/scripts/sound/hanabi_ult.mp3',
+        process: 'ult_flipTouch'
+    }
 ];
+
+// 動作確認のため、隠しキャラも含めて全キャラを一時的に選べるようにする(2026-10-21)。
+// 公開前に false に戻すこと(戻すと requiredAchievementId のアチーブで解放する通常の動きになる)
+export const TEST_ALL_CHARAS_UNLOCKED = true;

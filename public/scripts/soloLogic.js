@@ -9,7 +9,7 @@ import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty, getClickMode, getVoicePlaybackVolume, VOICE_GAIN } from "./settingsManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
-import { characterData } from "./characterData.js";
+import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
 import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
@@ -1996,7 +1996,7 @@ function displayCharaPanel(side, chara) {
 
 function pickCpuCharacter() {
     const unlocked = new Set(JSON.parse(sessionStorage.getItem('soloUnlockedAchievements') || '[]'));
-    const pool = characterData.filter(c => !c.requiredAchievementId || unlocked.has(c.requiredAchievementId));
+    const pool = characterData.filter(c => TEST_ALL_CHARAS_UNLOCKED || !c.requiredAchievementId || unlocked.has(c.requiredAchievementId));
     // キャラ選択画面で相手を選んでいればそのキャラ（解放済みのみ）。未選択ならランダム
     const chosen = pool.find(c => c.charaID === sessionStorage.getItem('soloCpuCharaID'));
     if (chosen) return chosen;
