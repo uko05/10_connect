@@ -18,21 +18,47 @@ export const BASE_IDS = characterData.map((c) => c.charaID).filter((id) => id >=
 export const BOSS_ID = '020';
 export const REVERSE_WINS = 3;
 
+// 説明文は (i) のポップアップに出す。\n は改行(CSS の white-space: pre-line で表示)。
+// 一般の人に「No.001〜016」は伝わらないので「キャラ選択画面の最初の16人」と書く(2026-10-22)
 export const CHALLENGE_INFO = {
     streak: {
         difficulty: 'hard',
-        ja: { name: '連勝の挑戦', desc: '自分で選んだキャラで、No.001〜016の16キャラ（順番はランダム）に連続で勝利する。難易度はHARD、各試合3本先取。1回でも負けると最初からやり直し。試合の合間なら中断できる（試合の途中で抜けると負け扱い）。クリアすると新しいキャラが解放される。', need: 'No.001〜016のキャラをすべて解放すると挑戦できます' },
-        en: { name: 'Winning Streak', desc: 'With a character of your choice, defeat all 16 characters No.001–016 in a row (random order). HARD difficulty, best of 5 rounds (first to 3). One loss and you start over. You can take a break between matches (leaving mid-match counts as a loss). Clearing it unlocks a new character.', need: 'Unlock all characters No.001–016 to try this.' },
+        ja: {
+            name: '連勝の挑戦',
+            desc: '自分で選んだキャラで、16人の相手に続けて勝つ挑戦です。\n\n・相手：キャラ選択画面の最初の16人（順番はランダム）\n・難易度：HARD／各試合3本先取\n・1回でも負けると最初からやり直し\n・試合と試合の間なら中断できます（試合の途中で抜けると負け扱い）\n・クリアすると新しいキャラが解放されます',
+            need: 'キャラ選択画面の最初の16人をすべて解放すると挑戦できます',
+        },
+        en: {
+            name: 'Winning Streak',
+            desc: 'Win 16 matches in a row with a character of your choice.\n\n- Opponents: the first 16 characters on the character select screen (random order)\n- Difficulty: HARD / first to 3 rounds\n- One loss and you start over\n- You can take a break between matches (leaving mid-match counts as a loss)\n- Clearing it unlocks a new character',
+            need: 'Unlock the first 16 characters on the select screen to try this.',
+        },
     },
     all: {
         difficulty: 'hard',
-        ja: { name: '万象の挑戦', desc: '自分のキャラも相手のキャラも毎試合ランダム（同じキャラは二度出ず、同じキャラ同士の対戦もなし）。16試合で、No.001〜016の全キャラを使い、全キャラと戦う。難易度はHARD、各試合3本先取。1回でも負けると最初からやり直し。試合の合間なら中断できる（試合の途中で抜けると負け扱い）。クリアすると新しいキャラが解放される。', need: 'No.001〜016のキャラをすべて解放すると挑戦できます' },
-        en: { name: 'All Things', desc: 'Both your character and your opponent are random each match (no repeats, no mirror matches). Over 16 matches you play as every character No.001–016 and face every one of them. HARD difficulty, first to 3 rounds. One loss and you start over. You can take a break between matches (leaving mid-match counts as a loss). Clearing it unlocks a new character.', need: 'Unlock all characters No.001–016 to try this.' },
+        ja: {
+            name: '万象の挑戦',
+            desc: '自分のキャラも相手のキャラも、毎試合ランダムで決まる挑戦です。\n\n・16試合で、キャラ選択画面の最初の16人を全員1回ずつ使い、全員と1回ずつ戦います\n・同じキャラ同士の対戦はありません\n・難易度：HARD／各試合3本先取\n・1回でも負けると最初からやり直し\n・試合と試合の間なら中断できます（試合の途中で抜けると負け扱い）\n・クリアすると新しいキャラが解放されます',
+            need: 'キャラ選択画面の最初の16人をすべて解放すると挑戦できます',
+        },
+        en: {
+            name: 'All Things',
+            desc: 'Both your character and your opponent are chosen at random every match.\n\n- Over 16 matches you play as each of the first 16 characters once and face each of them once\n- No mirror matches\n- Difficulty: HARD / first to 3 rounds\n- One loss and you start over\n- You can take a break between matches (leaving mid-match counts as a loss)\n- Clearing it unlocks a new character',
+            need: 'Unlock the first 16 characters on the select screen to try this.',
+        },
     },
     reverse: {
         difficulty: 'bakatare',
-        ja: { name: '逆転の挑戦', desc: '毎試合ランダムに選ばれたキャラで、BAKATARE難易度の最後のキャラに3連勝する。各試合3本先取。1回でも負けると最初からやり直し。試合の合間なら中断できる（試合の途中で抜けると負け扱い）。クリアすると最後のキャラが解放される。', need: '他の19キャラをすべて解放すると挑戦できます' },
-        en: { name: 'Reversal', desc: 'With a randomly chosen character each match, win 3 times in a row against the final character on BAKATARE difficulty. First to 3 rounds per match. One loss and you start over. You can take a break between matches (leaving mid-match counts as a loss). Clearing it unlocks the final character.', need: 'Unlock the other 19 characters to try this.' },
+        ja: {
+            name: '逆転の挑戦',
+            desc: '毎試合ランダムに選ばれるキャラで、最後のキャラに3回続けて勝つ挑戦です。\n\n・相手：最後のキャラ（難易度BAKATARE）\n・自分のキャラ：毎試合ランダム\n・各試合3本先取\n・1回でも負けると最初からやり直し\n・試合と試合の間なら中断できます（試合の途中で抜けると負け扱い）\n・クリアすると最後のキャラが解放されます',
+            need: '最後のキャラ以外をすべて解放すると挑戦できます',
+        },
+        en: {
+            name: 'Reversal',
+            desc: 'Beat the final character 3 times in a row, with a randomly chosen character each match.\n\n- Opponent: the final character (BAKATARE difficulty)\n- Your character: random every match\n- First to 3 rounds per match\n- One loss and you start over\n- You can take a break between matches (leaving mid-match counts as a loss)\n- Clearing it unlocks the final character',
+            need: 'Unlock every character except the final one to try this.',
+        },
     },
 };
 export const challengeText = (mode) => CHALLENGE_INFO[mode][getCurrentLang() === 'en' ? 'en' : 'ja'];

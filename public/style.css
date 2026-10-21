@@ -1948,4 +1948,4 @@ body.hub-page::before {
 .challenge-status { font-size: 13px; text-align: center; color: #333; margin: 2px 0 4px; line-height: 1.4; }
 .challenge-info-content { max-width: 560px; text-align: left; }
 .challenge-info-content h3 { margin: 6px 0 10px; color: #7b3fbf; text-align: center; }
-.challenge-info-content p { font-size: 15px; line-height: 1.7; margin: 0 6px 8px; }
+.challenge-info-content p { font-size: 15px; line-height: 1.7; margin: 0 6px 8px; white-space: pre-line; }

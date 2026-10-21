@@ -260,9 +260,9 @@ const achDict = {
       '挑戦':           'Challenges',
     },
     items: {
-      'challenge_streak_clear':  { name: 'Unbroken Streak',               condition: 'Clear the "Winning Streak" challenge' },
-      'challenge_all_clear':     { name: 'Master of All Things',          condition: 'Clear the "All Things" challenge' },
-      'challenge_reverse_clear': { name: 'Lord of Reversal',              condition: 'Clear the "Reversal" challenge' },
+      'challenge_streak_clear':  { name: 'Winning Streak Conquered',      condition: 'Clear the "Winning Streak" challenge' },
+      'challenge_all_clear':     { name: 'All Things Conquered',          condition: 'Clear the "All Things" challenge' },
+      'challenge_reverse_clear': { name: 'Reversal Conquered',            condition: 'Clear the "Reversal" challenge' },
       'solo_win_easy':      { name: 'First Victory',                       condition: 'Win against EASY CPU' },
       'solo_win_normal':    { name: 'Mastering the Standard',              condition: 'Win against NORMAL CPU' },
       'solo_win_hard':      { name: 'Defeating the Tough',                 condition: 'Win against HARD CPU' },
