@@ -3634,7 +3634,7 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
     if (!turnJustChangedToMe || !isTurnPlayer()) return;
 
     try {
-        // ⓪ 爆弾：使った人の番の開始時に残り回数を減らし、0で爆発(2026-10-21)
+        // ⓪ 爆弾：番の開始時に残りターン数を減らし、0で爆発(2026-10-21)
         await processPvpBomb();
 
         // ① ドゥリン：自分のターン開始時に自動破壊
@@ -4132,9 +4132,10 @@ async function ult_bomb() {
     }
 }
 
-// 爆弾: 使った人の番の開始時に呼ぶ。残り回数を減らし、0になったら爆発させる
+// 爆弾: 両者の番の開始時に呼ぶ(その番の人が書き込む)。残りターン数を1減らし、0になったら爆発させる。
+// 4ターンなら 相手→自分→相手→自分 の順に減り、0になるのは使った人の番の開始時
 async function processPvpBomb() {
-    if (!pvpBomb || pvpBomb.casterColor !== playerLeft_Color) return;
+    if (!pvpBomb) return;
     const q = roomQuery();
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) return;

@@ -281,7 +281,7 @@ export const characterData = [
         charge: 16,
         chargeMax: 200,
         Ability: '晴天を衝く霰弾のサルート',
-        AbilityDetail: '【爆弾】相手の石をランダムに1個選び爆弾にする。自分の2回後の番の開始時に爆発し、周り8マスと爆弾の石を敵味方関係なく破壊する。(6ターン目から発動可能)',
+        AbilityDetail: '【爆弾】相手の石をランダムに1個選び爆弾にする。4ターン後の自分の番の開始時に爆発し、周り8マスと爆弾の石を敵味方関係なく破壊する。(6ターン目から発動可能)',
         AbilityUseTurn: 6,
         AbilityCutImage: 'public/chara/ult_Navia.png',
         voice_select: 'public/scripts/sound/navia_select.mp3',

@@ -1209,9 +1209,10 @@ async function soloStartBomb(side) {
     drawBoard();
 }
 
-// 爆弾: 使った人の番の開始時に残り回数を減らし、0で爆発(周り8マスと爆弾自身を壊して重力で落とす)
+// 爆弾: 両者の番の開始時に残りターン数を1減らし、0で爆発(周り8マスと爆弾自身を壊して重力で落とす)。
+// 4ターンなら 相手→自分→相手→自分 の順に減り、0になるのは使った人の番の開始時
 async function bombPreTurnEffect(side) {
-    if (!soloBomb || soloBomb.casterSide !== side) return;
+    if (!soloBomb) return;
     soloBomb.turnsLeft--;
     if (soloBomb.turnsLeft > 0) { drawBoard(); return; }
     const blast = bombBlastKeys(soloBomb.key, rows, cols).filter((k) => stones[k]);
