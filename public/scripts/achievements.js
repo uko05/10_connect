@@ -95,6 +95,15 @@ export const ACHIEVEMENT_GROUPS = [
         ],
     },
     {
+        // ソロの挑戦モード(2026-10-22)。クリアで隠しキャラ 018 / 019 / 020 が解放される
+        id: 'solo_challenge', name: '挑戦',
+        items: [
+            { id: 'challenge_streak_clear', rarity: 'legend', name: '連勝街道', condition: '「連勝の挑戦」をクリアする', hiddenCharaId: '018', check: (ctx) => !!ctx.challengeStreakClear },
+            { id: 'challenge_all_clear', rarity: 'legend', name: '万象を極めし者', condition: '「万象の挑戦」をクリアする', hiddenCharaId: '019', check: (ctx) => !!ctx.challengeAllClear },
+            { id: 'challenge_reverse_clear', rarity: 'legend', name: '逆転の覇者', condition: '「逆転の挑戦」をクリアする', hiddenCharaId: '020', check: (ctx) => !!ctx.challengeReverseClear },
+        ],
+    },
+    {
         id: 'bakatare_challenge', name: 'ばかたれチャレンジ',
         items: [
             { id: 'cerylua_ult5_win', rarity: 'gold', name: '支配者の風格', condition: 'ケリュドラの必殺技を1試合中に5回使用して勝利する', hiddenCharaId: '015', check: (ctx) => !!ctx.hadCeryluaUlt5Win },

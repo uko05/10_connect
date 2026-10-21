@@ -290,6 +290,8 @@ export const characterData = [
         voice_select: 'public/scripts/sound/navia_select.mp3',
         voice_attack: 'public/scripts/sound/navia_attack.mp3',
         voice_ult: 'public/scripts/sound/navia_ult.mp3',
+        requiredAchievementId: 'challenge_streak_clear',
+        requiredAchievementLabel: '連勝街道',
         process: 'ult_bomb'
     },
     {
@@ -306,6 +308,8 @@ export const characterData = [
         voice_select: 'public/scripts/sound/hanabi_select.mp3',
         voice_attack: 'public/scripts/sound/hanabi_attack.mp3',
         voice_ult: 'public/scripts/sound/hanabi_ult.mp3',
+        requiredAchievementId: 'challenge_all_clear',
+        requiredAchievementLabel: '万象を極めし者',
         process: 'ult_flipTouch'
     },
     {
@@ -322,6 +326,8 @@ export const characterData = [
         voice_select: 'public/scripts/sound/helta_select.mp3',
         voice_attack: 'public/scripts/sound/helta_attack.mp3',
         voice_ult: 'public/scripts/sound/helta_ult.mp3',
+        requiredAchievementId: 'challenge_reverse_clear',
+        requiredAchievementLabel: '逆転の覇者',
         process: 'ult_gravityFlip'
     }
 ];

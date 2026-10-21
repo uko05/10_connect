@@ -52,3 +52,8 @@
         margin: 4px;
     }
 }
+
+/* 挑戦モード(2026-10-22) */
+.challenge-result-text { color: #fff; font-size: 16px; line-height: 1.6; margin-bottom: 8px; }
+.challenge-result-text b { color: #ffd84d; font-size: 20px; }
+#challengeBanner { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); z-index: 60; background: rgba(60, 20, 100, 0.8); color: #fff; padding: 4px 14px; border-radius: 14px; font-size: 14px; white-space: nowrap; pointer-events: none; }

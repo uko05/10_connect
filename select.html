@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル</title>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
-    <link rel="stylesheet" href="public/style.css?v=1.61.2"> <!-- スタイルシートのリンク -->
+    <link rel="stylesheet" href="public/style.css?v=1.68.0"> <!-- スタイルシートのリンク -->
     <script type="module" src="public/scripts/characterSelect.js" defer></script>
 
     <!-- Favicon -->
@@ -41,6 +41,15 @@
 
 
     <!-- Help Modal -->
+    <!-- 挑戦モードの説明 -->
+    <div id="challengeInfoModal" class="modal">
+      <div class="modal-content challenge-info-content">
+        <span class="close" id="challengeInfoClose">&times;</span>
+        <h3 id="challengeInfoTitle"></h3>
+        <p id="challengeInfoText"></p>
+      </div>
+    </div>
+
     <div id="helpModal" class="modal">
       <div class="modal-content">
         <span class="close">&times;</span>
@@ -123,7 +132,14 @@
             <!-- CPU対戦専用ブロック（?mode=cpu の場合のみ表示） -->
             <div id="soloModeBlock">
                 <div id="soloModeGroup" class="solo-mode-group">
-                    <button id="soloModeButton" class="btn solo-mode-btn" data-i18n="btnSolo">ソロモード(CPU対戦)</button>
+                    <!-- ◀ ▶ でソロモードと挑戦モード(連勝・万象・逆転)を切り替える。挑戦モードは (i) で説明を表示(2026-10-22) -->
+                    <div class="solo-mode-switch">
+                        <button type="button" id="soloModePrev" class="solo-mode-arrow" aria-label="prev">◀</button>
+                        <button id="soloModeButton" class="btn solo-mode-btn" data-i18n="btnSolo">ソロモード(CPU対戦)</button>
+                        <button type="button" id="soloModeInfo" class="solo-mode-info" aria-label="info" hidden>i</button>
+                        <button type="button" id="soloModeNext" class="solo-mode-arrow" aria-label="next">▶</button>
+                    </div>
+                    <div id="challengeStatus" class="challenge-status" hidden></div>
 
                     <div id="cpuDifficultySelector" class="cpu-difficulty-selector">
                         <div class="cpu-difficulty-radio-row">

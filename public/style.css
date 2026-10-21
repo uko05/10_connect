@@ -1936,3 +1936,16 @@ body.hub-page::before {
     cursor: default;
 }
 .thumbnail-empty:hover { transform: none; }
+
+/* ソロモード ◀ ▶ 切り替え・挑戦モード(2026-10-22) */
+.solo-mode-switch { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.solo-mode-switch #soloModeButton { flex: 1; width: auto; margin-bottom: 0; }
+.solo-mode-arrow { flex: none; width: 30px; height: 38px; border: none; border-radius: 6px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 14px; cursor: pointer; }
+.solo-mode-arrow:hover { background: rgba(0, 0, 0, 0.75); }
+.solo-mode-info { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #e67e22; background: #fff; color: #e67e22; font-family: Georgia, serif; font-style: italic; font-weight: bold; font-size: 15px; line-height: 1; cursor: pointer; padding: 0; }
+#soloModeButton.challenge-mode { background-color: #7b3fbf; border-color: #7b3fbf; }
+#soloModeButton:disabled { background-color: #999; border-color: #999; cursor: default; }
+.challenge-status { font-size: 13px; text-align: center; color: #333; margin: 2px 0 4px; line-height: 1.4; }
+.challenge-info-content { max-width: 560px; text-align: left; }
+.challenge-info-content h3 { margin: 6px 0 10px; color: #7b3fbf; text-align: center; }
+.challenge-info-content p { font-size: 15px; line-height: 1.7; margin: 0 6px 8px; }

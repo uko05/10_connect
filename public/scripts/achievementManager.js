@@ -38,6 +38,10 @@ const ACH_STATS_DEFAULTS = {
     hadCleanWin: false,
     hadComebackWin: false,
     straightWinCount: 0,
+    // 挑戦モードのクリア(2026-10-22、challengeManager.js)
+    challengeStreakClear: false,
+    challengeAllClear: false,
+    challengeReverseClear: false,
 };
 
 function loadAchStats(achStats) {
@@ -103,6 +107,11 @@ export async function recordSoloWin(uid, difficultyId, charaId) {
         }
         return patch;
     });
+}
+
+// ソロの挑戦モードをクリアした(statKey は challengeManager.js の CLEAR_STAT)。戻り値は新しく解放されたアチーブメントのID
+export async function recordChallengeClear(uid, statKey) {
+    return applyAchStatsPatch(uid, () => ({ [statKey]: true }));
 }
 
 // PvP（ランクマッチのみ）：1試合の結果からアチーブメント関連スタッツを更新する

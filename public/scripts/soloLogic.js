@@ -6,7 +6,8 @@ import { getMyStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst } from "./renderer.js";
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
-import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth, getCpuDifficulty, getClickMode, getVoicePlaybackVolume, VOICE_GAIN } from "./settingsManager.js";
+import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth as _getCpuSearchDepth, getCpuDifficulty as _getCpuDifficulty, getClickMode, getVoicePlaybackVolume, VOICE_GAIN, CPU_DIFFICULTY_LEVELS } from "./settingsManager.js";
+import { getSoloChallenge, clearSoloChallenge, setSoloChallenge, challengeText, loadProgress, saveProgress, afterWin, nextMatch, CLEAR_STAT, CHALLENGE_INFO } from "./challengeManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
@@ -15,7 +16,7 @@ import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMar
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
-import { recordSoloWin, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
+import { recordSoloWin, recordChallengeClear, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
 import { getUserRating } from "./eloRating.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
@@ -82,6 +83,13 @@ let hanabiSetupCol = -1; // 花火CPUセットアップ列（-1=なし）
 let soloBomb = null;            // { key, turnsLeft, casterSide, pendingShift }
 let flipTouchPendingSide = null; // 反転の一手: 'player' | 'cpu'(そのターンに置く石で発動)
 let flipTouchCol = -1;           // CPUが反転の一手で狙う列(-1=なし)
+// 挑戦モード(2026-10-22、challengeManager.js)。挑戦中は難易度と相手キャラを挑戦の内容に固定する
+const CHALLENGE = getSoloChallenge();
+function getCpuDifficulty() { return CHALLENGE?.difficulty || _getCpuDifficulty(); }
+function getCpuSearchDepth() {
+    if (!CHALLENGE) return _getCpuSearchDepth();
+    return (CPU_DIFFICULTY_LEVELS.find((d) => d.id === CHALLENGE.difficulty) || CPU_DIFFICULTY_LEVELS[1]).depth;
+}
 let currentUid = null; // アチーブメント記録用（認証は裏で進める。対局の進行はブロックしない）
 authReady.then(async (user) => {
     currentUid = user.uid;
@@ -1799,6 +1807,7 @@ async function showFinalResult(result) {
 
     await wait(900);
     document.getElementById('soloResultPanel').style.display = 'block';
+    if (CHALLENGE) await showChallengeResult(result);
 }
 
 // ラウンドのみリセット（盤面・ターン数）。チャージ・必殺技使用回数・ラウンド勝数は持ち越す
@@ -2031,6 +2040,11 @@ function displayCharaPanel(side, chara) {
 }
 
 function pickCpuCharacter() {
+    // 挑戦モードは決まった相手(解放前の020でも使う)
+    if (CHALLENGE) {
+        const fixed = characterData.find((c) => c.charaID === sessionStorage.getItem('soloCpuCharaID'));
+        if (fixed) return fixed;
+    }
     const unlocked = new Set(JSON.parse(sessionStorage.getItem('soloUnlockedAchievements') || '[]'));
     const pool = characterData.filter(c => TEST_ALL_CHARAS_UNLOCKED || !c.requiredAchievementId || unlocked.has(c.requiredAchievementId));
     // キャラ選択画面で相手を選んでいればそのキャラ（解放済みのみ）。未選択ならランダム
@@ -2401,3 +2415,95 @@ document.addEventListener('DOMContentLoaded', () => {
         cpuTurn();
     }
 });
+
+//------------------------------------------------------------------------------------------------
+// 挑戦モード(2026-10-22): 試合の結果を進み具合に反映し、次の試合・中断・失敗・達成を表示する
+const isEn = () => document.documentElement.lang === 'en';
+
+function showChallengeBanner() {
+    if (!CHALLENGE) return;
+    const el = document.createElement('div');
+    el.id = 'challengeBanner';
+    const name = challengeText(CHALLENGE.mode).name;
+    el.textContent = isEn() ? `${name}  Match ${CHALLENGE.done + 1} / ${CHALLENGE.total}` : `${name}　${CHALLENGE.done + 1} / ${CHALLENGE.total}戦目`;
+    document.body.appendChild(el);
+}
+showChallengeBanner();
+
+async function showChallengeResult(result) {
+    const panel = document.getElementById('soloResultPanel');
+    panel.querySelectorAll('.solo-result-btn').forEach((b) => { b.style.display = 'none'; });
+    let box = document.getElementById('challengeResultBox');
+    if (!box) { box = document.createElement('div'); box.id = 'challengeResultBox'; panel.prepend(box); }
+    const mode = CHALLENGE.mode;
+    const tx = challengeText(mode);
+    const setBox = (html, buttons) => {
+        box.innerHTML = `<div class="challenge-result-text">${html}</div>`;
+        for (const [label, fn] of buttons) {
+            const b = document.createElement('button');
+            b.className = 'solo-result-btn';
+            b.textContent = label;
+            b.onclick = fn;
+            box.appendChild(b);
+        }
+    };
+    const toLobby = () => { clearSoloChallenge(); window.location.href = 'select.html?mode=cpu'; };
+    const lobbyBtn = [isEn() ? 'Back to Lobby' : 'ロビーに戻る', toLobby];
+    setBox(isEn() ? 'Saving…' : '記録しています…', []);
+
+    let uid = currentUid;
+    try { if (!uid) uid = (await authReady).uid; } catch (e) { /* 下でエラー表示 */ }
+    let progress = null;
+    try { progress = (await loadProgress(uid))[mode] || null; } catch (e) { console.error('[challenge] 読み込み失敗', e); }
+    if (!uid || !progress) {
+        setBox(isEn() ? 'Could not load your challenge progress.' : '挑戦の進み具合を読み込めませんでした。', [lobbyBtn]);
+        return;
+    }
+    // 次の試合を始める(または引き分けのやり直し)
+    const startMatch = async (p) => {
+        const m = nextMatch(mode, p);
+        m.progress.playing = true;
+        await saveProgress(uid, mode, m.progress);
+        sessionStorage.setItem('soloPlayerCharaID', m.player);
+        sessionStorage.setItem('soloCpuCharaID', m.cpu);
+        setSoloChallenge({ mode, difficulty: CHALLENGE_INFO[mode].difficulty, done: m.done, total: m.total });
+        window.location.reload();
+    };
+
+    try {
+        if (result === 'win') {
+            const r = afterWin(mode, progress);
+            if (r.cleared) {
+                await saveProgress(uid, mode, null);
+                const ids = await recordChallengeClear(uid, CLEAR_STAT[mode]);
+                ids.forEach((id) => {
+                    showAchievementToast(id);
+                    const unlocked = characterData.find((c) => c.requiredAchievementId === id);
+                    if (unlocked) showCharacterUnlockModal(unlocked);
+                });
+                setBox(isEn() ? `<b>${tx.name} cleared!</b>` : `<b>${tx.name} 達成！</b>`, [lobbyBtn]);
+            } else {
+                await saveProgress(uid, mode, r.progress);
+                const done = CHALLENGE.done + 1;
+                setBox(isEn() ? `<b>${done} / ${CHALLENGE.total} wins</b><br>Continue to the next match, or take a break.`
+                              : `<b>${done} / ${CHALLENGE.total}勝</b><br>次の試合に進むか、ここで中断できます。`,
+                    [[isEn() ? 'Next Match' : '次の試合へ', () => startMatch(r.progress)],
+                     [isEn() ? 'Take a Break' : '中断してロビーへ', toLobby]]);
+            }
+        } else if (result === 'lose') {
+            await saveProgress(uid, mode, null);
+            setBox(isEn() ? `<b>Challenge failed</b><br>Ended at ${CHALLENGE.done} / ${CHALLENGE.total} wins.`
+                          : `<b>挑戦失敗</b><br>${CHALLENGE.done} / ${CHALLENGE.total}勝で終了しました。`, [lobbyBtn]);
+        } else {
+            // 引き分け(両者同時に3ポイント)は、同じ組み合わせでやり直し
+            const p = { ...progress, playing: false };
+            await saveProgress(uid, mode, p);
+            setBox(isEn() ? '<b>Draw</b><br>Play the same match again.' : '<b>引き分け</b><br>同じ組み合わせでもう一度戦います。',
+                [[isEn() ? 'Play Again' : 'もう一度', () => startMatch(p)], [isEn() ? 'Take a Break' : '中断してロビーへ', toLobby]]);
+        }
+    } catch (e) {
+        console.error('[challenge] 保存失敗', e);
+        setBox(isEn() ? 'Could not save your progress.' : '進み具合を保存できませんでした。', [lobbyBtn]);
+    }
+}
+

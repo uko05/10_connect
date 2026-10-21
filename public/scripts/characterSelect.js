@@ -14,6 +14,7 @@ import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume, VOICE_GAIN } from './settingsManager.js';
 import { initLang, t, getCharaText, getAchText, getCharaAchText } from './i18n.js';
 import { applyBattleBackground, getMyStoneSkinCode } from './designSettings.js';
+import { CHALLENGE_MODES, CHALLENGE_INFO, challengeText, canChallenge, loadProgress, saveProgress, nextMatch, setSoloChallenge, clearSoloChallenge } from './challengeManager.js';
 
 // 背景(プレイヤー情報 > デザイン変更 で選んだもの)
 applyBattleBackground();
@@ -109,11 +110,18 @@ updateCpuDifficultyLabel(initialCpuDifficulty);
 // ソロモード（CPU対戦）への遷移。マッチング不要・Firestoreを使わない別画面
 document.getElementById('soloModeButton').addEventListener('click', async () => {
     const charaID = document.getElementById('charaID').value;
+    // 挑戦モード: 万象・逆転はキャラを選ばなくてよいので、キャラ未選択のチェックより先に処理する(連勝は startChallenge 内で確認)
+    if (soloMode !== 'solo') {
+        if (!(await ensureLatestVersion())) return;
+        await startChallenge(charaID.trim());
+        return;
+    }
     if (charaID.trim() === "") {
         document.getElementById('statusMessage').innerText = t('statusSelectChara');
         return;
     }
     if (!(await ensureLatestVersion())) return;
+    clearSoloChallenge();
     const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
     saveLastChara('cpu', charaID);
     sessionStorage.setItem('soloPlayerCharaID', charaID);
@@ -477,6 +485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     //サムネイルを表示
     displayThumbnails();
+    await initSoloModeSwitch();
 
     // 音量スライダー：リアルタイムで再生中の音声に反映
     systemvolumeSlider = document.getElementById('systemvolumeSlider');
@@ -988,3 +997,108 @@ async function showMatchLabel() {
     }, 5000); //フェードアウト後に少し待ってから非表示
 }
 //------------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------------
+// ソロモードの ◀ ▶ 切り替えと挑戦モード(2026-10-22、challengeManager.js)
+const SOLO_MODES = ['solo', ...CHALLENGE_MODES];
+const SOLO_MODE_KEY = 'connectSoloMode';
+let soloMode = 'solo';
+let challengeProgress = {};
+const isCharaUnlocked = (c) => TEST_ALL_CHARAS_UNLOCKED || !c.requiredAchievementId || myAchievements.has(c.requiredAchievementId);
+const charaName = (id) => getCharaText(id, 'name') ?? characterData.find((c) => c.charaID === id)?.name ?? id;
+const isEn = () => document.documentElement.lang === 'en';
+
+async function initSoloModeSwitch() {
+    const btn = document.getElementById('soloModeButton');
+    if (!btn || requestedMode !== 'cpu') return;
+    try { const saved = localStorage.getItem(SOLO_MODE_KEY); if (SOLO_MODES.includes(saved)) soloMode = saved; } catch (e) { /* 保存できなくても続行 */ }
+    try { challengeProgress = await loadProgress(currentUid); } catch (e) { console.warn('[challenge] 進み具合の読み込みに失敗', e); }
+    // 試合の途中で画面を閉じた挑戦は失敗(最初から)にする
+    const abandoned = CHALLENGE_MODES.filter((m) => challengeProgress[m]?.playing);
+    for (const m of abandoned) {
+        try { await saveProgress(currentUid, m, null); } catch (e) { /* 次回また判定する */ }
+        delete challengeProgress[m];
+    }
+    if (abandoned.length) {
+        const names = abandoned.map((m) => challengeText(m).name).join(isEn() ? ', ' : '・');
+        document.getElementById('statusMessage').innerText = isEn()
+            ? `You left a match of "${names}" before it ended, so that challenge was reset.`
+            : `「${names}」は試合の途中で抜けたため、挑戦失敗として最初からになりました。`;
+    }
+    const step = (d) => { soloMode = SOLO_MODES[(SOLO_MODES.indexOf(soloMode) + d + SOLO_MODES.length) % SOLO_MODES.length]; try { localStorage.setItem(SOLO_MODE_KEY, soloMode); } catch (e) { /* 続行 */ } renderSoloMode(); };
+    document.getElementById('soloModePrev').addEventListener('click', () => step(-1));
+    document.getElementById('soloModeNext').addEventListener('click', () => step(1));
+    const modal = document.getElementById('challengeInfoModal');
+    document.getElementById('soloModeInfo').addEventListener('click', () => {
+        const tx = challengeText(soloMode);
+        document.getElementById('challengeInfoTitle').textContent = tx.name;
+        document.getElementById('challengeInfoText').textContent = tx.desc;
+        modal.style.display = 'block';
+    });
+    document.getElementById('challengeInfoClose').addEventListener('click', () => { modal.style.display = 'none'; });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    renderSoloMode();
+}
+
+function challengeStatusText(mode) {
+    const p = challengeProgress[mode];
+    if (mode === 'streak') {
+        if (!p) return isEn() ? 'Start: choose your character, then press the button.' : '最初から：キャラを選んでボタンを押すと始まります';
+        return isEn() ? `Continue: ${p.index} / ${p.order.length} wins (${charaName(p.chara)})` : `続きから：${p.index} / ${p.order.length}勝（${charaName(p.chara)}）`;
+    }
+    if (mode === 'all') {
+        if (!p) return isEn() ? 'Start: characters are chosen at random.' : '最初から：キャラはランダムで決まります';
+        return isEn() ? `Continue: ${p.index} / ${p.pairs.length} wins` : `続きから：${p.index} / ${p.pairs.length}勝`;
+    }
+    if (!p) return isEn() ? 'Start: your character is chosen at random each match.' : '最初から：自分のキャラは毎試合ランダムで決まります';
+    return isEn() ? `Continue: ${p.wins} / 3 wins` : `続きから：${p.wins} / 3勝`;
+}
+
+function renderSoloMode() {
+    const btn = document.getElementById('soloModeButton');
+    const info = document.getElementById('soloModeInfo');
+    const status = document.getElementById('challengeStatus');
+    const isSolo = soloMode === 'solo';
+    const show = (id, v) => { const el = document.getElementById(id); if (el) el.style.display = v ? '' : 'none'; };
+    show('cpuDifficultySelector', isSolo);
+    show('cpuOpponentPicker', isSolo);
+    info.hidden = isSolo;
+    status.hidden = isSolo;
+    btn.classList.toggle('challenge-mode', !isSolo);
+    if (isSolo) {
+        btn.textContent = t('btnSolo');
+        btn.disabled = false;
+        return;
+    }
+    const tx = challengeText(soloMode);
+    const ok = canChallenge(soloMode, isCharaUnlocked);
+    btn.textContent = tx.name;
+    btn.disabled = !ok;
+    status.textContent = ok ? challengeStatusText(soloMode) : tx.need;
+}
+
+async function startChallenge(chosenCharaID) {
+    const mode = soloMode;
+    if (!canChallenge(mode, isCharaUnlocked) || !currentUid) return;
+    if (mode === 'streak' && !challengeProgress.streak && !chosenCharaID) {
+        document.getElementById('statusMessage').innerText = t('statusSelectChara');
+        return;
+    }
+    const m = nextMatch(mode, challengeProgress[mode], chosenCharaID);
+    m.progress.playing = true;   // 試合の途中で抜けたら負け扱いにするための印(結果が出たらソロ画面で外す)
+    try {
+        await saveProgress(currentUid, mode, m.progress);
+    } catch (e) {
+        console.error('[challenge] 進み具合の保存に失敗', e);
+        document.getElementById('statusMessage').innerText = isEn() ? 'Could not save your progress. Please try again.' : '進み具合を保存できませんでした。もう一度お試しください。';
+        return;
+    }
+    const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
+    sessionStorage.setItem('soloPlayerCharaID', m.player);
+    sessionStorage.setItem('soloCpuCharaID', m.cpu);
+    sessionStorage.setItem('soloPlayerName', playerName);
+    sessionStorage.setItem('soloUnlockedAchievements', JSON.stringify([...myAchievements]));
+    setSoloChallenge({ mode, difficulty: CHALLENGE_INFO[mode].difficulty, done: m.done, total: m.total });
+    window.location.href = 'solo.html';
+}
+
