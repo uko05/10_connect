@@ -138,3 +138,21 @@ export async function playGravityFlipAnimation({ canvas, stones, rows, cols, cel
             { duration: 300 });
     }
 }
+
+// 魈(2026-10-22): 相手の石が一番多い縦1列を選ぶ。同じ数なら「相手の石 − 自分の石」が大きい列。
+// colorAt(c, r) はそのマスの色('red' | 'yellow' | null)。相手の石が1つも無ければ -1
+export function pickMaxEnemyColumn(colorAt, rows, cols, enemyColor) {
+    let best = -1, bestKey = -Infinity;
+    for (let c = 0; c < cols; c++) {
+        let nOp = 0, nMe = 0;
+        for (let r = 0; r < rows; r++) {
+            const v = colorAt(c, r);
+            if (!v) continue;
+            if (v === enemyColor) nOp++; else nMe++;
+        }
+        if (nOp === 0) continue;
+        const k = nOp * 100 + (nOp - nMe);
+        if (k > bestKey) { bestKey = k; best = c; }
+    }
+    return best;
+}

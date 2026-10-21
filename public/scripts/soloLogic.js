@@ -11,7 +11,7 @@ import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -598,10 +598,22 @@ function cpuAbilityConditionByID(charaID) {
     if (charaID === '009' || charaID === '016' || charaID === '017') return true;
     // 魈：入れ替えでCPUだけが4つ並ぶ組み合わせが、相手が並ぶ組み合わせより多い時。
     // または相手に即詰めの脅威があり、入れ替えで相手が並ぶ組み合わせが無い時(崩しに賭ける)
-    if (charaID === '008') {
+    // 列の入れ替え(旧・魈。今は使っているキャラなし)
+    if (proc === 'ult_columnSwap') {
         const { cpuOnly, playerAny } = columnSwapOutcomes();
         if (cpuOnly > playerAny) return true;
         return playerAny === 0 && hasImmediateThreat(PLAYER_COLOR);
+    }
+    // 魈：狙う列で相手の石が自分より2個以上多い時、またはその列を消すと相手の即詰めが消える時
+    if (proc === 'ult_maxColumnWipe') {
+        const col = pickMaxEnemyColumn((c, r) => stones[`${c}_${r}`] || null, rows, cols, PLAYER_COLOR);
+        if (col < 0) return false;
+        let nOp = 0, nMe = 0;
+        for (let r = 0; r < rows; r++) { const v = stones[`${col}_${r}`]; if (v === PLAYER_COLOR) nOp++; else if (v) nMe++; }
+        if (nOp - nMe >= 2) return true;
+        const sim = { ...stones };
+        for (let r = 0; r < rows; r++) delete sim[`${col}_${r}`];
+        return hasImmediateThreat(PLAYER_COLOR) && !immediateThreatIn(sim, PLAYER_COLOR);
     }
     // 花火：セットアップが成立するときのみ使う
     if (charaID === '005') {
@@ -964,6 +976,8 @@ async function executeAbility(side, charaID) {
     if (proc === 'ult_gravityFlip') { await soloGravityFlip(); return; }
     if (proc === 'ult_bomb') { await soloStartBomb(side); return; }
     if (proc === 'ult_flipTouch') { flipTouchPendingSide = side; return; }
+    if (proc === 'ult_maxColumnWipe') { await soloMaxColumnWipe(side); return; }
+    if (proc === 'ult_columnSwap') { await soloColumnSwap(); return; }
     switch (charaID) {
         case '001': // 放浪者：ランダム4列、上から2個
             await deleteStonesLocal(getStonesToDeleteLocal(getRandomTopStonesLocal(4), 2));
@@ -990,17 +1004,6 @@ async function executeAbility(side, charaID) {
         case '017': // アベンチュリン：ダイスロール(2026-10-21。対人戦と同じ。ID 008→017)
             await soloDiceRoll(side);
             break;
-        case '008': { // 魈：ランダムな縦2列を列ごと入れ替える(対人戦と同じ)
-            const pair = pickColumnSwapPairLocal();
-            if (pair) {
-                const [a, b] = pair;
-                const keys = Object.keys(stones).filter((k) => [a, b].includes(Number(k.split('_')[0])));
-                await highlightStonesLocal(keys, 450);
-                swapColumnsIn(stones, a, b);
-                drawBoard();
-            }
-            break;
-        }
         case 'downThinkingTime': { // 旧アベンチュリンの効果(今は使っていない。別キャラで使う時用に残してある)
             const isBakatare = getCpuDifficulty() === 'bakatare';
             if (isBakatare && side === 'player') {
@@ -1298,6 +1301,25 @@ function columnSwapPairsLocal(st = stones) {
         if (columnKeyLocal(st, a) !== columnKeyLocal(st, b)) pairs.push([a, b]);
     }
     return pairs;
+}
+// 魈(2026-10-22): 相手の石が一番多い列を丸ごと破壊
+async function soloMaxColumnWipe(side) {
+    const enemy = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+    const col = pickMaxEnemyColumn((c, r) => stones[`${c}_${r}`] || null, rows, cols, enemy);
+    if (col < 0) return;
+    const keys = Object.keys(stones).filter((k) => Number(k.split('_')[0]) === col);
+    await highlightStonesLocal(keys, 450);
+    await deleteStonesLocal(keys);
+}
+// 列の入れ替え(旧・魈の技。別キャラ用に残してある)
+async function soloColumnSwap() {
+    const pair = pickColumnSwapPairLocal();
+    if (!pair) return;
+    const [a, b] = pair;
+    const keys = Object.keys(stones).filter((k) => [a, b].includes(Number(k.split('_')[0])));
+    await highlightStonesLocal(keys, 450);
+    swapColumnsIn(stones, a, b);
+    drawBoard();
 }
 function pickColumnSwapPairLocal() {
     const pairs = columnSwapPairsLocal();

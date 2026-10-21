@@ -9,7 +9,7 @@ import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/
 
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn } from "./specialAbilities.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
@@ -190,6 +190,7 @@ const abilities = {
     ult_silverwolf,
     ult_dice,
     ult_columnSwap,
+    ult_maxColumnWipe,
     ult_gravityFlip,
     ult_bomb,
     ult_flipTouch
@@ -4185,6 +4186,35 @@ async function ult_flipTouch() {
         pvpFlipTouchPending = true;
     } catch (error) {
         console.error("反転の一手の処理中にエラーが発生しました:", error);
+    }
+}
+
+//------------------------------------------------------------------------------------------------
+// 魈：靖妖儺舞(2026-10-22) — 相手の石が一番多い縦1列を選び、その列の石を全て破壊する(列ごとなので重力は不要)
+async function ult_maxColumnWipe() {
+    try {
+        const q = roomQuery();
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const localStones = Object.assign({}, roomData.stones || {});
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        const col = pickMaxEnemyColumn((c, r) => localStones[`${c}_${r}`]?.color || null, rows, cols, otherColor(playerLeft_Color));
+        if (col >= 0) {
+            const keys = Object.keys(localStones).filter((k) => Number(k.split('_')[0]) === col);
+            await highlightStones(keys, 400);
+            for (const k of keys) delete localStones[k];
+        }
+        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+            stones: localStones,
+        });
+        stonesData = localStones;
+        init_drawBoard(true);
+    } catch (error) {
+        console.error("魈の必殺技処理中にエラーが発生しました:", error);
     }
 }
 

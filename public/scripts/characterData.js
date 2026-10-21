@@ -108,19 +108,20 @@ export const characterData = [
     },
     {
         // 2026-10-21: アベンチュリン(ダイスロール)の位置に魈を追加。アベンチュリンはID 017にして末尾(隠しキャラ候補)へ移動
+        // 2026-10-22: 必殺技を「ランダムな2列を入れ替え」(ult_columnSwap、弱かった)から「相手の石が一番多い列を全破壊」に変更。入れ替えの処理は別キャラ用に残してある
         src: 'public/chara/Xiao.png',
         charaID: '008',
         name: '魈',
-        charge: 15,
+        charge: 13,
         chargeMax: 200,
         Ability: '靖妖儺舞',
-        AbilityDetail: '【入替】ランダムな縦2列を選択し、その2列の石を列ごと入れ替える。(6ターン目から発動可能)',
+        AbilityDetail: '【破壊】相手の石が一番多い縦1列を選択し、その列の石を全て破壊する。(6ターン目から発動可能)',
         AbilityUseTurn: 6,
         AbilityCutImage: 'public/chara/ult_Xiao.png',
         voice_select: 'public/scripts/sound/Xiao_select.wav',
         voice_attack: 'public/scripts/sound/Xiao_attack.wav',
         voice_ult: 'public/scripts/sound/Xiao_ult.wav',
-        process: 'ult_columnSwap' // 関数名を文字列として保持
+        process: 'ult_maxColumnWipe' // 関数名を文字列として保持
     },
     {
         src: 'public/chara/hotaru.png',
