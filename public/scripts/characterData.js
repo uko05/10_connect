@@ -290,25 +290,9 @@ export const characterData = [
         process: 'ult_bomb'
     },
     {
-        // 仮キャラ(2026-10-21): 新しい必殺技の動作確認用。名前・技名・画像・ボイスは charaID 006 から借りている(後で差し替える)
-        src: 'public/chara/helta.png',
-        charaID: '019',
-        name: 'マダム・ヘルタ',
-        charge: 15,
-        chargeMax: 200,
-        Ability: '魔法だって言ったでしょ',
-        AbilityDetail: '【反転】盤面を上下にひっくり返し、石を重力で落とし直す(各列の石の積み順が逆になる)。(8ターン目から発動可能)',
-        AbilityUseTurn: 8,
-        AbilityCutImage: 'public/chara/ult_helta.png',
-        voice_select: 'public/scripts/sound/helta_select.mp3',
-        voice_attack: 'public/scripts/sound/helta_attack.mp3',
-        voice_ult: 'public/scripts/sound/helta_ult.mp3',
-        process: 'ult_gravityFlip'
-    },
-    {
         // 仮キャラ(2026-10-21): 新しい必殺技の動作確認用。名前・技名・画像・ボイスは charaID 005 から借りている(後で差し替える)
         src: 'public/chara/hanabi.png',
-        charaID: '020',
+        charaID: '019',
         name: '花火',
         charge: 12,
         chargeMax: 200,
@@ -320,6 +304,22 @@ export const characterData = [
         voice_attack: 'public/scripts/sound/hanabi_attack.mp3',
         voice_ult: 'public/scripts/sound/hanabi_ult.mp3',
         process: 'ult_flipTouch'
+    },
+    {
+        // 仮キャラ(2026-10-21): 新しい必殺技の動作確認用。名前・技名・画像・ボイスは charaID 006 から借りている(後で差し替える)
+        src: 'public/chara/helta.png',
+        charaID: '020',
+        name: 'マダム・ヘルタ',
+        charge: 15,
+        chargeMax: 200,
+        Ability: '魔法だって言ったでしょ',
+        AbilityDetail: '【反転】盤面を上下にひっくり返し、石を重力で落とし直す(各列の石の積み順が逆になる)。(8ターン目から発動可能)',
+        AbilityUseTurn: 8,
+        AbilityCutImage: 'public/chara/ult_helta.png',
+        voice_select: 'public/scripts/sound/helta_select.mp3',
+        voice_attack: 'public/scripts/sound/helta_attack.mp3',
+        voice_ult: 'public/scripts/sound/helta_ult.mp3',
+        process: 'ult_gravityFlip'
     }
 ];
 
