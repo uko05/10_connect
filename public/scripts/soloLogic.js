@@ -361,10 +361,9 @@ function characterBonus(board, charaID = cpuChara?.charaID) {
                 }
             }
             break;
-        case '011': // ローエン: 下から2段目(row4)を消去 → その行に自石を置かない
+        case '011': // ローエン: 下から2段目(row4)の相手の石だけを消す → 相手の石をその段に誘導する
             for (let c = 0; c < cols; c++) {
-                if (board[4][c] === CPU_COLOR)    bonus -= 5;
-                else if (board[4][c] === PLAYER_COLOR) bonus += 5;
+                if (board[4][c] === PLAYER_COLOR) bonus += 5;
             }
             break;
         case '006': // マダム・ヘルタ(2026-10-22〜): 相手の石が一番多い横1段を消す技なので、置き方の補正はしない
@@ -544,9 +543,9 @@ function wouldWinAfterAbility(charaID) {
             }
             return false;
         }
-        case '011': { // ローエン：下から2段目(row 4)全消し→重力落下後に勝ちがあるか
+        case '011': { // ローエン：下から2段目(row 4)の相手の石を消す→重力落下後に勝ちがあるか
             const sim = {...stones};
-            for (let c = 0; c < cols; c++) delete sim[`${c}_4`];
+            for (let c = 0; c < cols; c++) if (sim[`${c}_4`] === PLAYER_COLOR) delete sim[`${c}_4`];
             return checkWinInSim(applyGravityToSim(sim));
         }
         case '002': { // シトラリ：石がある列からランダム3列の最上段を破壊 → C(n,3)全パターン試行
@@ -595,6 +594,12 @@ function cpuAbilityConditionByID(charaID) {
         const { cpuOnly, playerAny } = columnSwapOutcomes();
         if (cpuOnly > playerAny) return true;
         return playerAny === 0 && hasImmediateThreat(PLAYER_COLOR);
+    }
+    // ローエン：下から2段目に相手の石が2個以上ある時(または相手に即詰めがある時)
+    if (charaID === '011') {
+        let n = 0;
+        for (let c = 0; c < cols; c++) if (stones[`${c}_4`] === PLAYER_COLOR) n++;
+        return n >= 2 || hasImmediateThreat(PLAYER_COLOR);
     }
     // マダム・ヘルタ：狙う段で相手の石が自分より2個以上多い時、またはその段を消すと相手の即詰めが消える時
     if (proc === 'ult_maxRowWipe') {
@@ -1025,8 +1030,9 @@ async function executeAbility(side, charaID) {
             }
             break;
         }
-        case '011': { // ローエン：下から2段目（row 4）の石を全て破壊
-            const keysToDelete = Object.keys(stones).filter(k => k.endsWith('_4'));
+        case '011': { // ローエン：下から2段目（row 4）の相手の石を全て破壊(2026-10-22〜。対人戦と同じ)
+            const enemyL = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+            const keysToDelete = Object.keys(stones).filter(k => k.endsWith('_4') && stones[k] === enemyL);
             if (keysToDelete.length > 0) {
                 await highlightStonesLocal(keysToDelete, 450);
                 await deleteStonesLocal(keysToDelete);

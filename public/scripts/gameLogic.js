@@ -3768,18 +3768,20 @@ async function ult_lowen() {
         const localStones = Object.assign({}, roomData.stones || {});
         for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
 
-        // 下から2段目（row 4）の石を全て削除
-        const keysToDelete = Object.keys(localStones).filter(k => k.endsWith('_4'));
-        if (keysToDelete.length === 0) return;
+        // 2026-10-22: 下から2段目(row 4)の「相手の石だけ」を破壊する(以前は自分の石も含めて全部)
+        const enemy = otherColor(playerLeft_Color);
+        const keysToDelete = Object.keys(localStones).filter(k => k.endsWith('_4') && localStones[k].color === enemy);
+        // 対象が無くても必殺技は使ったので、チャージは下で必ず消費する(以前は対象なしだと消費せずに終わっていた)
+        if (keysToDelete.length > 0) {
+            await highlightStones(keysToDelete, 400);
+            for (const key of keysToDelete) delete localStones[key];
 
-        await highlightStones(keysToDelete, 400);
-        for (const key of keysToDelete) delete localStones[key];
-
-        // 破壊後の空白を一瞬見せてから落下
-        stonesData = localStones;
-        init_drawBoard(true);
-        await wait(400);
-        await animateGravitySmooth(localStones, keysToDelete);
+            // 破壊後の空白を一瞬見せてから落下
+            stonesData = localStones;
+            init_drawBoard(true);
+            await wait(400);
+            await animateGravitySmooth(localStones, keysToDelete);
+        }
 
         const roomDocRef = doc(db, "connectRooms", roomDoc.id);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
