@@ -200,7 +200,16 @@ const nextButton = document.querySelector(".next-btn");
 
 let currentSlide = 0;
 
-const WAITING_EXPIRE_MS = 15 * 60 * 1000; // 5分
+const WAITING_EXPIRE_MS = 15 * 60 * 1000; // 15分
+
+// 同じ相手との連戦を避ける(2026-10-22)。対戦が終わると2人同時にキャラ選択に戻るので、
+// 待ち時間なしで探すと、また同じ2人で当たりやすく、ほかの人と当たれなくなる。
+// ランク戦では直前の相手の部屋を、待ち始めてから REMATCH_AVOID_MS の間だけ避ける(誰もいなければその後に当たる)。
+// 合言葉マッチは友達同士で続けて遊ぶものなので避けない
+const REMATCH_AVOID_MS = 20 * 1000;
+const LAST_OPP_KEY = 'connectLastOpponent';
+function getLastOpponent() { try { return localStorage.getItem(LAST_OPP_KEY); } catch { return null; } }
+function setLastOpponent(uid) { try { if (uid) localStorage.setItem(LAST_OPP_KEY, uid); } catch { /* 保存できなくても対戦はできる */ } }
 
 // 部屋離脱検知用ハートビート：waiting中はP1が自分の生存時刻を定期的に書き込み、
 // 他のクライアントはこれが古い（既定で30秒超）場合に「不在」と判定する
@@ -641,11 +650,15 @@ function getUUIDFromCookie() {
 //------------------------------------------------------------------------------------------------
 let waitingExpireTimerId = null;
 
-function startWaitingExpireTimer(roomDocRef) {
+function clearWaitingExpireTimer() {
   if (waitingExpireTimerId) {
     clearTimeout(waitingExpireTimerId);
     waitingExpireTimerId = null;
   }
+}
+
+function startWaitingExpireTimer(roomDocRef) {
+  clearWaitingExpireTimer();
 
   console.log("[expire] startWaitingExpireTimer called", roomDocRef.path);
 
@@ -686,6 +699,7 @@ function startWaitingExpireTimer(roomDocRef) {
           console.log("[expire] deleted room doc");
 
           stopHeartbeat();
+          stopRoomWatcher();
           NowMatching = false;
           toggleInputs(false);
 
@@ -761,138 +775,208 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         matchButton.style.backgroundColor = "";
     }
 
-    //ルームを検索する。条件はステータスがwaitingかつ部屋指定用の合言葉が同じ（未入力の場合はNull）
-    const roomsRef = collection(db, "connectRooms");
-    const myroom = query(
-        roomsRef,
-        where("status", "==", "waiting"),
-        where("roomMatching", "==", roomMatching)
-    );
-    const querySnapshot = await getDocs(myroom);
-    let matchingRooms = querySnapshot.docs;
-
-    // ハートビートが途絶えている（作成者が不在の可能性が高い）部屋は除外し、可能であれば削除して自浄する
-    const liveRooms = [];
-    for (const docSnap of matchingRooms) {
-        const data = docSnap.data();
-        const lastActiveMs = data.player1_LastActive?.toMillis
-            ? data.player1_LastActive.toMillis()
-            : (data.createdAt?.toDate ? data.createdAt.toDate().getTime() : new Date(data.createdAt).getTime());
-
-        if (!Number.isFinite(lastActiveMs) || (Date.now() - lastActiveMs) > STALE_THRESHOLD_MS) {
-            console.log("[stale] abandoned room detected, deleting:", docSnap.id);
-            try {
-                await deleteDoc(docSnap.ref);
-            } catch (e) {
-                console.error("[stale] delete failed:", e);
-            }
-            continue;
-        }
-        liveRooms.push(docSnap);
+    if (NowMatching) {
+        //マッチング解除
+        await cancelWaiting(playerUUID);
+        document.getElementById('matchButton').disabled = false;
+        return;
     }
-    matchingRooms = liveRooms;
 
-    if (matchingRooms.length > 0) {
-        //ルームドキュメントの参照を初期化
-        roomDocRef = matchingRooms[0].ref; //最初のマッチングルームの参照を取得
+    const ctx = { roomMatching, playerUUID, charaID, playerName };
+    try {
+        listenForMatches();
+        NowMatching = true;
 
-        if (NowMatching) {
-            //マッチング解除
-            removePlayerFromRoom(playerUUID);
-            stopHeartbeat();
-
-            NowMatching = false; //解除時にfalseに設定
-
-            toggleInputs(NowMatching); //入力を切り替え
-
-        } else {
-
-            //更新
-            try {
-                //roomDocRefを初期化
-                roomDocRef = matchingRooms[0].ref; //最初のマッチングルームの参照を取得
-
-                //更新に対する処理を記述
-                listenForMatches();
-
-                //既にマッチング待ちのデータがある場合、Player2として更新する。
-                await updateDoc(roomDocRef, {
-                    player2_ID: playerUUID, //修正: player2_IDにUUIDを設定
-                    player2_CharaID: charaID,
-                    player2_Name: playerName,
-                    player2_StoneSkin: getMyStoneSkinCode(), // 相手の画面に自分の石のデザインを出すため(2026-10-11)
-                    status: "in_progress",
-                    player2_LastActive: serverTimestamp()
-                });
-
-                NowMatching = true;
-
-            } catch (error) {
-                console.error("Error adding document: ", error);
-            } finally {
-                document.getElementById('matchButton').disabled = false;
-            }
-
+        //待っている部屋があれば古い順に入ってみる。同時に入ろうとして先を越されたら次の部屋へ
+        const rooms = await findWaitingRooms(roomMatching);
+        const avoid = roomMatching ? null : getLastOpponent();
+        const candidates = rooms.filter((d) => d.data().player1_ID !== playerUUID && d.data().player1_ID !== avoid);
+        for (const d of candidates) {
+            if (await tryJoinRoom(d.ref, ctx)) return;
         }
 
-    } else {
+        //入れる部屋がないので、Player1として新規作成して待つ
+        await createWaitingRoom(ctx);
 
-        //まだマッチング待ちがないので、Player1として新規作成する。
-        try {
-            const startP = (crypto.getRandomValues(new Uint8Array(1))[0] % 2) === 0 ? 'P1' : 'P2';
-            const p1color = startP === 'P1' ? 'red' : 'yellow';
-            const p2color = startP === 'P2' ? 'red' : 'yellow';
-
-            playerDocRef = await addDoc(roomsRef, {
-                player1_ID: playerUUID,
-                player1_CharaID: charaID,
-                player1_ChargeNow: 0,
-                player1_Name: playerName,
-                player1_Color: p1color,
-                player1_StoneSkin: getMyStoneSkinCode(), // 相手の画面に自分の石のデザインを出すため(2026-10-11)
-                player1_TimeLimit: 100,
-                player1_UltCount: 0,
-                player1_TimeoutCount: 0,
-                player2_ID: null,
-                player2_CharaID: null,
-                player2_ChargeNow: 0,
-                player2_Name: null,
-                player2_Color: p2color,
-                player2_TimeLimit: 100,
-                player2_UltCount: 0,
-                player2_TimeoutCount: 0,
-                red_Win: 0,
-                yellow_Win: 0,
-                roomMatching: roomMatching,
-                matchType: roomMatching ? "private" : "ranked",
-                roomID: crypto.randomUUID(),
-                status: "waiting",
-                createdAt: new Date(),
-                startP: startP,
-                turn: startP,
-                turnCount: 1,
-                changeStone: 0,
-                player1_LastActive: serverTimestamp()
-            });
-            startWaitingExpireTimer(playerDocRef);
-            startWaitingHeartbeat(playerDocRef);
-
-            listenForMatches();
-            NowMatching = true;
-
-        } catch (error) {
-            console.error("Error adding document: ", error);
-        } finally {
-            document.getElementById('matchButton').disabled = false;
-        }
-
+    } catch (error) {
+        console.error("Error adding document: ", error);
+    } finally {
+        document.getElementById('matchButton').disabled = false;
     }
 });
 
 //------------------------------------------------------------------------------------------------
+// マッチングの部品(2026-10-22 整理)
+
+const roomCreatedMs = (data) => data.createdAt?.toMillis ? data.createdAt.toMillis() : new Date(data.createdAt).getTime();
+
+// 作った人がまだ画面にいる部屋か(ハートビートが途絶えていないか)
+function isRoomLive(data) {
+    const lastActiveMs = data.player1_LastActive?.toMillis ? data.player1_LastActive.toMillis() : roomCreatedMs(data);
+    return Number.isFinite(lastActiveMs) && (Date.now() - lastActiveMs) <= STALE_THRESHOLD_MS;
+}
+
+// 条件(ステータスがwaitingかつ合言葉が同じ。未入力の場合はnull)に合う部屋を古い順に返す。
+// ハートビートが途絶えている(作成者が不在の可能性が高い)部屋は除外し、可能であれば削除して自浄する
+async function findWaitingRooms(roomMatching) {
+    const snap = await getDocs(query(collection(db, "connectRooms"),
+        where("status", "==", "waiting"), where("roomMatching", "==", roomMatching)));
+    const live = [];
+    for (const docSnap of snap.docs) {
+        if (!isRoomLive(docSnap.data())) {
+            console.log("[stale] abandoned room detected, deleting:", docSnap.id);
+            try { await deleteDoc(docSnap.ref); } catch (e) { console.error("[stale] delete failed:", e); }
+            continue;
+        }
+        live.push(docSnap);
+    }
+    return live.sort((a, b) => roomCreatedMs(a.data()) - roomCreatedMs(b.data()));
+}
+
+// 待っている部屋にPlayer2として入る。先にほかの人が入っていた場合はルールで拒否されるので false
+async function tryJoinRoom(ref, ctx) {
+    try {
+        await updateDoc(ref, {
+            player2_ID: ctx.playerUUID,
+            player2_CharaID: ctx.charaID,
+            player2_Name: ctx.playerName,
+            player2_StoneSkin: getMyStoneSkinCode(), // 相手の画面に自分の石のデザインを出すため(2026-10-11)
+            status: "in_progress",
+            player2_LastActive: serverTimestamp()
+        });
+        roomDocRef = ref;
+        return true;
+    } catch (e) {
+        console.warn("[match] join failed (already taken?):", ref.id, e);
+        return false;
+    }
+}
+
+let waitingSince = 0; //自分の部屋で待ち始めた時刻
+
+async function createWaitingRoom(ctx) {
+    const startP = (crypto.getRandomValues(new Uint8Array(1))[0] % 2) === 0 ? 'P1' : 'P2';
+    const p1color = startP === 'P1' ? 'red' : 'yellow';
+    const p2color = startP === 'P2' ? 'red' : 'yellow';
+
+    playerDocRef = await addDoc(collection(db, "connectRooms"), {
+        player1_ID: ctx.playerUUID,
+        player1_CharaID: ctx.charaID,
+        player1_ChargeNow: 0,
+        player1_Name: ctx.playerName,
+        player1_Color: p1color,
+        player1_StoneSkin: getMyStoneSkinCode(), // 相手の画面に自分の石のデザインを出すため(2026-10-11)
+        player1_TimeLimit: 100,
+        player1_UltCount: 0,
+        player1_TimeoutCount: 0,
+        player2_ID: null,
+        player2_CharaID: null,
+        player2_ChargeNow: 0,
+        player2_Name: null,
+        player2_Color: p2color,
+        player2_TimeLimit: 100,
+        player2_UltCount: 0,
+        player2_TimeoutCount: 0,
+        red_Win: 0,
+        yellow_Win: 0,
+        roomMatching: ctx.roomMatching,
+        matchType: ctx.roomMatching ? "private" : "ranked",
+        roomID: crypto.randomUUID(),
+        status: "waiting",
+        createdAt: new Date(),
+        startP: startP,
+        turn: startP,
+        turnCount: 1,
+        changeStone: 0,
+        player1_LastActive: serverTimestamp()
+    });
+    waitingSince = Date.now();
+    startWaitingExpireTimer(playerDocRef);
+    startWaitingHeartbeat(playerDocRef);
+    startRoomWatcher(ctx);
+}
+
+async function cancelWaiting(playerUUID) {
+    stopHeartbeat();
+    stopRoomWatcher();
+    clearWaitingExpireTimer();
+    NowMatching = false;
+    playerDocRef = null;
+    toggleInputs(false);
+    try { await removePlayerFromRoom(playerUUID); } catch (e) { console.error("[match] cancel failed:", e); }
+}
+
+// 自分の部屋で待っている間も、ほかの待機部屋を見張る(2026-10-22)。
+// 自分より先に作られた部屋があれば、自分の部屋を閉じてそちらに入る(古い部屋に寄せるので、2人が同時に移ることはない)。
+// 2人がほぼ同時に部屋を作って、お互いに待ちぼうけになるのを防ぐ。直前の相手を避けた場合も、
+// 避ける時間が過ぎたらここでその相手の部屋に入る
+let roomWatcherUnsub = null;
+let roomWatcherTimer = null;
+let lastWaitingSnap = null;
+let switchingRoom = false;
+
+function stopRoomWatcher() {
+    if (roomWatcherUnsub) { roomWatcherUnsub(); roomWatcherUnsub = null; }
+    if (roomWatcherTimer) { clearTimeout(roomWatcherTimer); roomWatcherTimer = null; }
+    lastWaitingSnap = null;
+}
+
+function startRoomWatcher(ctx) {
+    stopRoomWatcher();
+    const q = query(collection(db, "connectRooms"), where("status", "==", "waiting"), where("roomMatching", "==", ctx.roomMatching));
+    roomWatcherUnsub = onSnapshot(q, (snap) => { lastWaitingSnap = snap; moveToOlderRoom(ctx); },
+        (e) => console.error("[watch] failed:", e));
+    // 直前の相手を避けている間に変化がなくても、時間が過ぎたら見直す
+    if (!ctx.roomMatching && getLastOpponent()) {
+        roomWatcherTimer = setTimeout(() => moveToOlderRoom(ctx), REMATCH_AVOID_MS + 500);
+    }
+}
+
+async function moveToOlderRoom(ctx) {
+    if (switchingRoom || !NowMatching || isNavigatingToBattle || !playerDocRef || !lastWaitingSnap) return;
+    const myRef = playerDocRef;
+    const mine = lastWaitingSnap.docs.find((d) => d.id === myRef.id);
+    if (!mine) return; //もう誰かが入った(waitingでなくなった)
+    const myCreated = roomCreatedMs(mine.data());
+    const avoid = (!ctx.roomMatching && Date.now() - waitingSince < REMATCH_AVOID_MS) ? getLastOpponent() : null;
+    const target = lastWaitingSnap.docs
+        .filter((d) => d.id !== myRef.id && d.data().player1_ID !== ctx.playerUUID && d.data().player1_ID !== avoid && isRoomLive(d.data()))
+        .filter((d) => { const c = roomCreatedMs(d.data()); return c < myCreated || (c === myCreated && d.id < myRef.id); })
+        .sort((a, b) => roomCreatedMs(a.data()) - roomCreatedMs(b.data()))[0];
+    if (!target) return;
+
+    switchingRoom = true;
+    try {
+        //自分の部屋を閉じる。その間に誰かが入っていたら、そのまま自分の部屋で対戦する
+        const closed = await runTransaction(db, async (tx) => {
+            const snap = await tx.get(myRef);
+            if (!snap.exists() || snap.data().status !== "waiting" || snap.data().player2_ID) return false;
+            tx.delete(myRef);
+            return true;
+        });
+        if (!closed) return;
+        stopHeartbeat();
+        stopRoomWatcher();
+        clearWaitingExpireTimer();
+        playerDocRef = null;
+        console.log("[watch] moving to older room:", target.id);
+        if (await tryJoinRoom(target.ref, ctx)) return;
+        await createWaitingRoom(ctx); //先を越されたら、部屋を作り直して待つ
+    } catch (e) {
+        console.error("[watch] move failed:", e);
+    } finally {
+        switchingRoom = false;
+    }
+}
+
+//------------------------------------------------------------------------------------------------
 
 //プレイヤーが待機リストに入ったときのリスナー処理
+let matchListenerUnsubs = [];
 function listenForMatches() {
+    // 解除して探し直すたびに見張りが増えないよう、前の見張りは外す
+    matchListenerUnsubs.forEach((u) => u());
+    matchListenerUnsubs = [];
 
     const roomsRef = collection(db, "connectRooms");
     const playerName = document.getElementById('playerName').value;
@@ -938,6 +1022,8 @@ function listenForMatches() {
             //statusが"waiting"かつroomMatchingが一致する部屋のみを処理
             if (roomData.status === "in_progress" && roomData.roomMatching === roomMatching && roomData.player2_ID === playerUUID) {
 
+                stopRoomWatcher();
+                setLastOpponent(roomData.player1_ID);
                 document.getElementById('statusMessage').innerText = t('statusMatchingDone');
                 isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
 
@@ -958,6 +1044,9 @@ function listenForMatches() {
             if (roomData.status === "in_progress" && roomData.roomMatching === roomMatching && roomData.player1_ID === playerUUID) {
 
                 stopHeartbeat(); // 相手が参加し対局開始。waiting用ハートビートは不要
+                stopRoomWatcher();
+                clearWaitingExpireTimer();
+                setLastOpponent(roomData.player2_ID);
                 document.getElementById('statusMessage').innerText = t('statusMatchingDone');
                 isNavigatingToBattle = true; //バトル画面への遷移フラグを設定
 
@@ -969,8 +1058,10 @@ function listenForMatches() {
             }
         });
     };
-    onSnapshot(query(roomsRef, where("player1_ID", "==", playerUUID)), handleRoomsSnapshot);
-    onSnapshot(query(roomsRef, where("player2_ID", "==", playerUUID)), handleRoomsSnapshot);
+    matchListenerUnsubs = [
+        onSnapshot(query(roomsRef, where("player1_ID", "==", playerUUID)), handleRoomsSnapshot),
+        onSnapshot(query(roomsRef, where("player2_ID", "==", playerUUID)), handleRoomsSnapshot),
+    ];
 }
 
 //matchingを表示するための関数
