@@ -808,7 +808,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
 });
 
 //------------------------------------------------------------------------------------------------
-// マッチング待機中の表示(2026-10-22)。キャラ一覧の中央に「マッチング中・・・」を1文字ずつ順に跳ねさせて出し、待ち時間も添える。
+// マッチング待機中の表示(2026-10-22)。画面中央に「マッチング中・・・」を1文字ずつ順に跳ねさせて出し、待ち時間も添える。
 // 操作の邪魔をしないよう pointer-events: none(左のボタンで解除できる)
 let waitingOverlayTimer = null;
 
@@ -818,7 +818,7 @@ function showWaitingOverlay() {
         el = document.createElement('div');
         el.id = 'waitingOverlay';
         el.className = 'waiting-overlay';
-        document.querySelector('.charalist').appendChild(el); // キャラ一覧の中央に出す(左のキャラ情報に重ねない)
+        document.querySelector('.parent-container').appendChild(el); // 画面全体の中央に出す
     }
     const chars = [...t('waitingTitle'), ...t('waitingDots')];
     el.innerHTML = `<div class="waiting-text">${chars.map((c, i) =>

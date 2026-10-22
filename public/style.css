@@ -778,7 +778,6 @@ details[open] > .achievement-group-header::after {
     align-items: flex-start; /* 左上揃え */
     margin-left: 20px; /* containerとcharalistの間にスペースを作る */
     max-width: 900px; /* 最大幅を設定(2026-10-21: キャラ選択を横5列にしたので770→900) */
-    position: relative; /* マッチング待機中の表示(.waiting-overlay)の基準 */
 }
 
 .thumbnail {
@@ -1212,8 +1211,10 @@ details[open] > .achievement-group-header::after {
     pointer-events: none;
     padding: 30px 64px 24px;
     border-radius: 16px;
-    background: rgba(20, 24, 40, 0.72);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+    background: linear-gradient(90deg, rgba(40, 120, 255, 0.92), rgba(150, 70, 255, 0.92), rgba(255, 80, 170, 0.92));
+    background-size: 200% 200%;
+    animation: gradientMove 3s infinite alternate; /* マッチ成立表示と同じく、色がゆっくり流れる */
+    box-shadow: 0 6px 28px rgba(120, 80, 255, 0.55);
     color: #fff;
     text-align: center;
     font-family: 'SDK_JP_WEB', sans-serif;
@@ -1221,14 +1222,14 @@ details[open] > .achievement-group-header::after {
     transition: opacity 0.3s ease;
 }
 .waiting-overlay.show { opacity: 1; }
-.waiting-text { font-size: 46px; font-weight: bold; letter-spacing: 4px; white-space: nowrap; }
+.waiting-text { font-size: 46px; font-weight: bold; letter-spacing: 4px; white-space: nowrap; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
 .waiting-text span { display: inline-block; animation: waitingHop 1.6s ease-in-out infinite; }
 @keyframes waitingHop {
     0%, 50%, 100% { transform: translateY(0); }
     20% { transform: translateY(-16px); }
     35% { transform: translateY(2px); }
 }
-.waiting-sub { margin-top: 12px; font-size: 18px; color: #cfd6e6; letter-spacing: 1px; }
+.waiting-sub { margin-top: 12px; font-size: 18px; color: #fff; opacity: 0.9; letter-spacing: 1px; }
 
 #version {
   position: fixed;
