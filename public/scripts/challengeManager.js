@@ -68,7 +68,8 @@ export const CLEAR_STAT = { streak: 'challengeStreakClear', all: 'challengeAllCl
 
 // 挑戦できるか。isUnlocked(chara) はそのキャラを使えるか
 export function canChallenge(mode, isUnlocked) {
-    if (mode === 'reverse') return characterData.filter((c) => c.charaID !== BOSS_ID).every(isUnlocked);
+    // UP交換所で解放するキャラ(requiredUpPerk)は条件に含めない(UPを使わないと挑戦できない、にはしない)
+    if (mode === 'reverse') return characterData.filter((c) => c.charaID !== BOSS_ID && !c.requiredUpPerk).every(isUnlocked);
     return characterData.filter((c) => BASE_IDS.includes(c.charaID)).every(isUnlocked);
 }
 
@@ -84,7 +85,7 @@ export function makeAllPairs() {
 
 // 逆転の挑戦: 自分のキャラは020以外からランダム
 export function randomReverseChara() {
-    const pool = characterData.filter((c) => c.charaID !== BOSS_ID).map((c) => c.charaID);
+    const pool = characterData.filter((c) => c.charaID !== BOSS_ID && !c.requiredUpPerk).map((c) => c.charaID);
     return pool[Math.floor(Math.random() * pool.length)];
 }
 

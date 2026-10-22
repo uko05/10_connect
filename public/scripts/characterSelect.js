@@ -4,7 +4,7 @@ import {
   getFirestore, collection, writeBatch, addDoc, query, where, deleteDoc, doc, runTransaction, updateDoc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { characterData, TEST_ALL_CHARAS_UNLOCKED } from './characterData.js';
+import { characterData, isCharaUnlocked as isCharaUnlockedFor } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { ensureLatestVersion } from './versionGuard.js';
 import { setupScaledLayout } from './layoutScaler.js';
@@ -62,6 +62,7 @@ document.querySelectorAll('input[name="langSelect"]').forEach(radio => {
             const jaLabel = el.dataset.reqAchLabel;
             el.innerHTML = t('lockedHintPre') + getAchName(achId, jaLabel) + t('lockedHintPost');
         });
+        document.querySelectorAll('.thumbnail-locked-hint[data-req-up]').forEach((el) => { el.innerHTML = t('lockedHintUp'); });
         const titlesEl = document.getElementById('lobbyTitles');
         if (titlesEl) applyTitleDisplay(titlesEl, cachedLobbyUserData);
     });
@@ -128,8 +129,8 @@ document.getElementById('soloModeButton').addEventListener('click', async () => 
     // CPUの対戦相手（未選択ならソロ画面側でランダム）
     sessionStorage.setItem('soloCpuCharaID', selectedOpponentID || '');
     sessionStorage.setItem('soloPlayerName', playerName);
-    // CPUランダム選択で未解放キャラを除くために解放済みアチーブメントを渡す
-    sessionStorage.setItem('soloUnlockedAchievements', JSON.stringify([...myAchievements]));
+    // CPUランダム選択で未解放キャラを除くために解放状態を渡す
+    saveSoloUnlocked();
     window.location.href = 'solo.html';
 });
 
@@ -185,6 +186,15 @@ let charaSound = null;
 let myCharaWins = {};
 // 解放済みアチーブメント（requiredAchievementId でキャラをロック制御するために使用）
 let myAchievements = new Set();
+// UP交換所の特典(omikujiUsers.sitePerks.connect)と、管理者・デバッガーかどうか(2026-10-22 アベンチュリン用)
+let myUpPerks = {};
+let isStaffRole = false;
+// CPU戦のランダム相手から未解放キャラを除くため、ソロ画面に渡す
+function saveSoloUnlocked() {
+    sessionStorage.setItem('soloUnlockedAchievements', JSON.stringify([...myAchievements]));
+    sessionStorage.setItem('soloUnlockedUpCharas', JSON.stringify(
+        characterData.filter((c) => c.requiredUpPerk && isCharaUnlocked(c)).map((c) => c.charaID)));
+}
 
 // プレイヤー名保存用に、認証済みUIDを保持する
 let currentUid = null;
@@ -255,7 +265,7 @@ function displayThumbnails() {
 
     // charaID順にすべてのキャラを描画（解放状態にかかわらず）
     characterData.forEach((character) => {
-        const isLocked = !TEST_ALL_CHARAS_UNLOCKED && character.requiredAchievementId && !myAchievements.has(character.requiredAchievementId);
+        const isLocked = !isCharaUnlocked(character);
         const wrapper = document.createElement('div');
         wrapper.className = 'thumbnail-wrapper';
 
@@ -270,9 +280,14 @@ function displayThumbnails() {
 
             const hint = document.createElement('div');
             hint.className = 'thumbnail-locked-hint';
-            hint.dataset.reqAchId = character.requiredAchievementId || '';
-            hint.dataset.reqAchLabel = character.requiredAchievementLabel || '';
-            hint.innerHTML = t('lockedHintPre') + getAchName(character.requiredAchievementId, character.requiredAchievementLabel) + t('lockedHintPost');
+            if (character.requiredUpPerk) {
+                hint.dataset.reqUp = '1';
+                hint.innerHTML = t('lockedHintUp');
+            } else {
+                hint.dataset.reqAchId = character.requiredAchievementId || '';
+                hint.dataset.reqAchLabel = character.requiredAchievementLabel || '';
+                hint.innerHTML = t('lockedHintPre') + getAchName(character.requiredAchievementId, character.requiredAchievementLabel) + t('lockedHintPost');
+            }
             lockedSlot.appendChild(hint);
 
             wrapper.appendChild(lockedSlot);
@@ -476,6 +491,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         myCharaWins = myRating?.charaWins || {};
         // 解放済みアチーブメント（キャラロック判定用）
         myAchievements = new Set(myRating?.achievements || []);
+
+        // UP交換所の特典とロール(アベンチュリンの解放判定用)。2件の読み取りを並行で
+        const sharedId = getSharedUserId();
+        const [roleSnap, omikujiSnap] = await Promise.all([
+            getDoc(doc(db, 'sharedUserRoles', sharedId)).catch(() => null),
+            getDoc(doc(db, 'omikujiUsers', sharedId)).catch(() => null),
+        ]);
+        const roleData = roleSnap?.exists() ? roleSnap.data() : {};
+        isStaffRole = roleData.role === 'admin' || roleData.role === 'debugger' || !!roleData.debugConnect;
+        myUpPerks = (omikujiSnap?.exists() && omikujiSnap.data().sitePerks?.connect) || {};
 
         // 前回保存したプレイヤー名があれば自動入力
         const playerNameInput = document.getElementById('playerName');
@@ -808,7 +833,7 @@ document.getElementById('matchButton').addEventListener('click', async () => {
 });
 
 //------------------------------------------------------------------------------------------------
-// マッチング待機中の表示(2026-10-22)。画面中央に「マッチング中・・・」を1文字ずつ順に跳ねさせて出し、待ち時間も添える。
+// マッチング待機中の表示(2026-10-22)。画面中央に「・・・マッチング中・・・」を1文字ずつ順に跳ねさせて出し、待ち時間も添える。
 // 操作の邪魔をしないよう pointer-events: none(左のボタンで解除できる)
 let waitingOverlayTimer = null;
 
@@ -820,7 +845,8 @@ function showWaitingOverlay() {
         el.className = 'waiting-overlay';
         document.querySelector('.parent-container').appendChild(el); // 画面全体の中央に出す
     }
-    const chars = [...t('waitingTitle'), ...t('waitingDots')];
+    // 「・・・」を右だけに付けると文字が左に寄って見えるので、左右に付けて釣り合わせる
+    const chars = [...t('waitingDots'), ...t('waitingTitle'), ...t('waitingDots')];
     el.innerHTML = `<div class="waiting-text">${chars.map((c, i) =>
         `<span style="animation-delay:${(i * 0.09).toFixed(2)}s">${c}</span>`).join('')}</div>` +
         `<div class="waiting-sub"></div>`;
@@ -1137,7 +1163,7 @@ const SOLO_MODES = ['solo', ...CHALLENGE_MODES];
 const SOLO_MODE_KEY = 'connectSoloMode';
 let soloMode = 'solo';
 let challengeProgress = {};
-const isCharaUnlocked = (c) => TEST_ALL_CHARAS_UNLOCKED || !c.requiredAchievementId || myAchievements.has(c.requiredAchievementId);
+function isCharaUnlocked(c) { return isCharaUnlockedFor(c, myAchievements, myUpPerks, isStaffRole); }
 const charaName = (id) => getCharaText(id, 'name') ?? characterData.find((c) => c.charaID === id)?.name ?? id;
 const isEn = () => document.documentElement.lang === 'en';
 
@@ -1230,7 +1256,7 @@ async function startChallenge(chosenCharaID) {
     sessionStorage.setItem('soloPlayerCharaID', m.player);
     sessionStorage.setItem('soloCpuCharaID', m.cpu);
     sessionStorage.setItem('soloPlayerName', playerName);
-    sessionStorage.setItem('soloUnlockedAchievements', JSON.stringify([...myAchievements]));
+    saveSoloUnlocked();
     setSoloChallenge({ mode, difficulty: CHALLENGE_INFO[mode].difficulty, done: m.done, total: m.total });
     window.location.href = 'solo.html';
 }

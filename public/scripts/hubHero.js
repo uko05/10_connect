@@ -47,7 +47,7 @@ export function heroCandidates(userData) {
     const unlocked = userData?.unlockedHiddenCharas || {};
     const achs = new Set(userData?.achievements || []);
     const charas = characterData
-        .filter((c) => c.src && (!c.requiredAchievementId || unlocked[c.charaID] || achs.has(c.requiredAchievementId)))
+        .filter((c) => c.src && ((!c.requiredAchievementId && !c.requiredUpPerk) || unlocked[c.charaID] || achs.has(c.requiredAchievementId)))
         .map((c) => ({ ...c, kind: 'chara' }));
     const cards = (userData?.hubArtUnlocked || [])
         .map((id) => CARD_BY_ID.get(id))

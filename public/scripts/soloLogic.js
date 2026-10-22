@@ -2046,7 +2046,9 @@ function pickCpuCharacter() {
         if (fixed) return fixed;
     }
     const unlocked = new Set(JSON.parse(sessionStorage.getItem('soloUnlockedAchievements') || '[]'));
-    const pool = characterData.filter(c => TEST_ALL_CHARAS_UNLOCKED || !c.requiredAchievementId || unlocked.has(c.requiredAchievementId));
+    const upUnlocked = new Set(JSON.parse(sessionStorage.getItem('soloUnlockedUpCharas') || '[]'));
+    const pool = characterData.filter(c => TEST_ALL_CHARAS_UNLOCKED
+        || (c.requiredUpPerk ? upUnlocked.has(c.charaID) : (!c.requiredAchievementId || unlocked.has(c.requiredAchievementId))));
     // キャラ選択画面で相手を選んでいればそのキャラ（解放済みのみ）。未選択ならランダム
     const chosen = pool.find(c => c.charaID === sessionStorage.getItem('soloCpuCharaID'));
     if (chosen) return chosen;

@@ -262,6 +262,9 @@ export const characterData = [
     { 
         src: 'public/chara/aben.png', 
         charaID: '017',
+        // うーこポイント交換所(08_UPoint)の「アベンチュリン解放」で使えるようになる(2026-10-22)。
+        // 交換所の項目はまだ管理者・デバッガーにしか見えない。管理者・デバッガーは交換しなくても使える
+        requiredUpPerk: 'aventurineUnlocked',
         name: 'アベンチュリン',
         charge: 18,
         chargeMax: 200,
@@ -335,5 +338,13 @@ export const characterData = [
 
 // 動作確認のため、隠しキャラも含めて全キャラを一時的に選べるようにする(2026-10-21)。
 // 公開前に false に戻すこと(戻すと requiredAchievementId のアチーブで解放する通常の動きになる)
+// キャラを使えるか(2026-10-22 まとめた)。achievements: 解放済みアチーブIDのSet。
+// upPerks: omikujiUsers.sitePerks.connect(UP交換所で交換した特典)。isStaff: 管理者・デバッガー
+export function isCharaUnlocked(c, achievements, upPerks = {}, isStaff = false) {
+    if (TEST_ALL_CHARAS_UNLOCKED) return true;
+    if (c.requiredUpPerk) return isStaff || !!upPerks?.[c.requiredUpPerk];
+    return !c.requiredAchievementId || achievements.has(c.requiredAchievementId);
+}
+
 // 2026-10-22: 本番で全員に全キャラが見えてしまっていたため、手元(localhost)で開いた時だけ有効にする
 export const TEST_ALL_CHARAS_UNLOCKED = typeof location !== 'undefined' && ['localhost', '127.0.0.1'].includes(location.hostname);
