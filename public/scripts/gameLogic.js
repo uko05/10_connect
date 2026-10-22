@@ -1336,6 +1336,14 @@ async function watchRoomUpdates() {
                 lastFxSeq = data.abilityState?.fx?.seq ?? null;
             }
             if (!isInitialLoad && winningflg !== 1 && data.turnCount === turnCount) {
+                // ゲージ: 相手の必殺技のチャージ消費などを、ターンが変わるのを待たずに反映する
+                const enemyCharge = player_info === 'P1' ? data.player2_ChargeNow : data.player1_ChargeNow;
+                const myCharge = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
+                if ((enemyCharge != null && enemyCharge !== playerRight_ChargeNow) || (data.turn !== player_info && myCharge != null && myCharge !== playerLeft_ChargeNow)) {
+                    if (enemyCharge != null) playerRight_ChargeNow = enemyCharge;
+                    if (data.turn !== player_info && myCharge != null) playerLeft_ChargeNow = myCharge;
+                    updateGauge();
+                }
                 const enemyUlt = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
                 if (enemyUlt != null && enemyUlt !== playerRight_UltCount) {
                     playerRight_UltCount = enemyUlt;
@@ -2888,7 +2896,18 @@ async function getcharge(data, normalAttack = true) {
     let p2_chargeNow = 0;
     let chargeNum = isTurnChargeNum(turn);
     
-    if(!normalAttack) {
+    if (!normalAttack && ultPayPromise) await ultPayPromise;
+    if (!normalAttack && ultChargePaid) {
+        // ボタンを押した時点(ult_CntUP)で払い済み。ここでは引かずに今の値を返す
+        ultChargePaid = false;
+        if (player_info === 'P1') {
+            p1_chargeNow = playerLeft_ChargeNow;
+            p2_chargeNow = data.player2_ChargeNow ?? playerRight_ChargeNow;
+        } else {
+            p1_chargeNow = data.player1_ChargeNow ?? playerRight_ChargeNow;
+            p2_chargeNow = playerLeft_ChargeNow;
+        }
+    } else if(!normalAttack) {
         // ULT攻撃
         if (player_info === 'P1') {
             playerLeft_ChargeNow = playerLeft_ChargeNow - 150;
@@ -2995,7 +3014,7 @@ function toggleSpecialMoveButton(show) {
 async function invokeAbility(functionName) {
     if (typeof abilities[functionName] === "function") {
         
-        ult_CntUP();
+        ultPayPromise = ult_CntUP(); // 必殺技の回数とチャージ消費(150)を、ボタンを押した時点で書き込む
         
         // カットイン終了後に必殺技の関数を実行
         isTurnPlayerUltVoice();
@@ -3480,7 +3499,19 @@ function getRandomElements(array, count) {
 //------------------------------------------------------------------------------------------------
 
 
+// 必殺技の回数+1とチャージ消費(150)を、ボタンを押した時点で書き込む(2026-10-22)。
+// 以前はチャージを各必殺技の処理の中で引いていて、ゲージの表示も次に石を落とすまで変わらなかったため、
+// 両方の画面で「必殺技の後の投下」と同時にゲージが減って見えていた。
+// ここで払った後は、各必殺技の getcharge(…, false) は引かずに今の値を返す(ultChargePaid)
+let ultChargePaid = false;
+let ultPayPromise = null;
+
 async function ult_CntUP() {
+
+    // 自分のゲージはすぐ減らして見せる
+    playerLeft_ChargeNow = Math.max(0, playerLeft_ChargeNow - 150);
+    ultChargePaid = true;
+    updateGauge();
 
     try {
         const q = roomQuery();
@@ -3489,13 +3520,16 @@ async function ult_CntUP() {
         for (const roomDoc of querySnapshot.docs) {
             const roomData = roomDoc.data();
 
-            const beforeLeft = playerLeft_UltCount;
             const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, false);
+            const oppCharge = (player_info === 'P1' ? roomData.player2_ChargeNow : roomData.player1_ChargeNow) ?? 0;
+            playerRight_ChargeNow = oppCharge;
 
             const roomDocRef = doc(db, "connectRooms", roomDoc.id);
             await updateDoc(roomDocRef, {
                 player1_UltCount: p1_UltCount,
-                player2_UltCount: p2_UltCount
+                player2_UltCount: p2_UltCount,
+                player1_ChargeNow: player_info === 'P1' ? playerLeft_ChargeNow : oppCharge,
+                player2_ChargeNow: player_info === 'P1' ? oppCharge : playerLeft_ChargeNow,
             });
         }
     } catch (error) {
