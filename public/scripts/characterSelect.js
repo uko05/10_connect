@@ -587,7 +587,9 @@ function toggleInputs(isDisabled) {
     document.getElementById('roomMatching').disabled = isDisabled;
     document.getElementById('matchButton').disabled = isDisabled;
 
-    document.getElementById('statusMessage').innerText = isDisabled ? t('statusMatching') : "";
+    // 待機中は画面中央のアニメーション(showWaitingOverlay)で知らせる(2026-10-22)。左下の小さい赤文字は出さない
+    document.getElementById('statusMessage').innerText = "";
+    if (isDisabled) showWaitingOverlay(); else hideWaitingOverlay();
 
     //サムネイルのクリックイベントを無効化
     const thumbnails = document.querySelectorAll('.thumbnail');
@@ -804,6 +806,45 @@ document.getElementById('matchButton').addEventListener('click', async () => {
         document.getElementById('matchButton').disabled = false;
     }
 });
+
+//------------------------------------------------------------------------------------------------
+// マッチング待機中の表示(2026-10-22)。キャラ一覧の中央に「マッチング中・・・」を1文字ずつ順に跳ねさせて出し、待ち時間も添える。
+// 操作の邪魔をしないよう pointer-events: none(左のボタンで解除できる)
+let waitingOverlayTimer = null;
+
+function showWaitingOverlay() {
+    let el = document.getElementById('waitingOverlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'waitingOverlay';
+        el.className = 'waiting-overlay';
+        document.querySelector('.charalist').appendChild(el); // キャラ一覧の中央に出す(左のキャラ情報に重ねない)
+    }
+    const chars = [...t('waitingTitle'), ...t('waitingDots')];
+    el.innerHTML = `<div class="waiting-text">${chars.map((c, i) =>
+        `<span style="animation-delay:${(i * 0.09).toFixed(2)}s">${c}</span>`).join('')}</div>` +
+        `<div class="waiting-sub"></div>`;
+    const sub = el.querySelector('.waiting-sub');
+    const start = Date.now();
+    const tick = () => {
+        const sec = Math.floor((Date.now() - start) / 1000);
+        sub.textContent = `${t('waitingElapsed')} ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    };
+    tick();
+    clearInterval(waitingOverlayTimer);
+    waitingOverlayTimer = setInterval(tick, 1000);
+    el.style.display = 'block';
+    requestAnimationFrame(() => el.classList.add('show'));
+}
+
+function hideWaitingOverlay() {
+    clearInterval(waitingOverlayTimer);
+    waitingOverlayTimer = null;
+    const el = document.getElementById('waitingOverlay');
+    if (!el) return;
+    el.classList.remove('show');
+    el.style.display = 'none';
+}
 
 //------------------------------------------------------------------------------------------------
 // マッチングの部品(2026-10-22 整理)
@@ -1066,6 +1107,7 @@ function listenForMatches() {
 
 //matchingを表示するための関数
 async function showMatchLabel() {
+    hideWaitingOverlay();
 
     const matchLabel = document.getElementById("matchLabel");
 
