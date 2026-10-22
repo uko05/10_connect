@@ -206,6 +206,66 @@ let diceInProgress = false;   // 自分が振っている間は石を置けな�
 let lastDiceSeq = null;       // 最後に見た出目の番号(同じ出目を2回転がさない)
 let diceSeen = false;         // 最初の受信では、過去の出目を転がさない
 
+// 必殺技の演出の同期(2026-10-22)。使った人は「結果の盤面」と「演出の種類(abilityState.fx)」を書き込むと同時に
+// 自分の画面で演出を再生し、相手は書き込みを受け取って同じ演出を再生する(playUltFx)。
+// 相手側のカットイン・ダイス・演出は fxChain で順番に流し、次の手(ターンが変わる更新)は演出が終わってから反映する
+let fxChain = Promise.resolve();
+let lastFxSeq = null;
+let fxSeen = false;
+function newFx(type, extra = {}) {
+    const fx = { seq: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, by: player_info, type, ...extra };
+    lastFxSeq = fx.seq;
+    return fx;
+}
+function enqueueFx(task) {
+    fxChain = fxChain.then(task).catch((e) => console.error('[fx] 演出の再生に失敗:', e));
+    return fxChain;
+}
+const cloneStones = (src) => { const o = {}; for (const k in (src || {})) o[k] = Object.assign({}, src[k]); return o; };
+
+// before の盤面から fx の演出を再生し、最後に after の盤面にする
+// fx.type: destroy(keys を壊す。gravity なら重力で落とす) / convert・swap・mark(keys を光らせてから after) / flip(重力反転)
+async function playUltFx(fx, before, after) {
+    const local = cloneStones(before);
+    const keys = (fx.keys || []).filter((k) => local[k]);
+    switch (fx.type) {
+        case 'destroy':
+            if (keys.length) {
+                await highlightStones(keys, fx.wt ?? 400);
+                for (const k of keys) delete local[k];
+                stonesData = local;
+                init_drawBoard(true);
+                if (fx.gravity) {
+                    await wait(400);
+                    await animateGravitySmooth(local, keys);
+                } else {
+                    await wait(300);
+                }
+            }
+            break;
+        case 'convert':
+        case 'swap':
+        case 'mark':
+            if (keys.length) await highlightStones(keys, fx.wt ?? 400);
+            break;
+        case 'flip':
+            await playGravityFlipAnimation({
+                canvas: document.getElementById('connect4Canvas'), stones: before || {}, rows, cols, cellSize,
+                drawPieces: (pieces) => drawGridAndPieces(pieces.map((p) => ({ c: p.c, y: p.y, color: p.value.color }))),
+            });
+            break;
+    }
+    stonesData = after;
+    init_drawBoard(true);
+}
+
+// 使った人側: 書き込みと演出を同時に始め、両方終わるのを待つ
+async function writeAndPlayFx(ref, payload, fx, before, after) {
+    const writing = updateDoc(ref, { ...payload, stones: after, 'abilityState.fx': fx });
+    await playUltFx(fx, before, after);
+    await writing;
+}
+
 // 設定の必殺技演出強度に応じて、画面フラッシュ・シェイク・パーティクルの強さを調整するラッパー
 // （renderer.jsの関数自体は強度を意識しない「素の」演出プリミティブとして保つ）
 function fxFlash(color, duration) {
@@ -1265,28 +1325,35 @@ async function watchRoomUpdates() {
                     lastDiceSeq = dice?.seq ?? null;
                 } else if (dice && dice.seq !== lastDiceSeq) {
                     lastDiceSeq = dice.seq;
-                    if (dice.by !== player_info) playDiceRoll(document.getElementById('boardWrap'), dice.n);
+                    if (dice.by !== player_info) enqueueFx(() => playDiceRoll(document.getElementById('boardWrap'), dice.n));
                 }
             }
 
             // 相手の必殺技(2026-10-22): 必殺技の書き込みは turnCount を変えないため、下のスキップより前で見る。
             // 以前はここで見ていなかったので、相手の画面ではカットインも石の変化も、次に石を落とすまで出なかった
+            if (!fxSeen) {
+                fxSeen = true;
+                lastFxSeq = data.abilityState?.fx?.seq ?? null;
+            }
             if (!isInitialLoad && winningflg !== 1 && data.turnCount === turnCount) {
                 const enemyUlt = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
                 if (enemyUlt != null && enemyUlt !== playerRight_UltCount) {
                     playerRight_UltCount = enemyUlt;
-                    isTurnPlayerUltVoice();
-                    await showCutIn();
+                    enqueueFx(async () => { isTurnPlayerUltVoice(); await showCutIn(); });
                 }
-                // 相手の番に相手が書いた盤面の変化(必殺技の破壊・変換など)を反映する
-                if (data.turn !== player_info && data.stones && JSON.stringify(data.stones) !== JSON.stringify(stonesData || {})) {
-                    const before = stonesData || {};
-                    const removed = Object.keys(before).filter((k) => !data.stones[k]);
-                    if (removed.length && Object.keys(data.stones).length < Object.keys(before).length) {
-                        await highlightStones(removed, 300);
-                    }
-                    stonesData = data.stones;
-                    init_drawBoard(true);
+                const fx = data.abilityState?.fx;
+                const after = data.stones || {};
+                const bombState = data.abilityState?.bomb || null;
+                if (fx && fx.seq !== lastFxSeq && fx.by !== player_info) {
+                    // 相手が使った必殺技の演出を、こちらでも同じように再生する
+                    lastFxSeq = fx.seq;
+                    enqueueFx(async () => { pvpBomb = bombState; await playUltFx(fx, stonesData || {}, after); });
+                } else if (data.turn !== player_info && JSON.stringify(after) !== JSON.stringify(stonesData || {})) {
+                    // 演出の指定がない盤面の変化(ケリュドラの追加投下など)は、そのまま反映する
+                    enqueueFx(async () => { pvpBomb = bombState; stonesData = after; init_drawBoard(true); });
+                } else if (JSON.stringify(bombState) !== JSON.stringify(pvpBomb)) {
+                    // 爆弾の残りターンの数字だけが変わった時
+                    enqueueFx(async () => { pvpBomb = bombState; init_drawBoard(true); });
                 }
             }
 
@@ -1306,6 +1373,7 @@ async function watchRoomUpdates() {
             if (winningflg === 1) {
                 return;
             }
+            await fxChain; // 相手の必殺技の演出が流れている間は、終わってから次の手を反映する
             turnCount = data.turnCount;
 
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
@@ -3018,10 +3086,8 @@ async function ult_randomCenter2Delete(){
     const stonesToDelete = await getStonesToDelete(randomStones, 6);
 
     // 石をハイライト
-    highlightStones(stonesToDelete, 300);
-
-    // 石を削除
-    deleteStones(stonesToDelete);
+    // 石をハイライトして削除(相手の画面でも同じ演出を流す)
+    await deleteStones(stonesToDelete, 300);
 }
 
 function getRandomTwoNumbers() {
@@ -3040,10 +3106,8 @@ async function ult_allTopDelete(){
     const stonesToDelete = await getStonesToDelete(randomStones, 2);
 
     // 石をハイライト
-    highlightStones(stonesToDelete, 400);
-
-    // 石を削除
-    deleteStones(stonesToDelete);
+    // 石をハイライトして削除(相手の画面でも同じ演出を流す)
+    await deleteStones(stonesToDelete, 400);
 }
 
 async function ult_random3TopDelete(){
@@ -3052,10 +3116,8 @@ async function ult_random3TopDelete(){
     const stonesToDelete = await getStonesToDelete(randomStones);
 
     // 石をハイライト
-    highlightStones(stonesToDelete);
-
-    // 石を削除
-    deleteStones(stonesToDelete);
+    // 石をハイライトして削除(相手の画面でも同じ演出を流す)
+    await deleteStones(stonesToDelete, 500);
 }
 
 async function ult_randomVerticalAllDelete(){
@@ -3064,10 +3126,8 @@ async function ult_randomVerticalAllDelete(){
     const stonesToDelete = await getStonesToDelete(randomStones, 6);
 
     // 石をハイライト
-    highlightStones(stonesToDelete, 400);
-
-    // 石を削除
-    deleteStones(stonesToDelete);
+    // 石をハイライトして削除(相手の画面でも同じ演出を流す)
+    await deleteStones(stonesToDelete, 400);
 }
 
 async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
@@ -3130,7 +3190,7 @@ async function getStonesToDelete(topStones, numberOfRowsToDelete = 1) {
     }
 }
 
-async function deleteStones(stonesToDelete) {
+async function deleteStones(stonesToDelete, wt = 500) {
 
     try {
         const q = roomQuery();
@@ -3139,28 +3199,20 @@ async function deleteStones(stonesToDelete) {
 
         const roomDoc = querySnapshot.docs[0];
         const roomData = roomDoc.data();
-        const newStones = Object.assign({}, roomData.stones || {});
+        const before = cloneStones(roomData.stones);
+        const after = cloneStones(before);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
         await getUltCount(roomData, true);
 
-        // 石を削除
-        stonesToDelete.forEach((key) => { delete newStones[key]; });
+        const keys = stonesToDelete.filter((key) => after[key]);
+        keys.forEach((key) => { delete after[key]; });
 
-        // Firestoreのデータを更新
-        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
-            player1_ChargeNow: p1_chargeNow,
-            player2_ChargeNow: p2_chargeNow,
-            stones: newStones
-        });
-
-        // ★演出を一発の「衝撃」に揃えるため、件数に依存しない固定待機に変更
-        //   （以前は stonesToDelete.length * 500ms で多列破壊時に最大9秒近く待たされていた）
-        await wait(700);
-        // 自分の画面の盤面も書き換える(2026-10-22)。以前は Firestore だけを書き換えていて、
+        // 書き込みと同時に演出(相手の画面でも同じ演出が流れる)。以前は Firestore だけを書き換えていて、
         // 自分の書き込みは turnCount が変わらないため受信側で読み飛ばされ、次に石を落とすまで石が消えなかった
-        stonesData = newStones;
-        init_drawBoard(true);
+        await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id),
+            { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('destroy', { keys, wt }), before, after);
     } catch (error) {
         console.error("石の削除中にエラーが発生しました:", error);
     }
@@ -3331,10 +3383,8 @@ async function ult_Top2Delete() {
     const stonesToDelete = await getTop2Stones();
 
     // 石をハイライト
-    highlightStones(stonesToDelete, 100);
-
-    // 石を削除
-    deleteStones(stonesToDelete);
+    // 石をハイライトして削除(相手の画面でも同じ演出を流す)
+    await deleteStones(stonesToDelete, 100);
 }
 
 async function getTop2Stones() {
@@ -3382,10 +3432,8 @@ async function ult_madness() {
     const stonesToDelete = await getStonesToDelete(randomStones, 6);
 
     // 石をハイライト
-    highlightStones(stonesToDelete, 250);
-
-    // 石を削除
-    deleteStones(stonesToDelete);
+    // 石をハイライトして削除(相手の画面でも同じ演出を流す)
+    await deleteStones(stonesToDelete, 250);
     
 }
 
@@ -3481,27 +3529,19 @@ async function ult_ruanMei() {
         const opponentKeys = Object.keys(localStones).filter(k => localStones[k]?.color === opponentColor);
         const keysToConvert = getRandomElements(opponentKeys, Math.min(3, opponentKeys.length));
 
-        if (keysToConvert.length > 0) {
-            await highlightStones(keysToConvert, 400);
-            for (const key of keysToConvert) {
-                localStones[key] = Object.assign({}, localStones[key], { color: myColor });
-            }
+        const beforeConvert = cloneStones(localStones);
+        for (const key of keysToConvert) {
+            localStones[key] = Object.assign({}, localStones[key], { color: myColor });
         }
 
         // 変換後の勝利判定（Phase 2 実行前に確認）
         const winAfterConvert = checkWin(localStones);
 
-        // Phase 1 をFirestoreへ書き込み（チャージ消費もここで処理）
+        // Phase 1 をFirestoreへ書き込み（チャージ消費もここで処理）。書き込みと同時に演出(相手の画面でも同じ演出)
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         const roomDocRef = doc(db, "connectRooms", roomDoc.id);
-        await updateDoc(roomDocRef, {
-            player1_ChargeNow: p1_chargeNow,
-            player2_ChargeNow: p2_chargeNow,
-            stones: localStones
-        });
-        // モジュールレベルのstonesDataを直接更新してから再描画（handleRoomUpdateを待たない）
-        stonesData = localStones;
-        init_drawBoard(true);
+        await writeAndPlayFx(roomDocRef, { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('convert', { keys: keysToConvert }), beforeConvert, cloneStones(localStones));
 
         if (winAfterConvert.red || winAfterConvert.yellow) {
             // 変換で勝利確定 → handleRoomUpdateが両側で勝利処理を行う
@@ -3516,23 +3556,11 @@ async function ult_ruanMei() {
 
         if (keysToDelete.length === 0) return;
 
-        await highlightStones(keysToDelete, 400);
-
-        for (const key of keysToDelete) {
-            delete localStones[key];
-        }
-
-        // 破壊後の空白を一瞬見せてから落下
-        stonesData = localStones;
-        init_drawBoard(true);
-        await wait(400);
-
-        // 削除後、影響を受けた列の石を重力でアニメーション落下
-        await animateGravitySmooth(localStones, keysToDelete);
-
-        await updateDoc(roomDocRef, { stones: localStones });
-        stonesData = localStones;
-        init_drawBoard(true);
+        // 破壊して重力で落とす。書き込みと同時に演出(相手の画面でも同じ演出)
+        const beforeDelete = cloneStones(localStones);
+        for (const key of keysToDelete) delete localStones[key];
+        applyGravity(localStones, keysToDelete);
+        await writeAndPlayFx(roomDocRef, {}, newFx('destroy', { keys: keysToDelete, gravity: true }), beforeDelete, cloneStones(localStones));
 
     } catch (error) {
         console.error("ルアン・メェイの必殺技処理中にエラーが発生しました:", error);
@@ -3676,21 +3704,13 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
 
                 const allKeys = Object.keys(localStones);
                 const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
-                if (toDelete.length > 0) {
-                    await highlightStones(toDelete, 400);
-                    for (const key of toDelete) delete localStones[key];
-                    stonesData = localStones;
-                    init_drawBoard(true);
-                    await wait(400);
-                    await animateGravitySmooth(localStones, toDelete);
-                }
-                await updateDoc(doc(db, "connectRooms", roomDoc.id), {
-                    stones: localStones,
+                const before = cloneStones(localStones);
+                for (const key of toDelete) delete localStones[key];
+                applyGravity(localStones, toDelete);
+                await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), {
                     'abilityState.durinPending': false,
                     'abilityState.durinCasterColor': null
-                });
-                stonesData = localStones;
-                init_drawBoard(true);
+                }, newFx('destroy', { keys: toDelete, gravity: true }), before, cloneStones(localStones));
                 pvpDurinPending = false;
             }
         }
@@ -3798,26 +3818,14 @@ async function ult_lowen() {
         const enemy = otherColor(playerLeft_Color);
         const keysToDelete = Object.keys(localStones).filter(k => k.endsWith('_4') && localStones[k].color === enemy);
         // 対象が無くても必殺技は使ったので、チャージは下で必ず消費する(以前は対象なしだと消費せずに終わっていた)
-        if (keysToDelete.length > 0) {
-            await highlightStones(keysToDelete, 400);
-            for (const key of keysToDelete) delete localStones[key];
-
-            // 破壊後の空白を一瞬見せてから落下
-            stonesData = localStones;
-            init_drawBoard(true);
-            await wait(400);
-            await animateGravitySmooth(localStones, keysToDelete);
-        }
+        const before = cloneStones(localStones);
+        for (const key of keysToDelete) delete localStones[key];
+        applyGravity(localStones, keysToDelete);
 
         const roomDocRef = doc(db, "connectRooms", roomDoc.id);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
-        await updateDoc(roomDocRef, {
-            player1_ChargeNow: p1_chargeNow,
-            player2_ChargeNow: p2_chargeNow,
-            stones: localStones
-        });
-        stonesData = localStones;
-        init_drawBoard(true);
+        await writeAndPlayFx(roomDocRef, { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('destroy', { keys: keysToDelete, gravity: true }), before, cloneStones(localStones));
     } catch (error) {
         console.error("ローエンの必殺技処理中にエラーが発生しました:", error);
     }
@@ -3874,26 +3882,18 @@ async function ult_durin() {
         // 即時2個破壊
         const allKeys = Object.keys(localStones);
         const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
-        if (toDelete.length > 0) {
-            await highlightStones(toDelete, 400);
-            for (const key of toDelete) delete localStones[key];
-            stonesData = localStones;
-            init_drawBoard(true);
-            await wait(400);
-            await animateGravitySmooth(localStones, toDelete);
-        }
+        const before = cloneStones(localStones);
+        for (const key of toDelete) delete localStones[key];
+        applyGravity(localStones, toDelete);
 
         const roomDocRef = doc(db, "connectRooms", roomDoc.id);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
-        await updateDoc(roomDocRef, {
+        await writeAndPlayFx(roomDocRef, {
             player1_ChargeNow: p1_chargeNow,
             player2_ChargeNow: p2_chargeNow,
-            stones: localStones,
             'abilityState.durinPending': true,
             'abilityState.durinCasterColor': playerLeft_Color
-        });
-        stonesData = localStones;
-        init_drawBoard(true);
+        }, newFx('destroy', { keys: toDelete, gravity: true }), before, cloneStones(localStones));
         pvpDurinPending = true;
         pvpDurinCasterColor = playerLeft_Color;
     } catch (error) {
@@ -4002,15 +4002,14 @@ async function applyDiceEffect(n) {
         if (player_info === 'P1') p2_chargeNow = playerRight_ChargeNow; else p1_chargeNow = playerRight_ChargeNow;
     };
 
-    // 石を壊して重力で落とす(ドゥリン・ルアン・メェイと同じ見せ方)
+    // 石を壊して重力で落とす(ドゥリン・ルアン・メェイと同じ見せ方)。演出は書き込みと同時に下でまとめて流す
+    const before = cloneStones(localStones);
+    let fx = null;
     const destroy = async (keys) => {
         if (keys.length === 0) return;
-        await highlightStones(keys, 400);
         for (const key of keys) delete localStones[key];
-        stonesData = localStones;
-        init_drawBoard(true);
-        await wait(400);
-        await animateGravitySmooth(localStones, keys);
+        applyGravity(localStones, keys);
+        fx = newFx('destroy', { keys, gravity: true });
     };
 
     const payload = {};
@@ -4021,8 +4020,8 @@ async function applyDiceEffect(n) {
         case 4: {
             const keys = getRandomElements(keysOf(oppColor), 1);
             if (keys.length > 0) {
-                await highlightStones(keys, 400);
                 for (const key of keys) localStones[key] = Object.assign({}, localStones[key], { color: myColor });
+                fx = newFx('convert', { keys });
             }
             break;
         }
@@ -4044,12 +4043,12 @@ async function applyDiceEffect(n) {
         case 6: await destroy(getRandomElements(keysOf(oppColor), 3)); break;
     }
 
-    await updateDoc(roomDocRef, {
-        ...payload,
-        player1_ChargeNow: p1_chargeNow,
-        player2_ChargeNow: p2_chargeNow,
-        stones: localStones,
-    });
+    const basePayload = { ...payload, player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow };
+    if (fx) {
+        await writeAndPlayFx(roomDocRef, basePayload, fx, before, cloneStones(localStones));
+        return;
+    }
+    await updateDoc(roomDocRef, { ...basePayload, stones: localStones });
     stonesData = localStones;
     init_drawBoard(true);
 }
@@ -4080,10 +4079,11 @@ async function ult_columnSwap() {
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
 
         const pair = pickColumnSwapPair(localStones);
+        const before = cloneStones(localStones);
+        let swapKeys = [];
         if (pair) {
             const [a, b] = pair;
-            const keys = Object.keys(localStones).filter((k) => [a, b].includes(Number(k.split('_')[0])));
-            await highlightStones(keys, 400);
+            swapKeys = Object.keys(localStones).filter((k) => [a, b].includes(Number(k.split('_')[0])));
             for (let r = 0; r < rows; r++) {
                 const ka = `${a}_${r}`, kb = `${b}_${r}`;
                 const va = localStones[ka], vb = localStones[kb];
@@ -4092,13 +4092,8 @@ async function ult_columnSwap() {
                 if (va) localStones[kb] = va;
             }
         }
-        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
-            player1_ChargeNow: p1_chargeNow,
-            player2_ChargeNow: p2_chargeNow,
-            stones: localStones,
-        });
-        stonesData = localStones;
-        init_drawBoard(true);
+        await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('swap', { keys: swapKeys }), before, cloneStones(localStones));
     } catch (error) {
         console.error("魈の必殺技処理中にエラーが発生しました:", error);
     }
@@ -4115,17 +4110,8 @@ async function ult_gravityFlip() {
         const roomData = roomDoc.data();
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         const { stones: flipped } = gravityFlip(roomData.stones || {}, rows, cols);
-        await playGravityFlipAnimation({
-            canvas: document.getElementById('connect4Canvas'), stones: roomData.stones || {}, rows, cols, cellSize,
-            drawPieces: (pieces) => drawGridAndPieces(pieces.map((p) => ({ c: p.c, y: p.y, color: p.value.color }))),
-        });
-        stonesData = flipped;
-        init_drawBoard(true);
-        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
-            player1_ChargeNow: p1_chargeNow,
-            player2_ChargeNow: p2_chargeNow,
-            stones: flipped,
-        });
+        await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('flip'), cloneStones(roomData.stones), flipped);
     } catch (error) {
         console.error("重力反転の処理中にエラーが発生しました:", error);
     }
@@ -4147,16 +4133,14 @@ async function ult_bomb() {
         for (const key in localStones) if (localStones[key].bomb) delete localStones[key].bomb;
         const target = getRandomElements(Object.keys(localStones).filter((k) => localStones[k].color === oppColor), 1)[0];
         const payload = { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow };
+        const before = cloneStones(roomData.stones);
         if (target) {
-            await highlightStones([target], 400);
             localStones[target].bomb = true;
             pvpBomb = { casterColor: playerLeft_Color, turnsLeft: BOMB_TURNS };
             payload['abilityState.bomb'] = pvpBomb;
         }
-        payload.stones = localStones;
-        await updateDoc(doc(db, "connectRooms", roomDoc.id), payload);
-        stonesData = localStones;
-        init_drawBoard(true);
+        await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), payload,
+            newFx('mark', { keys: target ? [target] : [] }), before, cloneStones(localStones));
     } catch (error) {
         console.error("爆弾の処理中にエラーが発生しました:", error);
     }
@@ -4188,16 +4172,12 @@ async function processPvpBomb() {
         return;
     }
     const blast = bombBlastKeys(bombKey, rows, cols).filter((k) => localStones[k]);
-    await highlightStones(blast, 450);
+    const before = cloneStones(localStones);
     for (const k of blast) delete localStones[k];
-    stonesData = localStones;
-    init_drawBoard(true);
-    await wait(400);
-    await animateGravitySmooth(localStones, blast);
+    applyGravity(localStones, blast);
     pvpBomb = null;
-    await updateDoc(roomRef, { stones: localStones, 'abilityState.bomb': null });
-    stonesData = localStones;
-    init_drawBoard(true);
+    await writeAndPlayFx(roomRef, { 'abilityState.bomb': null },
+        newFx('destroy', { keys: blast, gravity: true, wt: 450 }), before, cloneStones(localStones));
 }
 
 // 反転の一手(2026-10-21): このターンに置く石で発動する(実際の反転は updateRoomWithStone で行う)
@@ -4230,18 +4210,11 @@ async function ult_maxColumnWipe() {
         const localStones = Object.assign({}, roomData.stones || {});
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         const col = pickMaxEnemyColumn((c, r) => localStones[`${c}_${r}`]?.color || null, rows, cols, otherColor(playerLeft_Color));
-        if (col >= 0) {
-            const keys = Object.keys(localStones).filter((k) => Number(k.split('_')[0]) === col);
-            await highlightStones(keys, 400);
-            for (const k of keys) delete localStones[k];
-        }
-        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
-            player1_ChargeNow: p1_chargeNow,
-            player2_ChargeNow: p2_chargeNow,
-            stones: localStones,
-        });
-        stonesData = localStones;
-        init_drawBoard(true);
+        const before = cloneStones(roomData.stones);
+        const keys = col >= 0 ? Object.keys(localStones).filter((k) => Number(k.split('_')[0]) === col) : [];
+        for (const k of keys) delete localStones[k];
+        await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('destroy', { keys }), before, cloneStones(localStones));
     } catch (error) {
         console.error("魈の必殺技処理中にエラーが発生しました:", error);
     }
@@ -4260,22 +4233,12 @@ async function ult_maxRowWipe() {
         for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
         const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
         const row = pickMaxEnemyRow((c, r) => localStones[`${c}_${r}`]?.color || null, rows, cols, otherColor(playerLeft_Color));
-        if (row >= 0) {
-            const keys = Object.keys(localStones).filter((k) => Number(k.split('_')[1]) === row);
-            await highlightStones(keys, 400);
-            for (const k of keys) delete localStones[k];
-            stonesData = localStones;
-            init_drawBoard(true);
-            await wait(400);
-            await animateGravitySmooth(localStones, keys);
-        }
-        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
-            player1_ChargeNow: p1_chargeNow,
-            player2_ChargeNow: p2_chargeNow,
-            stones: localStones,
-        });
-        stonesData = localStones;
-        init_drawBoard(true);
+        const before = cloneStones(localStones);
+        const keys = row >= 0 ? Object.keys(localStones).filter((k) => Number(k.split('_')[1]) === row) : [];
+        for (const k of keys) delete localStones[k];
+        applyGravity(localStones, keys);
+        await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('destroy', { keys, gravity: true }), before, cloneStones(localStones));
     } catch (error) {
         console.error("マダム・ヘルタの必殺技処理中にエラーが発生しました:", error);
     }
