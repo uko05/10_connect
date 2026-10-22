@@ -7,7 +7,7 @@
 // どの挑戦も3本先取。1回でも負けたら最初から。試合の合間に中断できる(進み具合はサーバーの connectUsers.challengeProgress に保存)。
 // 試合の途中で画面を閉じた場合は負け扱い(負けそうな試合を抜けてやり直すのを防ぐため。試合開始時に playing: true を書き、
 // 結果が出たら外す。次にキャラ選択画面を開いた時に playing が残っていたら失敗として最初からにする)。
-// 挑戦できる条件: 連勝・万象は No.001〜016 をすべて解放済み、逆転は 020 とUP交換所のキャラ(017)以外をすべて解放済み。
+// 挑戦できる条件: 連勝・万象は No.001〜016 をすべて解放済み、逆転は 020 以外をすべて解放済み(UP交換所の017も含む)。
 import { db } from './firebaseConfig.js';
 import { doc, getDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { characterData } from './characterData.js';
@@ -52,12 +52,12 @@ export const CHALLENGE_INFO = {
         ja: {
             name: '逆転の挑戦',
             desc: '毎試合ランダムに選ばれるキャラで、最後のキャラに3回続けて勝つ挑戦です。\n\n・相手：最後のキャラ（難易度BAKATARE）\n・自分のキャラ：毎試合ランダム\n・各試合3本先取\n・1回でも負けると最初からやり直し\n・試合と試合の間なら中断できます（試合の途中で抜けると負け扱い）\n・クリアすると最後のキャラが解放されます',
-            need: '最後のキャラ以外の全キャラ（連勝の挑戦・万象の挑戦で解放されるキャラも含む）を解放すると挑戦できます。うーこポイント交換所で解放するキャラは必要ありません',
+            need: '最後のキャラ以外の全キャラ（連勝の挑戦・万象の挑戦で解放されるキャラ、うーこポイント交換所で解放するキャラも含む）を解放すると挑戦できます',
         },
         en: {
             name: 'Reversal',
             desc: 'Beat the final character 3 times in a row, with a randomly chosen character each match.\n\n- Opponent: the final character (BAKATARE difficulty)\n- Your character: random every match\n- First to 3 rounds per match\n- One loss and you start over\n- You can take a break between matches (leaving mid-match counts as a loss)\n- Clearing it unlocks the final character',
-            need: 'Unlock every character except the final one (including those from the Winning Streak and All Things challenges) to try this. Characters from the UP Exchange are not required.',
+            need: 'Unlock every character except the final one (including those from the Winning Streak and All Things challenges and the UP Exchange) to try this.',
         },
     },
 };
@@ -68,8 +68,8 @@ export const CLEAR_STAT = { streak: 'challengeStreakClear', all: 'challengeAllCl
 
 // 挑戦できるか。isUnlocked(chara) はそのキャラを使えるか
 export function canChallenge(mode, isUnlocked) {
-    // UP交換所で解放するキャラ(requiredUpPerk)は条件に含めない(UPを使わないと挑戦できない、にはしない)
-    if (mode === 'reverse') return characterData.filter((c) => c.charaID !== BOSS_ID && !c.requiredUpPerk).every(isUnlocked);
+    // UP交換所で解放するキャラ(017アベンチュリン)も条件に含む(2026-10-22 ユーザー判断)
+    if (mode === 'reverse') return characterData.filter((c) => c.charaID !== BOSS_ID).every(isUnlocked);
     return characterData.filter((c) => BASE_IDS.includes(c.charaID)).every(isUnlocked);
 }
 
@@ -85,7 +85,7 @@ export function makeAllPairs() {
 
 // 逆転の挑戦: 自分のキャラは020以外からランダム
 export function randomReverseChara() {
-    const pool = characterData.filter((c) => c.charaID !== BOSS_ID && !c.requiredUpPerk).map((c) => c.charaID);
+    const pool = characterData.filter((c) => c.charaID !== BOSS_ID).map((c) => c.charaID);
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
