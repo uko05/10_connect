@@ -1618,7 +1618,7 @@ async function showTurnLabel() {
   turnLabel.style.background =
     `linear-gradient(90deg, ${hexToRgba(turnHex, 0.8)}, ${hexToRgba(turnHex, 0.5)})`;
 
-  turnLabel.innerHTML = `${turnlbl} <br> ${turnCount}ターン目`;
+  turnLabel.innerHTML = `${turnlbl} <br> ${t('turnNum').replace('{n}', turnCount)}`;
 
   // フェードイン
   turnLabel.style.display = "block";

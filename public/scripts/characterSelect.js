@@ -122,7 +122,7 @@ document.getElementById('soloModeButton').addEventListener('click', async () => 
     }
     if (!(await ensureLatestVersion())) return;
     clearSoloChallenge();
-    const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
+    const playerName = document.getElementById('playerName').value.trim() || t('defaultPlayerName');
     saveLastChara('cpu', charaID);
     sessionStorage.setItem('soloPlayerCharaID', charaID);
     // CPUの対戦相手（未選択ならソロ画面側でランダム）
@@ -1093,7 +1093,7 @@ async function startChallenge(chosenCharaID) {
         document.getElementById('statusMessage').innerText = isEn() ? 'Could not save your progress. Please try again.' : '進み具合を保存できませんでした。もう一度お試しください。';
         return;
     }
-    const playerName = document.getElementById('playerName').value.trim() || "プレイヤー";
+    const playerName = document.getElementById('playerName').value.trim() || t('defaultPlayerName');
     sessionStorage.setItem('soloPlayerCharaID', m.player);
     sessionStorage.setItem('soloCpuCharaID', m.cpu);
     sessionStorage.setItem('soloPlayerName', playerName);

@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             copyBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(currentUid).then(() => {
                     copyBtn.textContent = '✓';
-                    setTimeout(() => { copyBtn.textContent = 'コピー'; }, 1500);
+                    setTimeout(() => { copyBtn.textContent = t('btnCopy'); }, 1500);
                 });
             });
         }
@@ -356,7 +356,7 @@ function renderRankInfo(userData) {
 
     const rankNameEl = document.getElementById('playerInfoRankName');
     if (rankNameEl) {
-        rankNameEl.textContent = `ランク：${tier}`;
+        rankNameEl.textContent = `${t('rankPrefix')}${tier}`;
         rankNameEl.className = `player-rating ${cssClass}`;
     }
 

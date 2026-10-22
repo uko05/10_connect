@@ -1640,7 +1640,7 @@ function showTurnLabel(text) {
     turnLabel.style.background = turn === 'player'
         ? 'linear-gradient(90deg, rgba(0, 153, 255, 0.8), rgba(100, 200, 255, 0.8))'
         : 'linear-gradient(90deg, rgba(255, 100, 0, 0.8), rgba(255, 180, 80, 0.8))';
-    turnLabel.innerHTML = `${text}<br>${turnCount}ターン目`;
+    turnLabel.innerHTML = `${text}<br>${t('turnNum').replace('{n}', turnCount)}`;
     turnLabel.style.display = 'block';
     setTimeout(() => (turnLabel.style.opacity = 1), 10);
     setTimeout(() => (turnLabel.style.opacity = 0), 1000);
@@ -2000,7 +2000,7 @@ async function cpuTurn() {
     if (await checkGameEnd()) return;
 
     turn = 'player';
-    showTurnLabel('あなたの番');
+    showTurnLabel(t('turnPlayer'));
     updateSpecialMoveButtonVisibility();
     dispTopStone();
     startSoloPlayerTimer(); // プレイヤータイマー再開
@@ -2058,11 +2058,11 @@ function initCharacters() {
     const playerCharaID = sessionStorage.getItem('soloPlayerCharaID');
     playerChara = characterData.find(c => c.charaID === playerCharaID);
     if (!playerChara) {
-        alert('キャラクターが選択されていません。キャラクター選択画面に戻ります。');
+        alert(t('alertNoChara'));
         window.location.href = 'select.html?mode=cpu';
         return false;
     }
-    const playerName = (sessionStorage.getItem('soloPlayerName') || 'プレイヤー')
+    const playerName = (sessionStorage.getItem('soloPlayerName') || t('defaultPlayerName'))
         .replace(/^ばかたれ@/, '').replace(/[@＠]ばかたれ$/, '').replace(/@debug$/, '');
     document.getElementById('playerName_1').innerText = playerName;
 
