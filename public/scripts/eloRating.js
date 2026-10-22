@@ -2,7 +2,7 @@
 // ※レート・戦績・キャラ統計の計算と書き込みはサーバー(24_AccountCenter/functions/connect.js)に移した。
 import { db } from "./firebaseConfig.js";
 import {
-  doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where,
+  doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, runTransaction,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getDoc, getDocs, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getRankTier, getRankCssClass, getRankBadgePath } from "./rankConfig.js";
@@ -156,18 +156,25 @@ export async function writeBO3Result(roomDocRef, {
     redWin,
     yellowWin
 }) {
-    await updateDoc(roomDocRef, {
-        winnerUid,
-        resultType,
-        p1CharaId,
-        p2CharaId,
-        red_Win: redWin,
-        yellow_Win: yellowWin,
-        bo3Final: true,
-        rated: false,
-        finishedAt: serverTimestamp()
+    // 2026-10-23: 既に決着が書かれていたら何もしない(P1が書けなかった時の保険でP2も書きに行くため)。
+    // 二重に書くと rated:false に戻ってしまい、レート確定の待ち合わせが終わらなくなる
+    const written = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(roomDocRef);
+        if (!snap.exists() || snap.data().bo3Final === true) return false;
+        tx.update(roomDocRef, {
+            winnerUid,
+            resultType,
+            p1CharaId,
+            p2CharaId,
+            red_Win: redWin,
+            yellow_Win: yellowWin,
+            bo3Final: true,
+            rated: false,
+            finishedAt: serverTimestamp()
+        });
+        return true;
     });
-    console.log("[Rating] BO3 result written to room");
+    console.log(written ? "[Rating] BO3 result written to room" : "[Rating] BO3 result already written");
 }
 
 // ────────────────────────────

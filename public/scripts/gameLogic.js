@@ -1381,7 +1381,8 @@ async function watchRoomUpdates() {
             if (winningflg === 1) {
                 return;
             }
-            await fxChain; // 相手の必殺技の演出が流れている間は、終わってから次の手を反映する
+            // 相手の必殺技の演出が流れている間は、終わってから次の手を反映する(万一止まっても15秒で先に進む)
+            await Promise.race([fxChain, wait(15000)]);
             turnCount = data.turnCount;
 
             playerLeft_ChargeNow = player_info === 'P1' ? data.player1_ChargeNow : data.player2_ChargeNow;
@@ -2634,7 +2635,23 @@ async function handleBO3Final(winningColor, resultType, matchFlags = {}) {
 
     // 決着の書き込みと部屋の削除は1人だけが行う(二重実行防止)。
     // leave（退出）はP1が退出している可能性があるため残ったプレイヤー、それ以外はP1。
-    if (resultType !== "leave" && player_info !== "P1") return;
+    // 2026-10-23: P1の画面が止まるなどして書けなかった時の保険で、P2も少し待ってから書きに行く
+    // (writeBO3Result は既に書かれていれば何もしない)。部屋の削除はP1だけ
+    if (resultType !== "leave" && player_info !== "P1") {
+        if (!firestoreRoomDocRef) return;
+        const roomRef = firestoreRoomDocRef;
+        const result = { winnerUid, resultType, p1CharaId: playerRight_CharaID, p2CharaId: playerLeft_CharaID, redWin: red_Win, yellowWin: yellow_Win };
+        // 勝利画面の表示を待たせないよう裏で行う
+        (async () => {
+            await wait(6000);
+            try {
+                await writeBO3Result(roomRef, result);
+            } catch (error) {
+                console.error("[Rating] 決着の書き込み(P2の保険)に失敗:", error);
+            }
+        })();
+        return;
+    }
     if (!firestoreRoomDocRef) return;
 
     try {
@@ -3036,15 +3053,12 @@ function showCutIn() {
         const cutinContainer = document.getElementById('cutin-container');
         const centerPanel = document.getElementById('centerPanel'); // 親要素を取得
 
-        // 現在のターンのプレイヤーに基づいて画像を設定
-        if (isTurnPlayer()) {
-            cutinImage.src = playerLeft_CutIn; // P1のカットイン画像
-        } else {
-            cutinImage.src = playerRight_CutIn; // P2のカットイン画像
-        }
-
-        // 画像が読み込まれるのを待つ
-        cutinImage.onload = () => {
+        // 画像が読み込まれたら始める。2026-10-23: 同じ画像を続けて出す時などに読み込み完了の合図(onload)が来ないと
+        // 永遠に終わらず、相手側では以降の手を反映しなくなる(決着も書けずレートが付かない)ため、合図が来なくても進める
+        let started = false;
+        const start = () => {
+            if (started) return;
+            started = true;
             // カットインコンテナを表示
             cutinContainer.style.display = 'block'; // 画面中央に表示
 
@@ -3086,6 +3100,12 @@ function showCutIn() {
                 }, 1000); // フェードアウトのアニメーション終了後
             }, 2500); // 2.5秒後にスライドアウトとフェードアウト
         };
+        cutinImage.onload = start;
+        cutinImage.onerror = start;
+        // 現在のターンのプレイヤーに基づいて画像を設定
+        cutinImage.src = isTurnPlayer() ? playerLeft_CutIn : playerRight_CutIn;
+        if (cutinImage.complete && cutinImage.naturalWidth > 0) setTimeout(start, 0);
+        setTimeout(start, 1500); // 合図が来ない時の保険
     });
 }
 
