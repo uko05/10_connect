@@ -607,7 +607,7 @@ document.getElementById('leaveButton').addEventListener('click', async () => {
     if (!confirmed) return;
 
     stopHeartbeats();
-    await updateLeaveRooms();
+    await updateLeaveRooms(playerRight_ID); // 自分が抜けるので、勝者は相手
     window.location.href = 'select.html?mode=match';
 });
 
@@ -692,8 +692,9 @@ async function dispP2Info(charaInfo, player_Name) {
 // ページを離れる直前のベストエフォート処理。非同期処理の完了は保証されない（特にモバイル）ため、
 // 本来の安全網はハートビート＋相手の生存時刻監視（startHeartbeat）側にある。
 function notifyLeaveOnExit() {
+    if (isMatchFinalized) return; // 決着後に画面を閉じた時は退出扱いにしない
     try {
-        updateLeaveRooms();
+        updateLeaveRooms(playerRight_ID); // 画面を閉じた本人が抜けるので、勝者は相手
     } catch (error) {
         console.error("エラー発生:", error);
     }
@@ -703,7 +704,10 @@ window.addEventListener("beforeunload", notifyLeaveOnExit);
 // pagehideはモバイルでbeforeunloadが発火しないケースのフォールバック
 window.addEventListener("pagehide", notifyLeaveOnExit);
 
-async function updateLeaveRooms() {
+// winnerUid: 残ったプレイヤー(2026-10-22)。以前は status だけを書いていたため、退出した本人の画面も
+// 「部屋が leave になった＝自分の勝ち」と判定して自分を勝者として書き込み、退出した側のレートが上がって
+// 残った側が下がることがあった。勝者を一緒に書き、leave を受け取った側はそれに従う
+async function updateLeaveRooms(winnerUid) {
     const roomsRef = collection(db, "connectRooms");
     const q = query(
         roomsRef,
@@ -713,6 +717,7 @@ async function updateLeaveRooms() {
 
     const updates = {
         status: "leave",
+        ...(winnerUid ? { winnerUid } : {}),
     };
 
     try {
@@ -758,7 +763,7 @@ function startHeartbeat() {
         if (isMatchFinalized || leaveAlreadyTriggered || enemyLastActiveMs == null) return;
         if (Date.now() - enemyLastActiveMs > STALE_THRESHOLD_MS) {
             leaveAlreadyTriggered = true;
-            updateLeaveRooms();
+            updateLeaveRooms(playerLeft_ID); // 相手が不在になったので、勝者は自分
         }
     }, 5000);
 }
@@ -1199,6 +1204,8 @@ async function watchRoomUpdates() {
             // 部屋のステータスが "leave" になった場合の処理
             if (data.status === "leave") {
                 if (isMatchFinalized) return;
+                // 自分が抜けた側なら何もしない(勝者は相手。決着の書き込みは残った相手が行う)
+                if (data.winnerUid && data.winnerUid !== playerLeft_ID) return;
                 isMatchFinalized = true;
 
                 // レーティング更新（leave扱い：自分が勝者）
@@ -1259,6 +1266,27 @@ async function watchRoomUpdates() {
                 } else if (dice && dice.seq !== lastDiceSeq) {
                     lastDiceSeq = dice.seq;
                     if (dice.by !== player_info) playDiceRoll(document.getElementById('boardWrap'), dice.n);
+                }
+            }
+
+            // 相手の必殺技(2026-10-22): 必殺技の書き込みは turnCount を変えないため、下のスキップより前で見る。
+            // 以前はここで見ていなかったので、相手の画面ではカットインも石の変化も、次に石を落とすまで出なかった
+            if (!isInitialLoad && winningflg !== 1 && data.turnCount === turnCount) {
+                const enemyUlt = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
+                if (enemyUlt != null && enemyUlt !== playerRight_UltCount) {
+                    playerRight_UltCount = enemyUlt;
+                    isTurnPlayerUltVoice();
+                    await showCutIn();
+                }
+                // 相手の番に相手が書いた盤面の変化(必殺技の破壊・変換など)を反映する
+                if (data.turn !== player_info && data.stones && JSON.stringify(data.stones) !== JSON.stringify(stonesData || {})) {
+                    const before = stonesData || {};
+                    const removed = Object.keys(before).filter((k) => !data.stones[k]);
+                    if (removed.length && Object.keys(data.stones).length < Object.keys(before).length) {
+                        await highlightStones(removed, 300);
+                    }
+                    stonesData = data.stones;
+                    init_drawBoard(true);
                 }
             }
 
@@ -3107,33 +3135,31 @@ async function deleteStones(stonesToDelete) {
     try {
         const q = roomQuery();
         const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
 
-        querySnapshot.forEach(async (roomDoc) => {
-            const roomData = roomDoc.data();
-            const stonesData = roomData.stones || {};
-            const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
-            // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
-            const [p1_UltCount, p2_UltCount] = await getUltCount(roomData, true);
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const newStones = Object.assign({}, roomData.stones || {});
+        const [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        // UltCount の加算は ult_CntUP() で済み。ここでは現在値を取得するだけ
+        await getUltCount(roomData, true);
 
-            // 石を削除
-            stonesToDelete.forEach(key => {
-                if (stonesData[key]) {
-                    delete stonesData[key];
-                }
-            });   
-                    
-            // Firestoreのデータを更新
-            const roomDocRef = doc(db, "connectRooms", roomDoc.id);
-            await updateDoc(roomDocRef, { 
-                player1_ChargeNow: p1_chargeNow,
-                player2_ChargeNow: p2_chargeNow,
-                stones: stonesData 
-            });
+        // 石を削除
+        stonesToDelete.forEach((key) => { delete newStones[key]; });
+
+        // Firestoreのデータを更新
+        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
+            player1_ChargeNow: p1_chargeNow,
+            player2_ChargeNow: p2_chargeNow,
+            stones: newStones
         });
-        
+
         // ★演出を一発の「衝撃」に揃えるため、件数に依存しない固定待機に変更
         //   （以前は stonesToDelete.length * 500ms で多列破壊時に最大9秒近く待たされていた）
         await wait(700);
+        // 自分の画面の盤面も書き換える(2026-10-22)。以前は Firestore だけを書き換えていて、
+        // 自分の書き込みは turnCount が変わらないため受信側で読み飛ばされ、次に石を落とすまで石が消えなかった
+        stonesData = newStones;
         init_drawBoard(true);
     } catch (error) {
         console.error("石の削除中にエラーが発生しました:", error);
