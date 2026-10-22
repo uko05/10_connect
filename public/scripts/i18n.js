@@ -258,9 +258,9 @@ const charaDict = {
     '015': { name: 'Cerydra',            Ability: "Veni, vidi, vici.",                           AbilityDetail: "[CURSE] On the opponent's next turn, after they place a stone, an additional opponent stone drops in the same column. If that column is full, it drops in a random column." },
     '016': { name: 'Silver Wolf LV.999', Ability: 'God Mode: ON!',                               AbilityDetail: '[VICTORY] Adds +1 to your victory points. If you reach 3 points, the match ends immediately.' },
     '017': { name: 'Aventurine',         Ability: 'Roulette Shark',                              AbilityDetail: "[FATE] Roll a die. The result decides the effect.\n1: Destroy 2 of your stones\n2: Opponent +50 charge\n3: Destroy 1 enemy stone\n4: Convert 1 enemy stone\n5: Drop 1 extra stone + your charge +50\n6: Destroy 3 enemy stones" },
-    '018': { name: 'Navia', Ability: "As the Sunlit Sky's Singing Salute", AbilityDetail: "[BOMB] Turns 1 random enemy stone into a bomb. At the start of your turn 4 turns later, it destroys itself and the 8 surrounding cells, ally or enemy. (Available from turn 6)" },
-    '019': { name: 'Sparkle', Ability: 'The Hero with a Thousand Faces', AbilityDetail: "[INVERT] The stone you drop this turn flips the colors of the stones to its left and right, then becomes the opponent's color itself. (Available from turn 6)" },
-    '020': { name: 'The Herta', Ability: 'Told Ya! Magic Happens', AbilityDetail: "[FLIP] Turns the board upside down and lets the stones fall again (each column's stack is reversed). (Available from turn 8)" },
+    '018': { name: 'Klee', Ability: "Sparks 'n' Splash", AbilityDetail: "[BOMB] Turns 1 random enemy stone into a bomb. At the start of your turn 4 turns later, it destroys itself and the 8 surrounding cells, ally or enemy. (Available from turn 6)" },
+    '019': { name: 'Furina', Ability: 'Let the People Rejoice', AbilityDetail: "[INVERT] The stone you drop this turn flips the colors of the stones to its left and right, then becomes the opponent's color itself. (Available from turn 6)" },
+    '020': { name: 'Aeon ★ Aha', Ability: 'Topsy-Turvy Ovation', AbilityDetail: "[FLIP] Turns the board upside down and lets the stones fall again (each column's stack is reversed). (Available from turn 8)" },
   },
 };
 
