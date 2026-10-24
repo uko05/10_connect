@@ -4298,6 +4298,7 @@ async function targetColumnsWipe(candidates, k, refundPerOwn, label) {
         if (refundPerOwn && ownLost > 0) {
             playerLeft_ChargeNow = Math.min(200, playerLeft_ChargeNow + ownLost * refundPerOwn);
             if (player_info === 'P1') p1_chargeNow = playerLeft_ChargeNow; else p2_chargeNow = playerLeft_ChargeNow;
+            updateGauge(); // 自分の画面のゲージにもすぐ反映(相手の画面はルームの値で更新される)
         }
         await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
             newFx('destroy', { keys }), before, cloneStones(localStones));
