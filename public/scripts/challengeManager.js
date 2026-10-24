@@ -52,12 +52,12 @@ export const CHALLENGE_INFO = {
         ja: {
             name: '逆転の挑戦',
             desc: '毎試合ランダムに選ばれるキャラで、最後のキャラに3回続けて勝つ挑戦です。\n\n・相手：最後のキャラ（難易度BAKATARE）\n・自分のキャラ：毎試合ランダム\n・各試合3本先取\n・1回でも負けると最初からやり直し\n・試合と試合の間なら中断できます（試合の途中で抜けると負け扱い）\n・クリアすると最後のキャラが解放されます',
-            need: '最後のキャラ以外の全キャラ（連勝の挑戦・万象の挑戦で解放されるキャラ、うーこポイント交換所で解放するキャラも含む）を解放すると挑戦できます',
+            need: '19キャラを解放すると挑戦できます',
         },
         en: {
             name: 'Reversal',
             desc: 'Beat the final character 3 times in a row, with a randomly chosen character each match.\n\n- Opponent: the final character (BAKATARE difficulty)\n- Your character: random every match\n- First to 3 rounds per match\n- One loss and you start over\n- You can take a break between matches (leaving mid-match counts as a loss)\n- Clearing it unlocks the final character',
-            need: 'Unlock every character except the final one (including those from the Winning Streak and All Things challenges and the UP Exchange) to try this.',
+            need: 'Unlock 19 characters to try this.',
         },
     },
 };
