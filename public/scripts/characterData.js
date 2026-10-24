@@ -35,16 +35,17 @@ export const characterData = [
         src: 'public/chara/Aruhaizen.png', 
         charaID: '003', 
         name: 'アルハイゼン', 
-        charge: 14, 
+        // 2026-10-25: 「中央3列からランダム2列(チャージ14)」から変更。旧処理 ult_randomCenter2Delete は残してある
+        charge: 11, 
         chargeMax: 200,
         Ability: '殊境・顕象結縛', 
-        AbilityDetail: '【破壊】中央縦3列の内、ランダムな縦2列を選択する。その列の石を破壊する。(10ターン目から発動可能)', 
+        AbilityDetail: '【破壊】中央縦3列の内、相手の石が多い縦2列を選択する。その列の石を全て破壊する。(10ターン目から発動可能)', 
         AbilityUseTurn: 10,  
         AbilityCutImage: 'public/chara/ult_Aruhaizen.png', 
         voice_select: 'public/scripts/sound/aruhaizen_select.wav',
         voice_attack: 'public/scripts/sound/aruhaizen_attack.wav',
         voice_ult: 'public/scripts/sound/aruhaizen_ult.wav',
-        process: 'ult_randomCenter2Delete' // 関数名を文字列として保持
+        process: 'ult_targetCenter2Wipe' // 関数名を文字列として保持
     },
     { 
         src: 'public/chara/Navia.png', 
@@ -96,16 +97,17 @@ export const characterData = [
         src: 'public/chara/kyasu.png', 
         charaID: '007', 
         name: 'キャストリス', 
+        // 2026-10-25: 「外側4列からランダム3列」から変更。旧処理 ult_madness は残してある
         charge: 15, 
         chargeMax: 200,
         Ability: '亡者の怒哮、蘇生の鐘', 
-        AbilityDetail: '【破壊】左右縦2列ずつの合計縦4列の内、ランダムな縦3列を選択する。その列の石を破壊する。(6ターン目から発動可能)', 
+        AbilityDetail: '【破壊】左右縦2列ずつの合計縦4列の内、相手の石が多い縦3列を選択する。その列の石を全て破壊する。【蘇生】破壊された自分の石1個につき、チャージが5回復する。(6ターン目から発動可能)', 
         AbilityUseTurn: 6,  
         AbilityCutImage: 'public/chara/ult_kyasu.png', 
         voice_select: 'public/scripts/sound/kyasu_select.mp3',
         voice_attack: 'public/scripts/sound/kyasu_attack.mp3',
         voice_ult: 'public/scripts/sound/kyasu_ult.mp3',
-        process: 'ult_madness' // 関数名を文字列として保持
+        process: 'ult_targetOuter3Wipe' // 関数名を文字列として保持
     },
     {
         // 2026-10-21: アベンチュリン(ダイスロール)の位置に魈を追加。アベンチュリンはID 017にして末尾(隠しキャラ候補)へ移動

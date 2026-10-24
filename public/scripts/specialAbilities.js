@@ -174,3 +174,20 @@ export function pickMaxEnemyRow(colorAt, rows, cols, enemyColor) {
     }
     return best;
 }
+
+// アルハイゼン・キャストリス(2026-10-25): 候補の列(candidates)から、相手の石が多い順に k 列を選ぶ。
+// 並べ方は魈と同じ(相手の石の数、同じなら「相手 − 自分」が大きい列)。相手の石が無い列は選ばない
+export function pickTopEnemyColumns(colorAt, rows, candidates, k, enemyColor) {
+    return candidates.map((c) => {
+        let nOp = 0, nMe = 0;
+        for (let r = 0; r < rows; r++) {
+            const v = colorAt(c, r);
+            if (!v) continue;
+            if (v === enemyColor) nOp++; else nMe++;
+        }
+        return { c, nOp, key: nOp * 100 + (nOp - nMe) };
+    }).filter((x) => x.nOp > 0).sort((a, b) => b.key - a.key).slice(0, k).map((x) => x.c);
+}
+export const ALHAITHAM_COLS = [2, 3, 4];      // 中央3列から2列
+export const CASTORICE_COLS = [0, 1, 5, 6];   // 外側4列から3列
+export const CASTORICE_REFUND = 5;            // キャストリス: 壊れた自分の石1個につき戻るチャージ(「蘇生」)

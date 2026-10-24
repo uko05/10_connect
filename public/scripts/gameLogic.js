@@ -9,7 +9,7 @@ import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/
 
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow, pickTopEnemyColumns, ALHAITHAM_COLS, CASTORICE_COLS, CASTORICE_REFUND } from "./specialAbilities.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
@@ -192,6 +192,8 @@ const abilities = {
     ult_columnSwap,
     ult_maxColumnWipe,
     ult_maxRowWipe,
+    ult_targetCenter2Wipe,
+    ult_targetOuter3Wipe,
     ult_gravityFlip,
     ult_bomb,
     ult_flipTouch
@@ -4273,6 +4275,38 @@ async function ult_maxColumnWipe() {
         console.error("魈の必殺技処理中にエラーが発生しました:", error);
     }
 }
+
+//------------------------------------------------------------------------------------------------
+// アルハイゼン(2026-10-25): 中央3列のうち相手の石が多い2列を全て破壊
+// キャストリス(2026-10-25): 外側4列のうち相手の石が多い3列を全て破壊し、壊れた自分の石1個につきチャージ CASTORICE_REFUND 回復
+// (列ごと消すので重力は不要。チャージ回復は使った本人の画面で計算して、相手にはルームの値で伝わる)
+async function targetColumnsWipe(candidates, k, refundPerOwn, label) {
+    try {
+        const q = roomQuery();
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) return;
+        const roomDoc = querySnapshot.docs[0];
+        const roomData = roomDoc.data();
+        const localStones = Object.assign({}, roomData.stones || {});
+        let [p1_chargeNow, p2_chargeNow] = await getcharge(roomData, false);
+        const enemy = otherColor(playerLeft_Color);
+        const colsPicked = pickTopEnemyColumns((c, r) => localStones[`${c}_${r}`]?.color || null, rows, candidates, k, enemy);
+        const before = cloneStones(roomData.stones);
+        const keys = Object.keys(localStones).filter((key) => colsPicked.includes(Number(key.split('_')[0])));
+        const ownLost = keys.filter((key) => localStones[key]?.color === playerLeft_Color).length;
+        for (const key of keys) delete localStones[key];
+        if (refundPerOwn && ownLost > 0) {
+            playerLeft_ChargeNow = Math.min(200, playerLeft_ChargeNow + ownLost * refundPerOwn);
+            if (player_info === 'P1') p1_chargeNow = playerLeft_ChargeNow; else p2_chargeNow = playerLeft_ChargeNow;
+        }
+        await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id), { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow },
+            newFx('destroy', { keys }), before, cloneStones(localStones));
+    } catch (error) {
+        console.error(`${label}の必殺技処理中にエラーが発生しました:`, error);
+    }
+}
+async function ult_targetCenter2Wipe() { await targetColumnsWipe(ALHAITHAM_COLS, 2, 0, 'アルハイゼン'); }
+async function ult_targetOuter3Wipe() { await targetColumnsWipe(CASTORICE_COLS, 3, CASTORICE_REFUND, 'キャストリス'); }
 
 //------------------------------------------------------------------------------------------------
 // マダム・ヘルタ：魔法だって言ったでしょ(2026-10-22) — 相手の石が一番多い横1段の石を全て破壊し、上の石を重力で落とす

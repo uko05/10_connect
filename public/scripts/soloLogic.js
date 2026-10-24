@@ -12,7 +12,7 @@ import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow, pickTopEnemyColumns, ALHAITHAM_COLS, CASTORICE_COLS, CASTORICE_REFUND } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -528,28 +528,11 @@ function wouldWinAfterAbility(charaID) {
             for (let c = 0; c < cols; c++) delete sim[`${c}_${row}`];
             return checkWinInSim(applyGravityToSim(sim));
         }
-        case '003': { // アルハイゼン：中央3列(2,3,4)から2列全消し → C(3,2)=3パターン
-            const mid = [2, 3, 4];
-            for (let i = 0; i < mid.length; i++) {
-                for (let j = i + 1; j < mid.length; j++) {
-                    const sim = {...stones};
-                    for (const c of [mid[i], mid[j]]) for (let r = 0; r < rows; r++) delete sim[`${c}_${r}`];
-                    if (checkWinInSim(sim)) return true;
-                }
-            }
-            return false;
-        }
-        case '007': { // キャストリス：外側4列(0,1,5,6)から3列全消し → C(4,3)=4パターン
-            const outer = [0, 1, 5, 6];
-            for (let skip = 0; skip < outer.length; skip++) {
-                const sim = {...stones};
-                for (let i = 0; i < outer.length; i++) {
-                    if (i === skip) continue;
-                    for (let r = 0; r < rows; r++) delete sim[`${outer[i]}_${r}`];
-                }
-                if (checkWinInSim(sim)) return true;
-            }
-            return false;
+        case '003': // アルハイゼン(2026-10-25〜)：中央3列のうち相手の石が多い2列を消す
+        case '007': { // キャストリス(2026-10-25〜)：外側4列のうち相手の石が多い3列を消す
+            const sim = {...stones};
+            for (const c of soloTargetColumns(charaID, 'cpu')) for (let r = 0; r < rows; r++) delete sim[`${c}_${r}`];
+            return checkWinInSim(sim) && !hasLineOfColor(sharedBoardFromStones(sim, rows, cols), PLAYER_COLOR);
         }
         case '011': { // ローエン：下から2段目(row 4)の相手の石を消す→重力落下後に勝ちがあるか
             const sim = {...stones};
@@ -665,26 +648,21 @@ function cpuAbilityConditionByID(charaID) {
     if (charaID === '001') {
         return Object.values(stones).filter(c => c === PLAYER_COLOR).length >= 6;
     }
-    // アルハイゼン：中央3列（列2,3,4）に相手石が3個以上
-    if (charaID === '003') {
-        const opp = Object.keys(stones).filter(k => {
-            const col = parseInt(k.split('_')[0]);
-            return [2, 3, 4].includes(col) && stones[k] === PLAYER_COLOR;
-        }).length;
-        return opp >= 3;
+    // アルハイゼン・キャストリス(2026-10-25〜)：消す列で相手の石が自分より2個以上多い時、または消すと相手の即詰めが消える時
+    if (charaID === '003' || charaID === '007') {
+        const picked = soloTargetColumns(charaID, 'cpu');
+        if (picked.length === 0) return false;
+        let nOp = 0, nMe = 0;
+        for (const c of picked) for (let r = 0; r < rows; r++) { const v = stones[`${c}_${r}`]; if (v === PLAYER_COLOR) nOp++; else if (v) nMe++; }
+        if (nOp - nMe >= 2) return true;
+        const sim = { ...stones };
+        for (const c of picked) for (let r = 0; r < rows; r++) delete sim[`${c}_${r}`];
+        return hasImmediateThreat(PLAYER_COLOR) && !immediateThreatIn(sim, PLAYER_COLOR);
     }
     // ナヴィア：上から3段（row 0,1,2）に相手石が2個以上
     if (charaID === '004') {
         const opp = Object.keys(stones).filter(k => parseInt(k.split('_')[1]) <= 2 && stones[k] === PLAYER_COLOR).length;
         return opp >= 2;
-    }
-    // キャストリス：端4列（列0,1,5,6）に相手石が4個以上
-    if (charaID === '007') {
-        const opp = Object.keys(stones).filter(k => {
-            const col = parseInt(k.split('_')[0]);
-            return [0, 1, 5, 6].includes(col) && stones[k] === PLAYER_COLOR;
-        }).length;
-        return opp >= 4;
     }
     // デフォルト：相手に即詰め脅威 or チャージ差30以上
     const playerAheadOnCharge = playerCharge > cpuCharge + 30;
@@ -995,9 +973,22 @@ async function executeAbility(side, charaID) {
         case '002': // シトラリ：ランダム3列、上から1個
             await deleteStonesLocal(getStonesToDeleteLocal(getRandomTopStonesLocal(3), 1));
             break;
-        case '003': // アルハイゼン：中央3列からランダム2列を全消し
-            await deleteStonesLocal(getStonesToDeleteLocal(getRandomTwoNumbers(), 6));
+        case '003': // アルハイゼン(2026-10-25〜)：中央3列のうち相手の石が多い2列を全消し
+        case '007': { // キャストリス(2026-10-25〜)：外側4列のうち相手の石が多い3列を全消し＋壊れた自分の石1個につきチャージ回復
+            const picked = soloTargetColumns(charaID, side);
+            const keys = Object.keys(stones).filter((k) => picked.includes(Number(k.split('_')[0])));
+            if (keys.length === 0) break;
+            const myColor = side === 'player' ? PLAYER_COLOR : CPU_COLOR;
+            const ownLost = keys.filter((k) => stones[k] === myColor).length;
+            await highlightStonesLocal(keys, 450);
+            await deleteStonesLocal(keys);
+            if (charaID === '007' && ownLost > 0) {
+                if (side === 'player') playerCharge = Math.min(200, playerCharge + ownLost * CASTORICE_REFUND);
+                else cpuCharge = Math.min(200, cpuCharge + ownLost * CASTORICE_REFUND);
+                updateGaugeUI();
+            }
             break;
+        }
         case '004': // ナヴィア：全列の上から3段を消す
             await deleteStonesLocal(getTopRowsAllColumnsLocal());
             break;
@@ -1008,9 +999,6 @@ async function executeAbility(side, charaID) {
             await deleteStonesLocal(getStonesToDeleteLocal(getRandomTopStonesLocal(1), 6));
             break;
         }
-        case '007': // キャストリス：左右の縦4列からランダム3列を全消し
-            await deleteStonesLocal(getStonesToDeleteLocal(getRandomThreeNumbers(), 6));
-            break;
         case '017': // アベンチュリン：ダイスロール(2026-10-21。対人戦と同じ。ID 008→017)
             await soloDiceRoll(side);
             break;
@@ -1312,6 +1300,12 @@ function columnSwapPairsLocal(st = stones) {
         if (columnKeyLocal(st, a) !== columnKeyLocal(st, b)) pairs.push([a, b]);
     }
     return pairs;
+}
+// アルハイゼン・キャストリス(2026-10-25): 消す列(相手の石が多い順)。side は技を使う側
+function soloTargetColumns(charaID, side) {
+    const enemy = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+    const [cands, k] = charaID === '003' ? [ALHAITHAM_COLS, 2] : [CASTORICE_COLS, 3];
+    return pickTopEnemyColumns((c, r) => stones[`${c}_${r}`] || null, rows, cands, k, enemy);
 }
 // 魈(2026-10-22): 相手の石が一番多い列を丸ごと破壊
 async function soloMaxColumnWipe(side) {
