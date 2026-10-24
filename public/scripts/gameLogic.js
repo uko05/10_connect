@@ -201,6 +201,7 @@ const abilities = {
 
 // 新しい必殺技(2026-10-21、specialAbilities.js 参照)
 let pvpBomb = null;               // 爆弾: { casterColor, turnsLeft }。爆弾の石は stones の値に bomb: true
+let flipShownStones = null;       // 反転の一手を書き込んだ後の盤面(自分の画面に描き直す用)
 let pvpFlipTouchPending = false;  // 反転の一手: 必殺技を使った後、このターンに置く石で発動(自分の画面だけで持つ)
 
 // アベンチュリンのダイスロール(2026-10-21)
@@ -342,7 +343,6 @@ let timeLimit = 100; // タイムリミット（秒）
 let timeRemaining = timeLimit; // 残り時間
 let timeLimitGauge = document.getElementById('timeLimitGauge');
 
-let onlyCutIn = 0;
 let lastSlideCol = -1; // ②スライド中の前回列（列変化検知用）
 let pendingDropCol = -1; // ① スマホ2タップ制：1回目でセット、2回目同列でdrop
 //------------------------------------------------------------------------------------------------
@@ -1410,22 +1410,16 @@ async function watchRoomUpdates() {
             let check_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
             
             
-            if (playerRight_UltCount === check_UltCount) {
-            
-            } else {
-                if (onlyCutIn == 0) {
-                    // カットイン終了後に必殺技の関数を実行
+            // 普段は相手の必殺技を上の「turnCount が同じ更新」で受け取る。ここに来るのは、その更新を
+            // 見逃した時(必殺技でそのままラウンドが決着した時など)だけ。
+            // 以前はカットインを出して return していたため、この更新のゲージや盤面が反映されず、
+            // 相手の画面では1ターンの間ゲージが古いままで、次のラウンドの最初に遅れてカットインが出ていた(2026-10-25)
+            if (playerRight_UltCount !== check_UltCount) {
+                playerRight_UltCount = check_UltCount;
+                if (data.turnCount > 1) {
                     isTurnPlayerUltVoice();
                     disp_TopStone(turn, nowCol);
-
-                    // カットインを表示し、終了を待機
-                    playerRight_UltCount = check_UltCount; // ■■■■■2026/01/10　追加
                     await showCutIn();
-                    onlyCutIn = 1;
-                    return;
-
-                } else {
-                    onlyCutIn = 0;
                 }
             }
             playerRight_UltCount = player_info === 'P1' ? data.player2_UltCount : data.player1_UltCount;
@@ -1631,6 +1625,7 @@ async function watchRoomUpdates() {
                 disp_TopStone(turn, nowCol);
                 init_drawBoard();
                 winningflg = 0;
+                syncGaugesFromRoom();
 
 
             } else {
@@ -1652,6 +1647,26 @@ async function watchRoomUpdates() {
             
         });
     });
+}
+
+// 新しいラウンドの始めに、ゲージと必殺技の回数を部屋の最新の値に合わせる(2026-10-25)。
+// 必殺技でそのままラウンドが決着した時、相手の画面では次の手が来るまでゲージが古いままだったため。
+// 読み取りは1ラウンドに1回だけ。
+async function syncGaugesFromRoom() {
+    if (!firestoreRoomDocRef) return;
+    try {
+        const snap = await getDoc(firestoreRoomDocRef);
+        if (!snap.exists() || winningflg === 1) return;
+        const d = snap.data();
+
+        const theirs = player_info === 'P1' ? 'player2' : 'player1';
+        // 自分のゲージは自分の画面が正しいので触らない(読み取りの間に自分が石を置くと古い値に戻るため)
+        if (d[`${theirs}_ChargeNow`] != null) playerRight_ChargeNow = d[`${theirs}_ChargeNow`];
+        if (d[`${theirs}_UltCount`] != null) playerRight_UltCount = d[`${theirs}_UltCount`];
+        updateGauge();
+    } catch (e) {
+        console.warn('[gauge] 部屋の値で合わせ直せませんでした', e);
+    }
 }
 
 async function deleteStonesAndUpdate() {
@@ -1825,7 +1840,9 @@ async function dropStone(column, attackType = 1) {
   const row = await findAvailableRow(column, stonesData);
   if (row < 0) return;
 
-  animateStoneDrop(column, row, color);
+  // 反転の一手(フリーナ): 置く石は相手の色で落とす。左右の反転は書き込み後に描き直す
+  const flipping = pvpFlipTouchPending && attackType === 1;
+  animateStoneDrop(column, row, flipping ? otherColor(color) : color);
 
   const chargeNum = isTurnChargeNum(turn);
 
@@ -1848,6 +1865,17 @@ async function dropStone(column, attackType = 1) {
   }
 
   await wait(1000);
+  // 必殺技の直後の一手は盤面の描き直しを飛ばすので、反転の一手の結果はここで自分の画面に描く。
+  // 以前は相手が次の石を置くまで、自分の画面だけ反転前の色のままだった(2026-10-25)
+  if (flipShownStones) {
+    const shown = flipShownStones;
+    flipShownStones = null;
+    // ラウンドが終わって盤面が消えた後や、相手がもう次の手を打った後は描かない
+    if (winningflg !== 1 && turnCount <= shown.turnCount + 1 && stonesData && stonesData[`${column}_${row}`]) {
+      stonesData = shown.stones;
+      init_drawBoard(true);
+    }
+  }
 }
 
 function isTurnPlayerAttackVoice() {
@@ -1947,6 +1975,14 @@ async function updateRoomWithStone(column, row, playerColor, turnCount, chargeNu
       }
       flipColor = true;
       pvpFlipTouchPending = false;
+      // 書き込み後の盤面(自分の画面に描く用)
+      const shown = { ...stones };
+      for (const [path, c] of Object.entries(flipPayload)) {
+        const key = path.split('.')[1];
+        shown[key] = { ...shown[key], color: c };
+      }
+      shown[`${column}_${row}`] = { color: otherColor(playerColor), turnCount: currentTurnCount };
+      flipShownStones = { stones: shown, turnCount: currentTurnCount };
     }
 
     const updatePayload = {
@@ -2193,7 +2229,7 @@ async function init_drawBoard(allstones = false) {
             // 石がある場合はその色で描画
             const stoneKey = `${c}_${r}`;
             if (stonesData[stoneKey]) {
-                if ((!(stonesData[stoneKey].turnCount == turnCount - 1)) || allstones) {
+                if ((!(stonesData[stoneKey].turnCount == turnCount - 1)) || allstones || stonesData[stoneKey].extra) {
                     // 石の色を設定
                     const stoneColor = stonesData[stoneKey].color;
                     drawPiece(c, r * cellSize, stoneColor);
@@ -3840,7 +3876,9 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 if (extraCol >= 0) {
                     const extraRow = findAvailableRow(extraCol, localStones);
                     if (extraRow >= 0) {
-                        localStones[`${extraCol}_${extraRow}`] = { color: victimColor, turnCount: turnCount - 1 };
+                        // extra: 追加投下の石。直前のターンの石は落下演出のため描かない決まりなので、
+                        // 印を付けて常に描く(以前は次のターンまで両方の画面で見えなかった。2026-10-25)
+                        localStones[`${extraCol}_${extraRow}`] = { color: victimColor, turnCount: turnCount - 1, extra: true };
                         await updateDoc(doc(db, "connectRooms", roomDoc.id), {
                             stones: localStones,
                             'abilityState.cerluaActive': false,
