@@ -151,6 +151,7 @@ let achievementToastShownForMatch = false; // 実績トーストの多重表示�
 // ランク戦のレート確定(サーバー計算)と自分の実績記録が終わるのを待つPromise。
 // 結果画面の自動遷移・レート変動表示もこれを待つ(待たずに遷移すると実績が記録されない)。
 let ratingSettledPromise = null;
+let lastRatingResult = null; // サーバーのレート判定(rated:false の時の理由を表示するため)
 let roomCleanupPromise = null; // 決着を書いたクライアントが部屋を削除し終えるまで(遷移前に待つ)
 const RATING_WAIT_MS = 20 * 1000; // レート確定を待つ上限
 let disconnectTimer = null; // 相手切断検知用の猶予タイマー
@@ -2762,6 +2763,7 @@ function waitForRatingResult(timeoutMs) {
 // レート確定後、自分の実績(achStats)だけを記録し、新しく解放されたものをトースト表示する
 async function recordMyAchievementsWhenRated({ winnerUid, resultType, isStraightWin, isComebackWin }) {
     const result = await waitForRatingResult(RATING_WAIT_MS);
+    lastRatingResult = result;
     if (!result || !result.rated) {
         if (result) console.warn("[Rating] レート対象外の試合:", result.reason);
         return;
@@ -2857,6 +2859,11 @@ async function fetchAndAnimateRating(element, retryCount = 0) {
         // サーバーでのレート計算を待ってから取得する
         if (retryCount === 0 && ratingSettledPromise) {
             await Promise.race([ratingSettledPromise, wait(RATING_WAIT_MS)]);
+        }
+        // レート対象外(同じ相手との4戦目以降など)は、待ち続けずに理由を出す(2026-10-25)
+        if (lastRatingResult && lastRatingResult.rated === false) {
+            element.textContent = t(lastRatingResult.reason === 'pair_cap' ? 'ratingPairCap' : 'ratingNotRated');
+            return;
         }
         const updatedData = await getUserRating(playerLeft_ID);
         const newRating = updatedData?.rating ?? myPreRating;
@@ -4044,13 +4051,19 @@ async function ult_silverwolf() {
             displayVictory(winningColor);
         } else {
             // 3ポイント未満：勝利数とターンをFirestoreに同期し、盤面はそのまま継続
+            // 2026-10-25: turnCount も1つ進める。以前は進めていなかったため、相手の画面は「turnCount が変わらない
+            // 更新は処理しない」決まりでポイントも手番の交代も受け取れず、両方の画面が相手の番だと思って試合が止まっていた
             const nextTurn = turn === 'P1' ? 'P2' : 'P1';
             turn = nextTurn;
             await updateDoc(firestoreRoomDocRef, {
                 red_Win: red_Win,
                 yellow_Win: yellow_Win,
-                turn: nextTurn
+                turn: nextTurn,
+                turnCount: turnCount + 1
             });
+            // この必殺技は石を置かずに手番が終わるので、「必殺技の直後の一手」の印をここで消す
+            // (残っていると、次の自分の手でチャージが増えず、盤面の描き直しも飛ばされていた)
+            ultAfter = false;
         }
     } catch (error) {
         console.error("銀狼LV.999の必殺技処理中にエラーが発生しました:", error);
