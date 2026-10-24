@@ -871,6 +871,12 @@ async function deleteRoomByRoomID() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // レート戦で相手が見つからずCPUと当たった場合(2026-10-25)は、対人戦の処理の代わりに cpuMatch.js で進める
+    if (sessionStorage.getItem('connectCpuMatch')) {
+        isMatchFinalized = true; // 退出の通知(notifyLeaveOnExit)など、対人戦の部屋の処理を動かさない
+        (await import('./cpuMatch.js')).startCpuMatch();
+        return;
+    }
 
     // 設定ダイアログ（石カラー・必殺技演出強度・音量）
     // ★ 認証やマッチデータ取得とは無関係に動くため、それらより前に必ず初期化する

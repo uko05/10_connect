@@ -55,4 +55,4 @@ function getSharedUserId() {
     return id;
 }
 
-export { db, auth, authReady, getSharedUserId }; // db, auth, authReady, getSharedUserIdをエクスポート
+export { app, db, auth, authReady, getSharedUserId }; // db, auth, authReady, getSharedUserIdをエクスポート

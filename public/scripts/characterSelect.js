@@ -7,6 +7,7 @@ import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/
 import { characterData, isCharaUnlocked as isCharaUnlockedFor } from './characterData.js';
 import { APP_VERSION } from './version.js';
 import { ensureLatestVersion } from './versionGuard.js';
+import { startCpuMatch, CPU_MATCH_KEY } from './cpuMatchApi.js';
 import { setupScaledLayout } from './layoutScaler.js';
 import { ensureUserDoc, getUserRating, getUserRank, savePlayerName, syncSharedUserId } from './eloRating.js';
 import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js';
@@ -813,6 +814,8 @@ document.getElementById('matchButton').addEventListener('click', async () => {
     try {
         listenForMatches();
         NowMatching = true;
+        try { sessionStorage.removeItem(CPU_MATCH_KEY); } catch { /* 前のCPU戦の残りで対戦画面がCPU戦にならないように */ }
+        if (!roomMatching) scheduleCpuFallback(ctx);
 
         //待っている部屋があれば古い順に入ってみる。同時に入ろうとして先を越されたら次の部屋へ
         const rooms = await findWaitingRooms(roomMatching);
@@ -870,6 +873,68 @@ function hideWaitingOverlay() {
     if (!el) return;
     el.classList.remove('show');
     el.style.display = 'none';
+}
+
+//------------------------------------------------------------------------------------------------
+// 相手が見つからない時のCPU戦(2026-10-25)。レート戦で 60秒±20秒 待っても相手が来なければ、
+// 自分の待ち部屋を閉じて(その間に誰かが入っていたらそのまま対人戦)、サーバーにCPU戦を始めてもらう。
+// 対戦画面(battle.html)は sessionStorage の connectCpuMatch を見て、CPU戦(cpuMatch.js)として進める。
+const CPU_FALLBACK_BASE_MS = 60 * 1000;
+const CPU_FALLBACK_JITTER_MS = 20 * 1000;
+let cpuFallbackTimer = null;
+
+function clearCpuFallback() {
+    if (cpuFallbackTimer) { clearTimeout(cpuFallbackTimer); cpuFallbackTimer = null; }
+}
+function scheduleCpuFallback(ctx, delayMs) {
+    clearCpuFallback();
+    try { sessionStorage.removeItem(CPU_MATCH_KEY); } catch { /* */ }
+    const delay = delayMs ?? (CPU_FALLBACK_BASE_MS + (Math.random() * 2 - 1) * CPU_FALLBACK_JITTER_MS);
+    // 確認用(自分のPCで開いた時だけ): localStorage の connectCpuFallbackMs で待ち時間を短くできる
+    const debugMs = ['localhost', '127.0.0.1'].includes(location.hostname) ? Number(localStorage.getItem('connectCpuFallbackMs')) : 0;
+    cpuFallbackTimer = setTimeout(() => switchToCpuMatch(ctx), delayMs ?? (debugMs > 0 ? debugMs : delay));
+    return;
+    cpuFallbackTimer = setTimeout(() => switchToCpuMatch(ctx), delay);
+}
+async function switchToCpuMatch(ctx) {
+    cpuFallbackTimer = null;
+    if (!NowMatching || isNavigatingToBattle) return;
+    if (switchingRoom || !playerDocRef) { scheduleCpuFallback(ctx, 3000); return; } // 部屋の移動中などは少し待つ
+    const myRef = playerDocRef;
+    switchingRoom = true;
+    try {
+        // 自分の部屋を閉じる。その間に誰かが入っていたら、そのまま対人戦にする
+        const closed = await runTransaction(db, async (tx) => {
+            const snap = await tx.get(myRef);
+            if (!snap.exists() || snap.data().status !== "waiting" || snap.data().player2_ID) return false;
+            tx.delete(myRef);
+            return true;
+        });
+        if (!closed) return;
+        stopHeartbeat();
+        stopRoomWatcher();
+        clearWaitingExpireTimer();
+        playerDocRef = null;
+        isNavigatingToBattle = true;
+        let match;
+        try {
+            match = await startCpuMatch(ctx.charaID);
+        } catch (e) {
+            // サーバーに頼めなかった時は、もう一度部屋を作って待つ
+            console.error("[cpu] start failed:", e);
+            isNavigatingToBattle = false;
+            await createWaitingRoom(ctx);
+            return;
+        }
+        sessionStorage.setItem(CPU_MATCH_KEY, JSON.stringify({ ...match, playerName: ctx.playerName }));
+        document.getElementById('statusMessage').innerText = t('statusMatchingDone');
+        showMatchLabel();
+        setTimeout(() => { window.location.href = "battle.html"; }, 5000);
+    } catch (e) {
+        console.error("[cpu] switch failed:", e);
+    } finally {
+        switchingRoom = false;
+    }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -964,6 +1029,7 @@ async function createWaitingRoom(ctx) {
 }
 
 async function cancelWaiting(playerUUID) {
+    clearCpuFallback();
     stopHeartbeat();
     stopRoomWatcher();
     clearWaitingExpireTimer();
