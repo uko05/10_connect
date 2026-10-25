@@ -752,20 +752,11 @@ async function dispP2Info(charaInfo, player_Name) {
     thumbnailContainer.appendChild(img2); // 画像を追加
 }
 
-// ページを離れる直前のベストエフォート処理。非同期処理の完了は保証されない（特にモバイル）ため、
-// 本来の安全網はハートビート＋相手の生存時刻監視（startHeartbeat）側にある。
-function notifyLeaveOnExit() {
-    if (isMatchFinalized) return; // 決着後に画面を閉じた時は退出扱いにしない
-    try {
-        updateLeaveRooms(playerRight_ID); // 画面を閉じた本人が抜けるので、勝者は相手
-    } catch (error) {
-        console.error("エラー発生:", error);
-    }
-}
-
-window.addEventListener("beforeunload", notifyLeaveOnExit);
-// pagehideはモバイルでbeforeunloadが発火しないケースのフォールバック
-window.addEventListener("pagehide", notifyLeaveOnExit);
+// ページを閉じた・読み直した時は、ここでは退出を書かない(2026-10-25)。
+// 以前は beforeunload / pagehide で退出(leave)を書いていたが、読み直しの時は書き込みと再入室が競争になり、
+// 「退出の負け」になったり「同じ試合に戻れる」になったりしていた。スマホでは裏に回したページが勝手に
+// 読み直されることもあるので、読み直しは必ず同じ試合に戻れるようにする。
+// 本当に閉じた場合は、相手の画面の生存時刻の監視(startHeartbeat)が約1分で退出として扱う。
 
 // winnerUid: 残ったプレイヤー(2026-10-22)。以前は status だけを書いていたため、退出した本人の画面も
 // 「部屋が leave になった＝自分の勝ち」と判定して自分を勝者として書き込み、退出した側のレートが上がって
@@ -1357,6 +1348,19 @@ async function watchRoomUpdates() {
                 if (enemyUlt != null && enemyUlt !== playerRight_UltCount) {
                     playerRight_UltCount = enemyUlt;
                     enqueueFx(async () => { isTurnPlayerUltVoice(); await showCutIn(); });
+                }
+                // 銀狼LV.999 の必殺技などで、石を置かずにポイントが増えた時(手番は変わらない)
+                {
+                    const serverRed = data.red_Win ?? 0;
+                    const serverYellow = data.yellow_Win ?? 0;
+                    if (serverRed > red_Win || serverYellow > yellow_Win) {
+                        red_Win = Math.max(red_Win, serverRed);
+                        yellow_Win = Math.max(yellow_Win, serverYellow);
+                        enqueueFx(async () => {
+                            if (playerLeft_Color === 'red') updateWinLabels(red_Win, yellow_Win);
+                            else updateWinLabels(yellow_Win, red_Win);
+                        });
+                    }
                 }
                 const fx = data.abilityState?.fx;
                 const after = data.stones || {};
@@ -4050,20 +4054,12 @@ async function ult_silverwolf() {
             await handleBO3Final(winningColor, "normal", { isStraightWin, isComebackWin: false });
             displayVictory(winningColor);
         } else {
-            // 3ポイント未満：勝利数とターンをFirestoreに同期し、盤面はそのまま継続
-            // 2026-10-25: turnCount も1つ進める。以前は進めていなかったため、相手の画面は「turnCount が変わらない
-            // 更新は処理しない」決まりでポイントも手番の交代も受け取れず、両方の画面が相手の番だと思って試合が止まっていた
-            const nextTurn = turn === 'P1' ? 'P2' : 'P1';
-            turn = nextTurn;
+            // 3ポイント未満：勝利数だけをFirestoreに同期し、盤面も手番もそのまま(使った本人がそのまま石を置ける。ソロ・CPU戦と同じ)
+            // 2026-10-25: 相手の画面は「turnCount が同じ更新」の所でポイントを受け取る(以前は受け取れず、表示がずれていた)
             await updateDoc(firestoreRoomDocRef, {
                 red_Win: red_Win,
-                yellow_Win: yellow_Win,
-                turn: nextTurn,
-                turnCount: turnCount + 1
+                yellow_Win: yellow_Win
             });
-            // この必殺技は石を置かずに手番が終わるので、「必殺技の直後の一手」の印をここで消す
-            // (残っていると、次の自分の手でチャージが増えず、盤面の描き直しも飛ばされていた)
-            ultAfter = false;
         }
     } catch (error) {
         console.error("銀狼LV.999の必殺技処理中にエラーが発生しました:", error);
