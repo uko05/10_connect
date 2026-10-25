@@ -24,7 +24,7 @@ import { playDiceRoll } from './diceRoll.js';
 
 const ROWS = E.ROWS, COLS = E.COLS, CELL = 110;
 const TIME_LIMIT = 100; // 1ターンの持ち時間(対人戦の player1_TimeLimit と同じ)
-const STARTED_KEY = 'connectCpuMatchStarted'; // 読み込み直し(=退出)の判定用
+const STARTED_KEY = 'connectCpuMatchStarted'; // 途中経過(読み込み直した時に同じ局面へ戻すため)
 
 let M = null;          // サーバーが決めた対局の内容
 let st = null;         // エンジンの状態
@@ -37,6 +37,7 @@ let highlighted = null;
 let blockOverlays = [];
 let droppingKey = null;
 let timer = null, timeRemaining = TIME_LIMIT;
+let timerDeadline = 0, timerKey = ''; // 今の番の持ち時間の期限(読み込み直しで時間が戻らないように保存する)
 let finished = false;
 let comebackFlag = false; // 0-2 から勝った(アチーブ「大逆転」)
 let charaP = null, charaC = null;
@@ -286,10 +287,12 @@ async function playEvents(evs) {
 
 // ---------------------------------------------------------------------------------------------
 // 制限時間(対人戦と同じ見た目。CPUの番もゲージは減る)
-function resetTimer() {
+function turnKey() { return `${st.round}|${st.turn}|${st.turnCount}`; }
+function resetTimer(sec = TIME_LIMIT) {
     clearInterval(timer);
-    timeRemaining = TIME_LIMIT;
-    const g = $('timeLimitGauge'); if (g) g.style.width = '100%';
+    timeRemaining = sec;
+    timerDeadline = Date.now() + sec * 1000; timerKey = turnKey(); saveProgress();
+    const g = $('timeLimitGauge'); if (g) g.style.width = (timeRemaining / TIME_LIMIT) * 100 + '%';
     timer = setInterval(async () => {
         if (timeRemaining > 0) { timeRemaining--; if (g) g.style.width = (timeRemaining / TIME_LIMIT) * 100 + '%'; return; }
         clearInterval(timer);
@@ -356,7 +359,7 @@ async function cpuTurn() {
 
 // ---------------------------------------------------------------------------------------------
 // 終了: サーバーに記録を送ってレートを確定し、対人戦と同じ勝利画面を出す
-function saveProgress() { try { sessionStorage.setItem(STARTED_KEY, JSON.stringify({ matchId: M.matchId, log })); } catch { /* 保存できなくても続ける */ } }
+function saveProgress() { try { sessionStorage.setItem(STARTED_KEY, JSON.stringify({ matchId: M.matchId, log, comeback: comebackFlag, deadline: timerDeadline, dkey: timerKey })); } catch { /* 保存できなくても続ける */ } }
 async function endMatch() {
     if (finished) return; finished = true;
     clearInterval(timer);
@@ -391,6 +394,8 @@ async function settle(rc) {
         }
     } catch (e) {
         console.error('[cpuMatch] finish failed', e);
+        // 送れなかった対局を残すと、キャラ選択画面が「途中のCPU戦」としてここへ戻し続けるので消す
+        try { sessionStorage.removeItem(CPU_MATCH_KEY); sessionStorage.removeItem(STARTED_KEY); } catch { /* */ }
         rc.textContent = '';
     }
 }
@@ -502,15 +507,11 @@ export async function startCpuMatch() {
     try { M = JSON.parse(sessionStorage.getItem(CPU_MATCH_KEY)); } catch { M = null; }
     if (!M) { location.href = 'select.html?mode=match'; return; }
 
-    // 読み込み直した(対人戦では退出扱い) → 退出の負けで送ってキャラ選択へ
+    // 読み込み直した時は、保存しておいた操作の記録を再生して同じ局面から続ける(2026-10-25。以前は退出の負けだった)。
+    // CPU の手はシードから決まるので、サーバーの再現(E.replay)と同じ手順で同じ局面になる
     let prev = null; try { prev = JSON.parse(sessionStorage.getItem(STARTED_KEY)); } catch { /* */ }
-    if (prev && prev.matchId === M.matchId) {
-        try { await authReady; await finishCpuMatch(M.matchId, [...(prev.log || []), { a: 'l' }]); } catch (e) { console.error(e); }
-        try { sessionStorage.removeItem(CPU_MATCH_KEY); sessionStorage.removeItem(STARTED_KEY); } catch { /* */ }
-        location.href = 'select.html?mode=match';
-        return;
-    }
-    saveProgress();
+    const resume = !!(prev && prev.matchId === M.matchId && Array.isArray(prev.log));
+    if (resume) { log.push(...prev.log); comebackFlag = !!prev.comeback; }
 
     setupSettingsModal('settingsButton', 'settingsModal');
     bindSettingsUI($('settingsModal'), () => { drawBoard(); dispTopStone(); }, () => {
@@ -528,7 +529,12 @@ export async function startCpuMatch() {
 
     charaP = characterData.find((c) => c.charaID === M.playerCharaId);
     charaC = characterData.find((c) => c.charaID === M.cpuCharaId);
-    st = E.createMatch({ seed: M.seed, playerCharaID: M.playerCharaId, cpuCharaID: M.cpuCharaId, playerColor: M.playerColor });
+    const matchOpts = { seed: M.seed, playerCharaID: M.playerCharaId, cpuCharaID: M.cpuCharaId, playerColor: M.playerColor };
+    st = E.createMatch(matchOpts);
+    if (resume) {
+        try { st = E.replay({ ...matchOpts, profile: M.profile }, log); }
+        catch (e) { console.error('[cpuMatch] resume failed', e); log.length = 0; st = E.createMatch(matchOpts); }
+    }
 
     dispInfo(1, charaP, M.playerName);
     dispInfo(2, charaC, M.cpuName);
@@ -552,9 +558,13 @@ export async function startCpuMatch() {
     bindInput();
     // 確認用(自分のPCで開いた時だけ): コンソールから対局の状態を見られる
     if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__cpu = { get st() { return st; }, log, get busy() { return busy; }, E };
-    view = {};
+    view = resume ? { ...st.stones } : {};
     drawBoard(); updateWinLabels(); updateGauge();
+    if (st.over) return endMatch(); // 決着した後(結果を送る前)に読み込み直した時
+    if (resume && st.turn === 'player') showBlock(E.blockedFor(st, 'player'));
     lastTurnSide = st.turn; lastTurnCount = st.turnCount;
-    showTurnLabel(); resetTimer(); dispTopStone();
+    // 同じ番の途中で読み込み直したなら、持ち時間は続きから(読み込み直しで時間が戻らないように)
+    const secLeft = resume && prev.dkey === turnKey() && prev.deadline ? Math.ceil((prev.deadline - Date.now()) / 1000) : TIME_LIMIT;
+    showTurnLabel(); resetTimer(Math.max(1, Math.min(TIME_LIMIT, secLeft))); dispTopStone();
     if (st.turn === 'cpu') await cpuTurn(); else highlightColumn(nowCol);
 }

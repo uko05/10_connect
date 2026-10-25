@@ -480,6 +480,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const user = await authReady;
         currentUid = user.uid;
+        if (await resumeActiveMatch(user.uid)) return; // 途中の試合があれば対戦画面に戻る
         await ensureUserDoc(user.uid);
         syncSharedUserId(user.uid, getSharedUserId());
         console.log("[characterSelect] Auth ready, uid:", user.uid);
@@ -645,24 +646,56 @@ document.querySelectorAll('.thumbnail').forEach(thumbnail => {
 
 //------------------------------------------------------------------------------------------------
 
-//自分のIDを持つデータを削除する関数
+//自分が作って待っている部屋を削除する関数
+// 2026-10-25: 待機中(waiting)の部屋だけを消す。始まった試合の部屋はルールで消せなくしたので、
+// まとめて消すと全部失敗してしまうため。残った古い部屋はサーバーの定期処理が消す
 async function removePlayerFromRoom(generatedId) {
-
-    const roomRef = query(collection(db, "connectRooms"), where("player1_ID", "==", generatedId));
-
-    const roomSnapshot = await getDocs(roomRef);
-
+    const roomSnapshot = await getDocs(query(collection(db, "connectRooms"), where("player1_ID", "==", generatedId)));
     document.getElementById('statusMessage').innerText = "";
+    await Promise.all(roomSnapshot.docs
+        .filter((d) => d.data().status === "waiting")
+        .map((d) => deleteDoc(d.ref).catch((e) => console.error("[match] delete waiting room failed:", d.id, e))));
+}
 
-    //Firestoreのバッチを作成
-    const batch = writeBatch(db);
-
-    //roomsから削除
-    roomSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-    });
-
-    await batch.commit();
+// キャラ選択画面を開いた時、途中の試合があれば対戦画面に戻す(2026-10-25)。
+// マッチングした直後(対戦画面に移る前の5秒間)や対戦中に読み直した時に、相手だけが対戦画面で待たされて
+// 退出の負けになるのを防ぐ。読み取りは自分の部屋の数だけ(ふつうは0〜1件、最低2件)
+const PAGE_OPENED_MS = Date.now();
+async function resumeActiveMatch(uid) {
+    // CPU戦: 対局が始まっている(サーバーに対局がある)なら続きから
+    try {
+        if (sessionStorage.getItem(CPU_MATCH_KEY)) { location.replace('battle.html'); return true; }
+    } catch { /* 読めなければ何もしない */ }
+    try {
+        const roomsRef = collection(db, "connectRooms");
+        const [s1, s2] = await Promise.all([
+            getDocs(query(roomsRef, where("player1_ID", "==", uid))),
+            getDocs(query(roomsRef, where("player2_ID", "==", uid))),
+        ]);
+        const ms = (v) => (v?.toMillis ? v.toMillis() : 0);
+        const rooms = [...s1.docs.map((d) => [d, 'P1']), ...s2.docs.map((d) => [d, 'P2'])];
+        // 自分の待機部屋が残っていたら消す(待っている間に読み直した時。消さないと、だれかが入って相手のいない試合になる)
+        // このページを開いた後に自分で作った部屋(すぐマッチングを押した時)は消さない
+        for (const [d, role] of rooms) {
+            const data = d.data();
+            if (role === 'P1' && data.status === "waiting" && roomCreatedMs(data) < PAGE_OPENED_MS && d.id !== playerDocRef?.id) await deleteDoc(d.ref).catch(() => {});
+        }
+        const active = rooms.find(([d, role]) => {
+            const data = d.data();
+            if (data.status !== "in_progress" || data.bo3Final === true) return false;
+            const enemy = role === 'P1' ? data.player2_LastActive : data.player1_LastActive;
+            return Date.now() - ms(enemy) <= STALE_THRESHOLD_MS; // 相手がまだいる試合だけ
+        });
+        if (active) {
+            document.cookie = `playerUUID=${uid}; path=/; max-age=259200`;
+            document.getElementById('statusMessage').innerText = t('statusMatchingDone');
+            location.replace('battle.html');
+            return true;
+        }
+    } catch (e) {
+        console.error("[resume] check failed:", e);
+    }
+    return false;
 }
 //------------------------------------------------------------------------------------------------
 

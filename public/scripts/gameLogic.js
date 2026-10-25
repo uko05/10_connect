@@ -429,6 +429,14 @@ async function displayThumbnails() {
         .filter(({ snap }) => snap.data().status !== 'leave' && snap.data().bo3Final !== true)
         .sort((a, b) => createdMs(b.snap.data()) - createdMs(a.snap.data()))[0];
 
+    // 入る部屋がない(マッチングした瞬間に相手が読み直して部屋が消えた、決着済みの試合を開き直した、など)。
+    // 以前はこのまま何も起きない画面で止まっていたので、キャラ選択に戻す(2026-10-25)
+    if (!chosenRoom) {
+        console.warn('[battle] no active room, back to select');
+        location.replace('select.html?mode=match');
+        return new Promise(() => {}); // 移動するまで後の処理を進めない
+    }
+
     // どちらがPlayer1かを確認
     if (chosenRoom?.role === 'P1') {
 
@@ -2636,6 +2644,9 @@ async function handleBO3MatchDraw() {
         return;
     }
     try {
+        // 2026-10-25: 始まった試合の部屋は決着(bo3Final)の印がないと消せない決まりにしたので、先に印を付ける。
+        // resultType:'draw' はサーバーのレート計算(connectRateMatch)が何もしない
+        await updateDoc(firestoreRoomDocRef, { bo3Final: true, rated: false, resultType: 'draw', finishedAt: serverTimestamp() });
         await deleteRoomAfterRating(firestoreRoomDocRef);
     } catch (error) {
         console.error("[Rating] マッチドロー rooms削除失敗:", error);
