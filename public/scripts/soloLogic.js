@@ -249,6 +249,21 @@ function isBoardFull() {
     return true;
 }
 
+// ケリュドラの呪縛(2026-10-30 改): 空いている全部の列に投下した側の本来の色の石を1つずつ落とし、
+// 落とした石のうちランダムな1つを使った側の色に変える(対人戦・connectEngine.js と同じ決まり)
+async function cerydraCurse(victimColor, casterColor) {
+    const dropped = [];
+    for (const c of getValidColumns()) {
+        const r = getDropRow(c);
+        if (await dropAt(c, victimColor)) dropped.push(`${c}_${r}`);
+    }
+    if (!dropped.length) return;
+    const k = dropped[Math.floor(Math.random() * dropped.length)];
+    await highlightStonesLocal([k], 400);
+    stones[k] = casterColor;
+    drawBoard();
+}
+
 function randomValidColumn() {
     const v = getValidColumns();
     return v.length ? v[Math.floor(Math.random() * v.length)] : -1;
@@ -575,7 +590,13 @@ function cpuAbilityConditionByID(charaID) {
     if (proc === 'ult_bomb') return cpuShouldBomb();
     if (proc === 'ult_flipTouch') return cpuShouldFlipTouch();
     // ケリュドラ：相手に追加手を与えるだけなので使わない
-    if (charaID === '015') return false;
+    // ケリュドラ: 「この列にもう1つ積まれれば、その上に置いて勝てる」列があるときだけ使う
+    if (charaID === '015') return getValidColumns().some((c) => {
+        const r = getDropRow(c);
+        if (r <= 0) return false;
+        const sim = { ...stones, [`${c}_${r}`]: PLAYER_COLOR, [`${c}_${r - 1}`]: CPU_COLOR };
+        return hasLineOfColor(sharedBoardFromStones(sim, rows, cols), CPU_COLOR);
+    });
     // ホタル・銀狼・アベンチュリン：チャージが溜まったら即使う
     if (charaID === '009' || charaID === '016' || charaID === '017') return true;
     // 魈：入れ替えでCPUだけが4つ並ぶ組み合わせが、相手が並ぶ組み合わせより多い時。
@@ -1866,13 +1887,11 @@ async function handlePlayerDrop(column) {
         if (!ok) return;
         await applySoloFlipTouch('player', column);
 
-        // ケリュドラ：CPUが発動した場合、プレイヤーの投下後に追加投下
+        // ケリュドラ：CPUが発動した場合、プレイヤーの投下後に全部の列へ追加投下
         if (cerluaActive && cerluaCasterSide === 'cpu') {
             cerluaActive = false;
             cerluaCasterSide = null;
-            // 対人戦と同じく: 追加の石は投下した側の本来の色。その列が満杯ならランダムな空き列(2026-10-21)
-            const extraCol = getDropRow(column) >= 0 ? column : randomValidColumn();
-            if (extraCol >= 0) await dropAt(extraCol, PLAYER_COLOR);
+            await cerydraCurse(PLAYER_COLOR, CPU_COLOR);
         }
 
         playerCharge = Math.min(200, playerCharge + playerChara.charge);
@@ -1969,12 +1988,11 @@ async function cpuTurn() {
     await applySoloFlipTouch('cpu', finalCol);
     cpuCharge = Math.min(200, cpuCharge + cpuChara.charge);
 
-    // ケリュドラ：プレイヤーが発動した場合、CPUの投下後に追加投下
+    // ケリュドラ：プレイヤーが発動した場合、CPUの投下後に全部の列へ追加投下
     if (cerluaActive && cerluaCasterSide === 'player') {
         cerluaActive = false;
         cerluaCasterSide = null;
-        const extraCol = getDropRow(finalCol) >= 0 ? finalCol : randomValidColumn();
-        if (extraCol >= 0) await dropAt(extraCol, CPU_COLOR);
+        await cerydraCurse(CPU_COLOR, PLAYER_COLOR);
     }
 
     if (changeStone > 0) changeStone--;

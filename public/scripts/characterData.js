@@ -234,7 +234,7 @@ export const characterData = [
         charge: 16,
         chargeMax: 200,
         Ability: 'Veni, vidi, vici.',
-        AbilityDetail: '【呪縛】次の相手のターン、相手が石を投下した列にもう1個相手の石を投下する。その列が満杯の場合はランダムな列に投下する。',
+        AbilityDetail: '【呪縛】次の相手のターン、相手が石を投下した後、すべての列に相手の石を1個ずつ投下し、そのうちランダムな1個を自分の石に変える。',
         AbilityUseTurn: 1,
         AbilityCutImage: 'public/chara/ult_Keryu.png',
         voice_select: 'public/scripts/sound/Keryu_select.mp3',

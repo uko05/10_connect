@@ -252,6 +252,17 @@ async function playUltFx(fx, before, after) {
         case 'mark':
             if (keys.length) await highlightStones(keys, fx.wt ?? 400);
             break;
+        case 'cerydra': {
+            // ケリュドラ: 全部の列に落ちた相手の石を見せてから、自分の色に変わる1つを光らせる
+            const filled = cloneStones(local);
+            for (const k of (fx.dropped || [])) if (after[k]) filled[k] = Object.assign({}, after[k], { color: fx.victimColor });
+            stonesData = filled;
+            init_drawBoard(true);
+            await wait(450);
+            const ks = (fx.keys || []).filter((k) => filled[k]);
+            if (ks.length) await highlightStones(ks, fx.wt ?? 450);
+            break;
+        }
         case 'flip':
             await playGravityFlipAnimation({
                 canvas: document.getElementById('connect4Canvas'), stones: before || {}, rows, cols, cellSize,
@@ -3871,49 +3882,35 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
             }
         }
 
-        // ③ ケリュドラ：相手ターン後、自分(発動者)のターン開始時に追加投下
+        // ③ ケリュドラ(2026-10-30 改)：相手ターン後、自分(発動者)のターン開始時に、空いている全部の列へ
+        //    相手の石を1つずつ落とし、そのうちランダムな1つを自分の色に変える(connectEngine.js・soloLogic.js と同じ決まり)
         if (pvpCerluaActive && playerLeft_Color === pvpCerluaCasterColor) {
             const victimColor = playerLeft_Color === 'red' ? 'yellow' : 'red';
-            // 相手の最後の投下列を特定（turnCountが直前のもの）
-            let lastVictimCol = -1;
-            let maxTC = -1;
-            for (const key in stonesData) {
-                if (stonesData[key].color === victimColor && (stonesData[key].turnCount ?? 0) > maxTC) {
-                    maxTC = stonesData[key].turnCount ?? 0;
-                    lastVictimCol = parseInt(key.split('_')[0]);
-                }
-            }
-
             const q = roomQuery();
             const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty && lastVictimCol >= 0) {
+            if (!querySnapshot.empty) {
                 const roomDoc = querySnapshot.docs[0];
-                const localStones = Object.assign({}, roomDoc.data().stones || {});
-                for (const k in localStones) localStones[k] = Object.assign({}, localStones[k]);
-
-                const extraCol = findAvailableRow(lastVictimCol, localStones) >= 0
-                    ? lastVictimCol
-                    : pvpGetNonFullCols(1)[0] ?? -1;
-
-                if (extraCol >= 0) {
-                    const extraRow = findAvailableRow(extraCol, localStones);
-                    if (extraRow >= 0) {
-                        // extra: 追加投下の石。直前のターンの石は落下演出のため描かない決まりなので、
-                        // 印を付けて常に描く(以前は次のターンまで両方の画面で見えなかった。2026-10-25)
-                        localStones[`${extraCol}_${extraRow}`] = { color: victimColor, turnCount: turnCount - 1, extra: true };
-                        await updateDoc(doc(db, "connectRooms", roomDoc.id), {
-                            stones: localStones,
-                            'abilityState.cerluaActive': false,
-                            'abilityState.cerluaCasterColor': null
-                        });
-                        stonesData = localStones;
-                        init_drawBoard(true);
-                        pvpCerluaActive = false;
-                    }
+                const before = cloneStones(roomDoc.data().stones || {});
+                const after = cloneStones(before);
+                const dropped = [];
+                for (let c = 0; c < cols; c++) {
+                    const r = findAvailableRow(c, after);
+                    if (r < 0) continue;
+                    // extra: 追加投下の石。直前のターンの石は落下演出のため描かない決まりなので、印を付けて常に描く
+                    after[`${c}_${r}`] = { color: victimColor, turnCount: turnCount - 1, extra: true };
+                    dropped.push(`${c}_${r}`);
+                }
+                pvpCerluaActive = false;
+                if (dropped.length) {
+                    const k = dropped[Math.floor(Math.random() * dropped.length)];
+                    after[k] = Object.assign({}, after[k], { color: playerLeft_Color });
+                    await writeAndPlayFx(doc(db, "connectRooms", roomDoc.id),
+                        { 'abilityState.cerluaActive': false, 'abilityState.cerluaCasterColor': null },
+                        newFx('cerydra', { keys: [k], dropped, victimColor }), before, after);
+                    stonesData = after;
                 } else {
                     // 全列満杯：追加投下なしでフラグのみクリア
                     await updateDoc(firestoreRoomDocRef, { 'abilityState.cerluaActive': false, 'abilityState.cerluaCasterColor': null });
-                    pvpCerluaActive = false;
                 }
             }
         }
