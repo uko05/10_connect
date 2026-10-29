@@ -80,7 +80,8 @@ export function makeAllPairs() {
     const mine = shuffle(BASE_IDS);
     let opp;
     do { opp = shuffle(BASE_IDS); } while (opp.some((id, i) => id === mine[i]));
-    return mine.map((m, i) => [m, opp[i]]);
+    // Firestore は配列の中に配列を保存できないので、1試合ずつ {p: 自分, c: 相手} の形にする
+    return mine.map((m, i) => ({ p: m, c: opp[i] }));
 }
 
 // 逆転の挑戦: 自分のキャラは020以外からランダム
@@ -106,7 +107,8 @@ export function nextMatch(mode, progress, chosenChara) {
     }
     if (mode === 'all') {
         const p = progress || { pairs: makeAllPairs(), index: 0 };
-        const [player, cpu] = p.pairs[p.index];
+        const pr = p.pairs[p.index];
+        const [player, cpu] = Array.isArray(pr) ? pr : [pr.p, pr.c];
         return { progress: p, player, cpu, total: p.pairs.length, done: p.index };
     }
     const p = progress || { wins: 0 };
