@@ -3,14 +3,15 @@
 // (行0が一番上)。値は対人戦が { color, turnCount, bomb? }、CPU戦が色の文字列。
 //
 //   重力反転   ult_gravityFlip : 盤面を上下にひっくり返し、石が重力で落ち直す(各列の積み順が逆になる)
-//   爆弾       ult_bomb        : 相手の石を1つランダムに爆弾にし、4ターン後の自分の番の開始時に
+//   爆弾       ult_bomb        : 相手の石のうち一番多く相手の石を巻き込める石を爆弾にし、次の自分の番の開始時に
 //                                周り8マス(と爆弾自身)を敵味方関係なく破壊する。残りターン数は両者の番ごとに1減る
+//                                (2026-10-30: ランダム・4ターン後だと弱すぎたので変更)
 //   反転の一手 ult_flipTouch   : 必殺技を使ったターンに置いた石の左・右の色を反転し、
 //                                最後に置いた石自身も相手の色になる
 //                                (2026-10-21: 最初は下も反転していたが、ふさいだ石の上に置くだけで勝てて強すぎたので左右だけに)
 // 両者が同時に4つ並んだ場合は、通常どおり両者に1ポイント。
 
-export const BOMB_TURNS = 4; // 爆発までのターン数(相手の番も1ターンと数える。4なら使った人の2回後の番の開始時)
+export const BOMB_TURNS = 2; // 爆発までのターン数(相手の番も1ターンと数える。2なら使った人の次の番の開始時)
 
 // 盤面を上下にひっくり返して落とし直す。各列の石の積み順が逆になる(一番上の石が一番下に)。
 // 戻り値: { stones: 新しい盤面, moved: { 元のキー: 新しいキー } }
@@ -53,6 +54,30 @@ export function bombBlastKeys(key, rows, cols) {
 }
 
 export const otherColor = (color) => (color === 'red' ? 'yellow' : 'red');
+
+// 爆弾にする石の候補: 相手(enemyColor)の石のうち「巻き込む相手の石 − 巻き込む自分の石」が一番多い石(同点は全部返す)。
+// colorOf は盤面の値から色を取り出す関数(対人戦は v => v.color、CPU戦はそのまま)
+export function bestBombTargets(stones, rows, cols, enemyColor, colorOf = (v) => v) {
+    let best = -Infinity, out = [];
+    for (const t of Object.keys(stones)) {
+        if (colorOf(stones[t]) !== enemyColor) continue;
+        let x = 0;
+        for (const k of bombBlastKeys(t, rows, cols)) {
+            if (!stones[k]) continue;
+            if (colorOf(stones[k]) === enemyColor) x++; else x--;
+        }
+        if (x > best) { best = x; out = [t]; } else if (x === best) out.push(t);
+    }
+    return out;
+}
+// 爆弾の価値(上の「巻き込む相手の石 − 自分の石」の最大値)。相手の石がなければ -Infinity
+export function bestBombValue(stones, rows, cols, enemyColor, colorOf = (v) => v) {
+    const t = bestBombTargets(stones, rows, cols, enemyColor, colorOf)[0];
+    if (!t) return -Infinity;
+    let x = 0;
+    for (const k of bombBlastKeys(t, rows, cols)) { if (!stones[k]) continue; if (colorOf(stones[k]) === enemyColor) x++; else x--; }
+    return x;
+}
 
 // 爆弾の印(石の上に重ねる)。黒い輪と、爆発までの残り回数
 export function drawBombMarker(ctx, col, row, cellSize, turnsLeft) {

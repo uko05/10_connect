@@ -9,7 +9,7 @@ import { onSnapshot, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/
 
 import { characterData } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow, pickTopEnemyColumns, ALHAITHAM_COLS, CASTORICE_COLS, CASTORICE_REFUND } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, bestBombTargets, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow, pickTopEnemyColumns, ALHAITHAM_COLS, CASTORICE_COLS, CASTORICE_REFUND } from "./specialAbilities.js";
 import { boardFromStones, collectWinPositions } from "./winCheck.js";
 import { getMyStoneSkin, getOpponentStoneSkin, applyBattleBackground } from './designSettings.js';
 import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, clearPiece as _clearPiece, disp_DeleteStone as _disp_DeleteStone, flashScreen as _flashScreen, shakeElement as _shakeElement, spawnParticleBurst as _spawnParticleBurst, spawnStoneShatter as _spawnStoneShatter } from "./renderer.js";
@@ -3833,8 +3833,10 @@ async function processPvpCrossTurnEffects(turnJustChangedToMe) {
                 const localStones = Object.assign({}, roomDoc.data().stones || {});
                 for (const k in localStones) localStones[k] = Object.assign({}, localStones[k]);
 
-                const allKeys = Object.keys(localStones);
-                const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
+                // 2026-10-30: 2回目も相手の石だけを1個
+                const enemyColor = otherColor(playerLeft_Color);
+                const allKeys = Object.keys(localStones).filter((k) => localStones[k].color === enemyColor);
+                const toDelete = getRandomElements(allKeys, Math.min(1, allKeys.length));
                 const before = cloneStones(localStones);
                 for (const key of toDelete) delete localStones[key];
                 applyGravity(localStones, toDelete);
@@ -3998,9 +4000,10 @@ async function ult_durin() {
         const localStones = Object.assign({}, roomData.stones || {});
         for (const key in localStones) localStones[key] = Object.assign({}, localStones[key]);
 
-        // 即時2個破壊
-        const allKeys = Object.keys(localStones);
-        const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
+        // 即時に相手の石を1個破壊(2026-10-30)
+        const enemyColor = otherColor(playerLeft_Color);
+        const allKeys = Object.keys(localStones).filter((k) => localStones[k].color === enemyColor);
+        const toDelete = getRandomElements(allKeys, Math.min(1, allKeys.length));
         const before = cloneStones(localStones);
         for (const key of toDelete) delete localStones[key];
         applyGravity(localStones, toDelete);
@@ -4234,7 +4237,8 @@ async function ult_gravityFlip() {
     }
 }
 
-// 爆弾(2026-10-21): 相手の石を1つランダムに爆弾にする。爆発は使った人の2回後の自分の番の開始時(processPvpCrossTurnEffects)
+// 爆弾(2026-10-21): 相手の石を1つ爆弾にする。爆発は使った人の次の番の開始時(processPvpCrossTurnEffects)
+// 2026-10-30: 一番多く相手の石を巻き込める石を選ぶ(同点はランダム)
 async function ult_bomb() {
     try {
         const q = roomQuery();
@@ -4248,7 +4252,7 @@ async function ult_bomb() {
         const oppColor = otherColor(playerLeft_Color);
         // 爆弾は同時に1つだけ(前の爆弾が残っていたら、そちらは消える)
         for (const key in localStones) if (localStones[key].bomb) delete localStones[key].bomb;
-        const target = getRandomElements(Object.keys(localStones).filter((k) => localStones[k].color === oppColor), 1)[0];
+        const target = getRandomElements(bestBombTargets(localStones, rows, cols, oppColor, (v) => v.color), 1)[0];
         const payload = { player1_ChargeNow: p1_chargeNow, player2_ChargeNow: p2_chargeNow };
         const before = cloneStones(roomData.stones);
         if (target) {
@@ -4264,7 +4268,7 @@ async function ult_bomb() {
 }
 
 // 爆弾: 両者の番の開始時に呼ぶ(その番の人が書き込む)。残りターン数を1減らし、0になったら爆発させる。
-// 4ターンなら 相手→自分→相手→自分 の順に減り、0になるのは使った人の番の開始時
+// 2ターンなら 相手→自分 の順に減り、0になるのは使った人の番の開始時
 async function processPvpBomb() {
     if (!pvpBomb) return;
     const q = roomQuery();

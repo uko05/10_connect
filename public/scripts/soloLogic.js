@@ -12,7 +12,7 @@ import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";
-import { gravityFlip, flipTouchNeighbors, bombBlastKeys, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow, pickTopEnemyColumns, ALHAITHAM_COLS, CASTORICE_COLS, CASTORICE_REFUND } from "./specialAbilities.js";
+import { gravityFlip, flipTouchNeighbors, bombBlastKeys, bestBombTargets, bestBombValue, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow, pickTopEnemyColumns, ALHAITHAM_COLS, CASTORICE_COLS, CASTORICE_REFUND } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
@@ -884,8 +884,10 @@ async function durinPreTurnEffect(side) {
     if (!durinAutoDeletePending || durinCasterSide !== side) return;
     durinAutoDeletePending = false;
     durinCasterSide = null;
-    const allKeys = Object.keys(stones);
-    const toDelete = getRandomElements(allKeys, Math.min(2, allKeys.length));
+    // 2026-10-30: 2回目も相手の石だけを1個
+    const enemyColor = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+    const allKeys = Object.keys(stones).filter((k) => stones[k] === enemyColor);
+    const toDelete = getRandomElements(allKeys, Math.min(1, allKeys.length));
     if (toDelete.length === 0) return;
     await highlightStonesLocal(toDelete, 450);
     await deleteStonesLocal(toDelete);
@@ -1073,9 +1075,10 @@ async function executeAbility(side, charaID) {
             await executeAbility(side, opponentChara.charaID);
             break;
         }
-        case '014': { // ドゥリン：今すぐ2個破壊＋次の自分ターンに2個自動破壊
-            const allKeysD = Object.keys(stones);
-            const toDeleteD = getRandomElements(allKeysD, Math.min(2, allKeysD.length));
+        case '014': { // ドゥリン：今すぐ相手の石を1個破壊＋次の自分ターンにも相手の石を1個破壊(2026-10-30)
+            const enemyColorD = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
+            const allKeysD = Object.keys(stones).filter((k) => stones[k] === enemyColorD);
+            const toDeleteD = getRandomElements(allKeysD, Math.min(1, allKeysD.length));
             if (toDeleteD.length > 0) {
                 await highlightStonesLocal(toDeleteD, 450);
                 await deleteStonesLocal(toDeleteD);
@@ -1224,7 +1227,8 @@ async function soloGravityFlip() {
 
 async function soloStartBomb(side) {
     const oppColor = side === 'player' ? CPU_COLOR : PLAYER_COLOR;
-    const target = getRandomElements(Object.keys(stones).filter((k) => stones[k] === oppColor), 1)[0];
+    // 2026-10-30: 一番多く相手の石を巻き込める石を爆弾にする(同点はランダム)
+    const target = getRandomElements(bestBombTargets(stones, rows, cols, oppColor), 1)[0];
     if (!target) return;
     await highlightStonesLocal([target], 450);
     // 爆弾は同時に1つだけ(前の爆弾が残っていたら、そちらは消える)
@@ -1279,18 +1283,9 @@ function cpuShouldGravityFlip() {
     if (hasLineOfColor(board, CPU_COLOR)) return true;
     return hasImmediateThreat(PLAYER_COLOR) && !immediateThreatIn(sim, PLAYER_COLOR);
 }
-// 爆弾: 相手の石のどれが爆弾になっても、平均で「壊れる相手の石 − 壊れる自分の石」が1.5以上なら使う
+// 爆弾: 爆弾にする石で「壊れる相手の石 − 壊れる自分の石」が3以上になるなら使う
 function cpuShouldBomb() {
-    const targets = Object.keys(stones).filter((k) => stones[k] === PLAYER_COLOR);
-    if (targets.length === 0) return false;
-    let total = 0;
-    for (const t of targets) {
-        for (const k of bombBlastKeys(t, rows, cols)) {
-            if (stones[k] === PLAYER_COLOR) total++;
-            else if (stones[k] === CPU_COLOR) total--;
-        }
-    }
-    return total / targets.length >= 1.5;
+    return bestBombValue(stones, rows, cols, PLAYER_COLOR) >= 3;
 }
 // 反転の一手: 反転した結果CPUだけが並ぶ列があれば、その列に置く前提で使う
 function cpuShouldFlipTouch() {
