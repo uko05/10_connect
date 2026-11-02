@@ -474,8 +474,20 @@ function minimax(board, depth, alpha, beta, maximizing) {
 }
 
 // 同じ盤面でいつも同じ手にならないよう、一番いい手との点差がこの幅以内の手からランダムに選ぶ(2026-11-03)。
-// BAKATARE は強さを保つため完全に同点の時だけ。勝ち・負けが読めている時は幅を使わず最善の手だけから選ぶ。
-const CPU_RANDOM_MARGIN = { easy: 6, normal: 3, hard: 2, bakatare: 0 };
+// さらに wideChance の確率で幅を wide まで広げ、ときどき少し点の低い手も打つ(人間らしい隙。ユーザー判断で BAKATARE も10%)。
+// 勝ち・負けが読めている時(すぐ勝てる手・すぐ負ける手がある時)は幅を使わず最善の手だけから選ぶので、
+// 目の前の勝ちを見逃したり、相手にすぐ勝たせたりはしない。
+const CPU_RANDOM_MARGIN = {
+    easy:     { base: 6, wide: 15, wideChance: 0.4 },
+    normal:   { base: 3, wide: 10, wideChance: 0.3 },
+    hard:     { base: 2, wide: 6,  wideChance: 0.2 },
+    bakatare: { base: 0, wide: 3,  wideChance: 0.1 },
+};
+function cpuRandomMargin() {
+    const m = CPU_RANDOM_MARGIN[getCpuDifficulty()];
+    if (!m) return 0;
+    return Math.random() < m.wideChance ? m.wide : m.base;
+}
 
 // 最初の1手の列ごとに点数を出し、候補の中からランダムに選ぶ。firstColor は最初の1手で実際に落ちる色。
 // 花火の色反転中(プレイヤーが花火を使った直後のCPUの番)は、CPUの石がプレイヤーの色で落ちる。
@@ -498,7 +510,23 @@ function chooseRootColumn(board, depth, allowed, firstColor, margin) {
     if (!scored.length) return undefined;
     const limit = Math.abs(best) >= 500000 ? best : best - margin;
     const cands = scored.filter((s) => s.score >= limit);
-    return cands[Math.floor(Math.random() * cands.length)].c;
+    // 浅く読む難易度(EASY)では、相手の次の1手の勝ちが点数に出にくい。候補から「置いた後に相手がすぐ勝てる手」を外す
+    // (全部そうなら仕方ないのでそのまま)
+    const safe = cands.filter(({ c }) => {
+        const row = dropRowOnBoard(board, c);
+        board[row][c] = firstColor;
+        const unsafe = checkWinOnBoard(board) === PLAYER_COLOR || validColumnsOnBoard(board).some((x) => {
+            const r = dropRowOnBoard(board, x);
+            board[r][x] = PLAYER_COLOR;
+            const w = checkWinOnBoard(board) === PLAYER_COLOR;
+            board[r][x] = null;
+            return w;
+        });
+        board[row][c] = null;
+        return !unsafe;
+    });
+    const pool = safe.length ? safe : cands;
+    return pool[Math.floor(Math.random() * pool.length)].c;
 }
 
 function pickAiColumn() {
@@ -509,7 +537,7 @@ function pickAiColumn() {
     const isZhongliBlockedForCpu = (c) => zhongliCasterSide === 'player' && zhongliBlockedCols.includes(c);
     const result = {
         column: chooseRootColumn(board, depth, (c) => !isZhongliBlockedForCpu(c),
-            applyColorSwap(CPU_COLOR), CPU_RANDOM_MARGIN[getCpuDifficulty()] ?? 0),
+            applyColorSwap(CPU_COLOR), cpuRandomMargin()),
     };
     const validNonBlocked = getValidColumns().filter(c => !isZhongliBlockedForCpu(c));
     if (validNonBlocked.length === 0) return getValidColumns()[0]; // 全列封鎖（理論上ありえない）
