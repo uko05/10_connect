@@ -51,7 +51,7 @@ export const characterData = [
         src: 'public/chara/Navia.png', 
         charaID: '004', 
         name: 'ナヴィア', 
-        charge: 9, 
+        charge: 10, // 2026-11-03: 9→10 
         chargeMax: 200,
         Ability: '晴天を衝く霰弾のサルート', 
         AbilityDetail: '【破壊】上から横3列の石を全て破壊する。', 
@@ -98,7 +98,7 @@ export const characterData = [
         charaID: '007', 
         name: 'キャストリス', 
         // 2026-10-25: 「外側4列からランダム3列」から変更。旧処理 ult_madness は残してある
-        charge: 15, 
+        charge: 16, // 2026-11-03: 15→16 
         chargeMax: 200,
         Ability: '亡者の怒哮、蘇生の鐘', 
         AbilityDetail: '【破壊】左右縦2列ずつの合計縦4列の内、相手の石が多い縦3列を選択する。その列の石を全て破壊する。【蘇生】破壊された自分の石1個につき、チャージが5回復する。(6ターン目から発動可能)', 
@@ -162,7 +162,7 @@ export const characterData = [
         src: 'public/chara/Roen.png',
         charaID: '011',
         name: 'ローエン',
-        charge: 8,
+        charge: 9, // 2026-11-03: 8→9
         chargeMax: 200,
         Ability: '制裁の刻',
         // 2026-10-22: 「下から2段目の石を全て破壊(チャージ9・15ターン目から)」は自分の石も消えて弱かった(CPU同士の対戦で36%)ので、相手の石だけに変更

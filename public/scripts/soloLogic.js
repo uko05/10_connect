@@ -378,10 +378,10 @@ function characterBonus(board, charaID = cpuChara?.charaID) {
                 }
             }
             break;
-        case '007': // キャストリス: 外側4列(0,1,5,6)が消去対象 → 自石は避け、相手石は誘導する
+        case '007': // キャストリス: 外側4列(0,1,5,6)が消去対象 → 自石は避け、相手石は誘導する(2026-11-03 自石の減点を弱めた: -3 → -1)
             for (let r = 0; r < rows; r++) {
                 for (const c of [0, 1, 5, 6]) {
-                    if (board[r][c] === CPU_COLOR)    bonus -= 3;
+                    if (board[r][c] === CPU_COLOR)    bonus -= 1;
                     else if (board[r][c] === PLAYER_COLOR) bonus += 3;
                 }
             }
