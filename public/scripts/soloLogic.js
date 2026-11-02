@@ -473,13 +473,30 @@ function minimax(board, depth, alpha, beta, maximizing) {
     }
 }
 
+// 花火の色反転中(プレイヤーが花火を使った直後のCPUの番)は、CPUの石がプレイヤーの色で落ちる。
+// 2026-11-03: 以前はそれを知らずに普段どおり選んでいたため、プレイヤーの3つ並びを「ふさいだ」つもりで
+// プレイヤーの4つ並びを完成させていた。最初の1手だけ「プレイヤーの色を置く」として読み、一番被害の少ない列を選ぶ。
+function minimaxSwappedRoot(board, depth, allowed) {
+    let best = -Infinity, bestCol;
+    for (const c of validColumnsOnBoard(board).filter(allowed)) {
+        const row = dropRowOnBoard(board, c);
+        board[row][c] = PLAYER_COLOR;
+        const score = minimax(board, Math.max(0, depth - 1), -Infinity, Infinity, false).score;
+        board[row][c] = null;
+        if (score > best) { best = score; bestCol = c; }
+    }
+    return { score: best, column: bestCol };
+}
+
 function pickAiColumn() {
     minimaxNodeCount = 0;
     const board = boardFromStones();
     const depth = getCpuSearchDepth();
-    const result = minimax(board, depth, -Infinity, Infinity, true);
     // 鍾離の封鎖列を考慮：プレイヤー発動時のみCPUに封鎖適用
     const isZhongliBlockedForCpu = (c) => zhongliCasterSide === 'player' && zhongliBlockedCols.includes(c);
+    const result = applyColorSwap(CPU_COLOR) !== CPU_COLOR
+        ? minimaxSwappedRoot(board, depth, (c) => !isZhongliBlockedForCpu(c))
+        : minimax(board, depth, -Infinity, Infinity, true);
     const validNonBlocked = getValidColumns().filter(c => !isZhongliBlockedForCpu(c));
     if (validNonBlocked.length === 0) return getValidColumns()[0]; // 全列封鎖（理論上ありえない）
     if (result.column !== undefined && !isZhongliBlockedForCpu(result.column) && getDropRow(result.column) >= 0) {
