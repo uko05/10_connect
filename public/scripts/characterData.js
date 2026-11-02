@@ -66,7 +66,7 @@ export const characterData = [
         src: 'public/chara/hanabi.png', 
         charaID: '005', 
         name: '花火', 
-        charge: 9, 
+        charge: 10, // 2026-11-03: 9→10(CPUの打ち方の調整で勝率が下がったため) 
         chargeMax: 200,
         Ability: '一人千役', 
         AbilityDetail: '【愉悦】このターンと次の相手のターン、打つ石の色を逆転させる。勝敗判定などは元の色で行う。（1ターン前に相手が「一人千役」を使用した場合、発動できない。）', 
@@ -130,7 +130,7 @@ export const characterData = [
         src: 'public/chara/hotaru.png',
         charaID: '009',
         name: 'ホタル',
-        charge: 16,
+        charge: 17, // 2026-11-03: 16→17(同上)
         chargeMax: 200,
         Ability: 'ファイアフライ-Ⅳ-完全燃焼',
         AbilityDetail: '【連続攻撃】ランダムな縦1列を選択する。その列に自分の石を投下する。(5ターン目から発動可能)',
