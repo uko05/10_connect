@@ -473,19 +473,32 @@ function minimax(board, depth, alpha, beta, maximizing) {
     }
 }
 
+// 同じ盤面でいつも同じ手にならないよう、一番いい手との点差がこの幅以内の手からランダムに選ぶ(2026-11-03)。
+// BAKATARE は強さを保つため完全に同点の時だけ。勝ち・負けが読めている時は幅を使わず最善の手だけから選ぶ。
+const CPU_RANDOM_MARGIN = { easy: 6, normal: 3, hard: 2, bakatare: 0 };
+
+// 最初の1手の列ごとに点数を出し、候補の中からランダムに選ぶ。firstColor は最初の1手で実際に落ちる色。
 // 花火の色反転中(プレイヤーが花火を使った直後のCPUの番)は、CPUの石がプレイヤーの色で落ちる。
-// 2026-11-03: 以前はそれを知らずに普段どおり選んでいたため、プレイヤーの3つ並びを「ふさいだ」つもりで
-// プレイヤーの4つ並びを完成させていた。最初の1手だけ「プレイヤーの色を置く」として読み、一番被害の少ない列を選ぶ。
-function minimaxSwappedRoot(board, depth, allowed) {
-    let best = -Infinity, bestCol;
+// 2026-11-03: 以前はそれを知らずに選んでいたため、プレイヤーの3つ並びを「ふさいだ」つもりで4つ並びを完成させていた。
+// 点数の比較に必要な所だけ読むよう、それまでの最善 - 幅 より悪いと分かった列はそこで読むのをやめる(alpha)。
+function chooseRootColumn(board, depth, allowed, firstColor, margin) {
+    const scored = [];
+    let best = -Infinity;
     for (const c of validColumnsOnBoard(board).filter(allowed)) {
         const row = dropRowOnBoard(board, c);
-        board[row][c] = PLAYER_COLOR;
-        const score = minimax(board, Math.max(0, depth - 1), -Infinity, Infinity, false).score;
+        board[row][c] = firstColor;
+        const alpha = best === -Infinity ? -Infinity : best - margin - 1;
+        const score = minimax(board, Math.max(0, depth - 1), alpha, Infinity, false).score;
         board[row][c] = null;
-        if (score > best) { best = score; bestCol = c; }
+        if (score > alpha) {
+            scored.push({ c, score });
+            if (score > best) best = score;
+        }
     }
-    return { score: best, column: bestCol };
+    if (!scored.length) return undefined;
+    const limit = Math.abs(best) >= 500000 ? best : best - margin;
+    const cands = scored.filter((s) => s.score >= limit);
+    return cands[Math.floor(Math.random() * cands.length)].c;
 }
 
 function pickAiColumn() {
@@ -494,9 +507,10 @@ function pickAiColumn() {
     const depth = getCpuSearchDepth();
     // 鍾離の封鎖列を考慮：プレイヤー発動時のみCPUに封鎖適用
     const isZhongliBlockedForCpu = (c) => zhongliCasterSide === 'player' && zhongliBlockedCols.includes(c);
-    const result = applyColorSwap(CPU_COLOR) !== CPU_COLOR
-        ? minimaxSwappedRoot(board, depth, (c) => !isZhongliBlockedForCpu(c))
-        : minimax(board, depth, -Infinity, Infinity, true);
+    const result = {
+        column: chooseRootColumn(board, depth, (c) => !isZhongliBlockedForCpu(c),
+            applyColorSwap(CPU_COLOR), CPU_RANDOM_MARGIN[getCpuDifficulty()] ?? 0),
+    };
     const validNonBlocked = getValidColumns().filter(c => !isZhongliBlockedForCpu(c));
     if (validNonBlocked.length === 0) return getValidColumns()[0]; // 全列封鎖（理論上ありえない）
     if (result.column !== undefined && !isZhongliBlockedForCpu(result.column) && getDropRow(result.column) >= 0) {
