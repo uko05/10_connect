@@ -15,6 +15,7 @@ import { playDiceRoll } from "./diceRoll.js";
 import { gravityFlip, flipTouchNeighbors, bombBlastKeys, bestBombTargets, bestBombValue, otherColor, drawBombMarker, playGravityFlipAnimation, BOMB_TURNS, pickMaxEnemyColumn, pickMaxEnemyRow, pickTopEnemyColumns, ALHAITHAM_COLS, CASTORICE_COLS, CASTORICE_REFUND } from "./specialAbilities.js";
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
+import { styleWeights, extraCharaBonus, WHIMSICAL_CHARAS } from "./engine/connectEngine.js";
 import { authReady } from "./firebaseConfig.js";
 import { recordSoloWin, recordSoloResult, recordChallengeClear, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
 import { getUserRating } from "./eloRating.js";
@@ -315,7 +316,8 @@ function checkWinOnBoard(board) {
 }
 
 // 4セット連続の「窓」をヒューリスティック評価する（古典的なConnect4の評価関数）
-function scoreWindow(window, color) {
+// w: キャラの性格の重み(engine/connectEngine.js の styleWeights。攻め寄り・守り寄り、2026-11-03)
+function scoreWindow(window, color, w = [5, 2, -4, -1]) {
     const opp = color === CPU_COLOR ? PLAYER_COLOR : CPU_COLOR;
     const mine = window.filter(v => v === color).length;
     const theirs = window.filter(v => v === opp).length;
@@ -323,10 +325,10 @@ function scoreWindow(window, color) {
 
     if (mine === 4) return 100000;
     if (theirs === 4) return -100000;
-    if (mine === 3 && empty === 1) return 5;
-    if (mine === 2 && empty === 2) return 2;
-    if (theirs === 3 && empty === 1) return -4;
-    if (theirs === 2 && empty === 2) return -1;
+    if (mine === 3 && empty === 1) return w[0];
+    if (mine === 2 && empty === 2) return w[1];
+    if (theirs === 3 && empty === 1) return w[2];
+    if (theirs === 2 && empty === 2) return w[3];
     return 0;
 }
 
@@ -389,7 +391,9 @@ function characterBonus(board, charaID = cpuChara?.charaID) {
                 if (board[4][c] === PLAYER_COLOR) bonus += 5;
             }
             break;
-        case '006': // マダム・ヘルタ(2026-10-22〜): 相手の石が一番多い横1段を消す技なので、置き方の補正はしない
+        default:
+            // 魈・ヘルタ・クレー・フリーナ・アッハ・ケリュドラ・花火(2026-11-03)。ランク戦のCPUと同じ点(engine/connectEngine.js)
+            bonus += extraCharaBonus(board, CPU_COLOR, charaID);
             break;
     }
     return bonus;
@@ -397,6 +401,7 @@ function characterBonus(board, charaID = cpuChara?.charaID) {
 
 function evaluateBoard(board, color) {
     let score = 0;
+    const w = styleWeights(cpuChara?.charaID);
     const centerCol = Math.floor(cols / 2);
 
     for (let r = 0; r < rows; r++) {
@@ -406,22 +411,22 @@ function evaluateBoard(board, color) {
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c <= cols - 4; c++) {
-            score += scoreWindow([board[r][c], board[r][c + 1], board[r][c + 2], board[r][c + 3]], color);
+            score += scoreWindow([board[r][c], board[r][c + 1], board[r][c + 2], board[r][c + 3]], color, w);
         }
     }
     for (let c = 0; c < cols; c++) {
         for (let r = 0; r <= rows - 4; r++) {
-            score += scoreWindow([board[r][c], board[r + 1][c], board[r + 2][c], board[r + 3][c]], color);
+            score += scoreWindow([board[r][c], board[r + 1][c], board[r + 2][c], board[r + 3][c]], color, w);
         }
     }
     for (let r = 0; r <= rows - 4; r++) {
         for (let c = 0; c <= cols - 4; c++) {
-            score += scoreWindow([board[r][c], board[r + 1][c + 1], board[r + 2][c + 2], board[r + 3][c + 3]], color);
+            score += scoreWindow([board[r][c], board[r + 1][c + 1], board[r + 2][c + 2], board[r + 3][c + 3]], color, w);
         }
     }
     for (let r = 0; r <= rows - 4; r++) {
         for (let c = 3; c < cols; c++) {
-            score += scoreWindow([board[r][c], board[r + 1][c - 1], board[r + 2][c - 2], board[r + 3][c - 3]], color);
+            score += scoreWindow([board[r][c], board[r + 1][c - 1], board[r + 2][c - 2], board[r + 3][c - 3]], color, w);
         }
     }
     score += characterBonus(board);
@@ -486,7 +491,9 @@ const CPU_RANDOM_MARGIN = {
 function cpuRandomMargin() {
     const m = CPU_RANDOM_MARGIN[getCpuDifficulty()];
     if (!m) return 0;
-    return Math.random() < m.wideChance ? m.wide : m.base;
+    // 気まぐれなキャラ(アベンチュリン)は、少し低い手を打つ確率が2倍
+    const chance = WHIMSICAL_CHARAS.includes(cpuChara?.charaID) ? Math.min(0.8, m.wideChance * 2) : m.wideChance;
+    return Math.random() < chance ? m.wide : m.base;
 }
 
 // 最初の1手の列ごとに点数を出し、候補の中からランダムに選ぶ。firstColor は最初の1手で実際に落ちる色。

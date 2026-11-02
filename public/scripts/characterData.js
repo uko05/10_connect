@@ -304,7 +304,7 @@ export const characterData = [
         src: 'public/chara/Furina.png',
         charaID: '019',
         name: 'フリーナ',
-        charge: 12,
+        charge: 13, // 2026-11-03: 12→13(CPUの打ち方の調整で勝率が下がったため)
         chargeMax: 200,
         Ability: '万民のカルナバル',
         AbilityDetail: '【反転】このターンに置いた石の左右の石の色を反転させ、最後に置いた石自身も相手の色になる。(6ターン目から発動可能)',
