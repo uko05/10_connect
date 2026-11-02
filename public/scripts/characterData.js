@@ -36,7 +36,7 @@ export const characterData = [
         charaID: '003', 
         name: 'アルハイゼン', 
         // 2026-10-25: 「中央3列からランダム2列(チャージ14)」から変更。旧処理 ult_randomCenter2Delete は残してある
-        charge: 11, 
+        charge: 12, // 2026-11-03: 11→12 
         chargeMax: 200,
         Ability: '殊境・顕象結縛', 
         AbilityDetail: '【破壊】中央縦3列の内、相手の石が多い縦2列を選択する。その列の石を全て破壊する。(10ターン目から発動可能)', 
