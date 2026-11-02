@@ -6,7 +6,7 @@
 
     <title>原壊：コネクトバトル（設定・プレイヤー情報）</title>
     <link rel="stylesheet" href="public/style_settings.css">
-    <link rel="stylesheet" href="public/style.css?v=1.68.5">
+    <link rel="stylesheet" href="public/style.css?v=1.76.0">
     <script type="module" src="public/scripts/playerInfo.js" defer></script>
 
     <!-- Favicon -->
@@ -64,6 +64,24 @@
                 <button type="button" class="pi-tab-btn active" data-pi-tab="basic" data-i18n="piTabBasic">基本設定</button>
                 <button type="button" class="pi-tab-btn" data-pi-tab="design" data-i18n="piTabHero">デザイン変更</button>
                 <button type="button" class="pi-tab-btn" data-pi-tab="ach" data-i18n="piTabAch">アチーブメント</button>
+                <button type="button" class="pi-tab-btn" data-pi-tab="stats" data-i18n="piTabStats">戦績</button>
+            </div>
+
+            <!-- 戦績(2026-11-03): ランク戦・CPU戦・挑戦シリーズの記録。中身は playerInfo.js の renderStats が作る -->
+            <div class="pi-tab-panel" data-pi-panel="stats" hidden>
+                <details class="design-section" open>
+                    <summary class="design-section-title" data-i18n="statsRankedTitle">ランク戦</summary>
+                    <div class="design-section-body" id="statsRanked"></div>
+                </details>
+                <details class="design-section" open>
+                    <summary class="design-section-title" data-i18n="statsCpuTitle">CPU戦</summary>
+                    <div class="design-section-body" id="statsCpu"></div>
+                </details>
+                <details class="design-section" open>
+                    <summary class="design-section-title" data-i18n="statsChallengeTitle">挑戦シリーズ</summary>
+                    <div class="design-section-body" id="statsChallenge"></div>
+                </details>
+                <p class="stats-note" data-i18n="statsNote">CPU戦と挑戦シリーズの戦績は、2026年11月3日から記録しています（1試合＝3本先取で1回）。</p>
             </div>
 
             <div class="pi-tab-panel" data-pi-panel="ach" hidden>

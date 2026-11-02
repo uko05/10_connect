@@ -2,7 +2,7 @@
 // rating/charaWins には一切触れない（ソロモードの判定もここに限定し、レート・キャラ別勝利数とは完全に分離する）
 import { db } from './firebaseConfig.js';
 import {
-  doc, updateDoc,
+  doc, updateDoc, increment,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { ALL_ACHIEVEMENTS } from './achievements.js';
@@ -70,7 +70,8 @@ function findNewlyUnlocked(ctx, unlockedIds) {
 
 // users/{uid} を読み、patchFn(currentStats) が返すパッチをachStatsにマージし、
 // 新たに解放されたアチーブメントを反映してまとめて書き込む。戻り値は新規解放分のID配列。
-async function applyAchStatsPatch(uid, patchFn) {
+// extraUpdate: 同じ書き込みに一緒に入れる項目(CPU戦の戦績 soloRecords など。書き込み回数を増やさないため)
+async function applyAchStatsPatch(uid, patchFn, extraUpdate = {}) {
     const userRef = doc(db, "connectUsers", uid);
     const snap = await getDoc(userRef);
     const userData = snap.exists() ? snap.data() : {};
@@ -93,20 +94,42 @@ async function applyAchStatsPatch(uid, patchFn) {
         achievements: updatedAchievements,
         achievementCount: updatedAchievements.length,
         ...computeHiddenCharaFields(updatedAchievements),
+        ...extraUpdate,
     });
 
     return newlyUnlocked;
 }
 
+// ===== CPU戦の戦績(2026-11-03、設定画面の「戦績」タブで表示) =====
+// connectUsers.soloRecords = { [難易度]: { w, l, d, c: { [キャラID]: { w, l, d } } } }
+// 1試合(3本先取)ごとに1回数える。挑戦シリーズの試合は challengeRecords に別に数えるので、ここには入れない。
+// 勝ちは recordSoloWin の書き込みに一緒に入れ、負け・引き分けだけ recordSoloResult で1回書き込む。
+const SAFE_KEY = /^[A-Za-z0-9_-]{1,32}$/;
+function soloRecordFields(difficultyId, charaId, key) {
+    if (!SAFE_KEY.test(difficultyId || '')) return {};
+    const fields = { [`soloRecords.${difficultyId}.${key}`]: increment(1) };
+    if (SAFE_KEY.test(charaId || '')) fields[`soloRecords.${difficultyId}.c.${charaId}.${key}`] = increment(1);
+    return fields;
+}
+
+// CPU戦の負け('lose')・引き分け('draw')を記録する
+export async function recordSoloResult(uid, difficultyId, charaId, result) {
+    const key = result === 'draw' ? 'd' : 'l';
+    const fields = soloRecordFields(difficultyId, charaId, key);
+    if (!uid || !Object.keys(fields).length) return;
+    await updateDoc(doc(db, "connectUsers", uid), fields);
+}
+
 // ソロモード：難易度勝利を記録する。rating/charaWinsには一切触れない
-export async function recordSoloWin(uid, difficultyId, charaId) {
+// countRecord: true なら戦績(soloRecords)の勝ちも数える(挑戦シリーズの試合は false)
+export async function recordSoloWin(uid, difficultyId, charaId, { countRecord = false } = {}) {
     return applyAchStatsPatch(uid, () => {
         const patch = { soloWins: { [difficultyId]: true } };
         if (difficultyId === 'bakatare' && charaId) {
             patch.soloBakatareWins = { [charaId]: true };
         }
         return patch;
-    });
+    }, countRecord ? soloRecordFields(difficultyId, charaId, 'w') : {});
 }
 
 // ソロの挑戦モードをクリアした(statKey は challengeManager.js の CLEAR_STAT)。戻り値は新しく解放されたアチーブメントのID

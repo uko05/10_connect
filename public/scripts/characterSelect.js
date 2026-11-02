@@ -15,7 +15,7 @@ import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume, VOICE_GAIN } from './settingsManager.js';
 import { initLang, t, getCharaText, getAchText, getCharaAchText } from './i18n.js';
 import { applyBattleBackground, getMyStoneSkinCode } from './designSettings.js';
-import { CHALLENGE_MODES, CHALLENGE_INFO, challengeText, canChallenge, loadProgress, saveProgress, nextMatch, setSoloChallenge, clearSoloChallenge } from './challengeManager.js';
+import { CHALLENGE_MODES, CHALLENGE_INFO, challengeText, canChallenge, loadProgress, saveProgress, nextMatch, setSoloChallenge, clearSoloChallenge, challengeResultFields } from './challengeManager.js';
 
 // 背景(プレイヤー情報 > デザイン変更 で選んだもの)
 applyBattleBackground();
@@ -1274,7 +1274,8 @@ async function initSoloModeSwitch() {
     // 試合の途中で画面を閉じた挑戦は失敗(最初から)にする
     const abandoned = CHALLENGE_MODES.filter((m) => challengeProgress[m]?.playing);
     for (const m of abandoned) {
-        try { await saveProgress(currentUid, m, null); } catch (e) { /* 次回また判定する */ }
+        // 戦績には失敗として数える(勝った数は途中で抜けた試合の前まで)
+        try { await saveProgress(currentUid, m, null, challengeResultFields(m, 'fails', nextMatch(m, challengeProgress[m]).done)); } catch (e) { /* 次回また判定する */ }
         delete challengeProgress[m];
     }
     if (abandoned.length) {

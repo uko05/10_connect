@@ -22,10 +22,12 @@ applyBattleBackground();
 import { getHubHeroSetting, setHubHeroSetting, heroCandidates, heroWins, canFixHero, HERO_FIXED_MIN_WINS, syncHubArtUnlocks } from './hubHero.js';
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, VOICE_GAIN } from './settingsManager.js';
 import { initLang, t, getAchGroupName, getAchText, getCharaAchText, getCharaText } from './i18n.js';
+import { CPU_DIFFICULTY_LEVELS } from './settingsManager.js';
+import { CHALLENGE_MODES, challengeText, BASE_IDS, REVERSE_WINS } from './challengeManager.js';
 
 initLang();
 setupSettingsModal('settingsButton', 'settingsModal');
-bindSettingsUI(document.getElementById('basicSettingsPanel')); // 基本設定タブ(音量・クリック操作・言語)
+bindSettingsUI(document.getElementById('basicSettingsPanel'), null, () => renderStats(latestUserData)); // 基本設定タブ(音量・クリック操作・言語)
 
 // ---------- 音量バーの試聴(2026-10-20) ----------
 // バーから指を離した時(change)に、その音量で1回だけ鳴らす。ドラッグ中(input)は鳴らさない。
@@ -129,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nameInput) nameInput.value = latestUserData.playerName || '';
 
         renderRankInfo(latestUserData);
+        renderStats(latestUserData);
         renderTitleSlots(latestUserData);
         renderAchievements();
         renderHeroSetting();
@@ -140,6 +143,96 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('[playerInfo] Auth initialization failed:', error);
     }
 });
+
+// ===== 戦績タブ(2026-11-03) =====
+// ランク戦: matchCount/winCount と charaWins/charaLosses(サーバーが記録)。
+// CPU戦: soloRecords[難易度] = { w, l, d, c: { [キャラID]: { w, l, d } } }(achievementManager.js)。
+// 挑戦シリーズ: challengeRecords[mode] = { clears, fails, best }(challengeManager.js)。
+// どれも画面を開いた時に読んでいる connectUsers の1件から作るので、読み取りは増えない。
+let statsCpuFilter = 'all';
+const escStat = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const statCharaName = (id) => getCharaText(id, 'name') ?? characterData.find((c) => c.charaID === id)?.name ?? id;
+const statCharaIcon = (id) => characterData.find((c) => c.charaID === id)?.src || '';
+function statRate(w, l) {
+    return w + l > 0 ? `${Math.round((w / (w + l)) * 100)}%` : '-';
+}
+// rows: [{ id?, label, w, l, d }]。showDraw なら「分」の列も出す
+function statsTable(rows, firstHeader, showDraw) {
+    if (!rows.length) return `<div class="stats-empty">${escStat(t('statsNone'))}</div>`;
+    const head = `<tr><th class="stats-name">${escStat(firstHeader)}</th><th>${escStat(t('statsWin'))}</th><th>${escStat(t('statsLose'))}</th>${showDraw ? `<th>${escStat(t('statsDraw'))}</th>` : ''}<th>${escStat(t('statsRate'))}</th></tr>`;
+    const body = rows.map((r) => {
+        const icon = r.id ? `<img class="stats-icon" src="${escStat(statCharaIcon(r.id))}" alt="" loading="lazy">` : '';
+        return `<tr${r.total ? ' class="stats-total"' : ''}><td class="stats-name">${icon}<span>${escStat(r.label)}</span></td><td>${r.w}</td><td>${r.l}</td>${showDraw ? `<td>${r.d || 0}</td>` : ''}<td>${statRate(r.w, r.l)}</td></tr>`;
+    }).join('');
+    return `<table class="stats-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+// キャラの行を、試合数の多い順に並べる
+function charaRows(map) {
+    return Object.entries(map)
+        .map(([id, r]) => ({ id, label: statCharaName(id), w: r.w || 0, l: r.l || 0, d: r.d || 0 }))
+        .filter((r) => r.w + r.l + r.d > 0)
+        .sort((a, b) => (b.w + b.l + b.d) - (a.w + a.l + a.d) || a.id.localeCompare(b.id));
+}
+
+function renderStats(userData) {
+    const d = userData || {};
+    // --- ランク戦 ---
+    const rankedEl = document.getElementById('statsRanked');
+    if (rankedEl) {
+        const mc = d.matchCount || 0;
+        const wc = d.winCount || 0;
+        const map = {};
+        Object.entries(d.charaWins || {}).forEach(([id, n]) => { (map[id] ||= {}).w = n; });
+        Object.entries(d.charaLosses || {}).forEach(([id, n]) => { (map[id] ||= {}).l = n; });
+        const rows = charaRows(map);
+        if (mc > 0) rows.unshift({ label: t('statsTotal'), w: wc, l: Math.max(0, mc - wc), total: true });
+        rankedEl.innerHTML = statsTable(rows, t('statsChara'), false);
+    }
+    // --- CPU戦 ---
+    const cpuEl = document.getElementById('statsCpu');
+    if (cpuEl) {
+        const rec = d.soloRecords || {};
+        const levels = CPU_DIFFICULTY_LEVELS.filter((lv) => rec[lv.id]);
+        const sum = { w: 0, l: 0, d: 0 };
+        const diffRows = levels.map((lv) => {
+            const r = rec[lv.id];
+            sum.w += r.w || 0; sum.l += r.l || 0; sum.d += r.d || 0;
+            return { label: lv.label, w: r.w || 0, l: r.l || 0, d: r.d || 0 };
+        });
+        if (diffRows.length > 1) diffRows.unshift({ label: t('statsTotal'), ...sum, total: true });
+        if (statsCpuFilter !== 'all' && !rec[statsCpuFilter]) statsCpuFilter = 'all';
+        // キャラ別: 「すべて」なら全難易度の合計、難易度を選んだらその難易度だけ
+        const charaMap = {};
+        levels.filter((lv) => statsCpuFilter === 'all' || lv.id === statsCpuFilter).forEach((lv) => {
+            Object.entries(rec[lv.id].c || {}).forEach(([id, r]) => {
+                const m = (charaMap[id] ||= { w: 0, l: 0, d: 0 });
+                m.w += r.w || 0; m.l += r.l || 0; m.d += r.d || 0;
+            });
+        });
+        const filterBtns = levels.length
+            ? `<div class="stats-filter">${[{ id: 'all', label: t('statsAll') }, ...levels].map((lv) =>
+                `<button type="button" class="stats-filter-btn${lv.id === statsCpuFilter ? ' active' : ''}" data-diff="${escStat(lv.id)}">${escStat(lv.label)}</button>`).join('')}</div>`
+            : '';
+        cpuEl.innerHTML = statsTable(diffRows, t('statsDiff'), true)
+            + (levels.length ? `${filterBtns}${statsTable(charaRows(charaMap), t('statsChara'), true)}` : '');
+        cpuEl.querySelectorAll('.stats-filter-btn').forEach((btn) => {
+            btn.addEventListener('click', () => { statsCpuFilter = btn.dataset.diff; renderStats(latestUserData); });
+        });
+    }
+    // --- 挑戦シリーズ ---
+    const chEl = document.getElementById('statsChallenge');
+    if (chEl) {
+        const rec = d.challengeRecords || {};
+        const rows = CHALLENGE_MODES.filter((m) => rec[m]).map((m) => {
+            const r = rec[m];
+            const total = m === 'reverse' ? REVERSE_WINS : BASE_IDS.length;
+            return `<tr><td class="stats-name"><span>${escStat(challengeText(m).name)}</span></td><td>${r.clears || 0}</td><td>${r.fails || 0}</td><td>${escStat(t('statsBestValue').replace('{n}', r.best || 0).replace('{total}', total))}</td></tr>`;
+        });
+        chEl.innerHTML = rows.length
+            ? `<table class="stats-table"><thead><tr><th class="stats-name">${escStat(t('statsMode'))}</th><th>${escStat(t('statsClears'))}</th><th>${escStat(t('statsFails'))}</th><th>${escStat(t('statsBest'))}</th></tr></thead><tbody>${rows.join('')}</tbody></table>`
+            : `<div class="stats-empty">${escStat(t('statsNone'))}</div>`;
+    }
+}
 
 // ページのタブ(アチーブメント / タイトル画面 …)の切り替え(2026-10-11)
 document.querySelectorAll('.pi-tab-btn').forEach((btn) => {

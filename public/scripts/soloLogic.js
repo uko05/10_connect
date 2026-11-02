@@ -7,7 +7,7 @@ import { drawPiece as _drawPiece, drawStoneAt as _drawStoneAt, flashScreen as _f
 import { moveSound, chargeSound, AbilityStandby, setupSystemVolumeSlider } from "./audioManager.js";
 import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth as _getCpuSearchDepth, getCpuDifficulty as _getCpuDifficulty, getClickMode, getVoicePlaybackVolume, VOICE_GAIN, CPU_DIFFICULTY_LEVELS } from "./settingsManager.js";
-import { getSoloChallenge, clearSoloChallenge, setSoloChallenge, challengeText, loadProgress, saveProgress, afterWin, nextMatch, CLEAR_STAT, CHALLENGE_INFO } from "./challengeManager.js";
+import { getSoloChallenge, clearSoloChallenge, setSoloChallenge, challengeText, loadProgress, saveProgress, afterWin, nextMatch, CLEAR_STAT, CHALLENGE_INFO, challengeResultFields } from "./challengeManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
@@ -16,7 +16,7 @@ import { gravityFlip, flipTouchNeighbors, bombBlastKeys, bestBombTargets, bestBo
 import { boardFromStones as sharedBoardFromStones, findFirstLine, firstLineColor, hasLineOfColor, collectWinPositions } from "./winCheck.js";
 import { APP_VERSION } from "./version.js";
 import { authReady } from "./firebaseConfig.js";
-import { recordSoloWin, recordChallengeClear, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
+import { recordSoloWin, recordSoloResult, recordChallengeClear, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
 import { getUserRating } from "./eloRating.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 
@@ -1107,7 +1107,7 @@ async function executeAbility(side, charaID) {
                 updateSpecialMoveButtonVisibility();
                 if (side === 'player' && currentUid) {
                     try {
-                        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID, { countRecord: !CHALLENGE });
                         newlyUnlocked.forEach((id) => {
                             showAchievementToast(id);
                             const unlocked = characterData.find(c => c.requiredAchievementId === id);
@@ -1713,7 +1713,7 @@ async function checkGameEnd() {
         if (playerRoundWins >= 3 || cpuRoundWins >= 3) {
             if (winnerSide === 'player' && currentUid) {
                 try {
-                    const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                    const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID, { countRecord: !CHALLENGE });
                     newlyUnlocked.forEach((id) => {
                         showAchievementToast(id);
                         const unlocked = characterData.find(c => c.requiredAchievementId === id);
@@ -1742,7 +1742,7 @@ async function checkGameEnd() {
 
 async function recordSoloWinSafe() {
     try {
-        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID, { countRecord: !CHALLENGE });
         newlyUnlocked.forEach((id) => {
             showAchievementToast(id);
             const unlocked = characterData.find(c => c.requiredAchievementId === id);
@@ -1793,6 +1793,12 @@ async function showFinalResult(result) {
     const burstX = window.innerWidth / 2;
     const burstY = window.innerHeight / 2;
     const score = `${playerRoundWins} - ${cpuRoundWins}`;
+
+    // 戦績(2026-11-03): 勝ちは recordSoloWin で記録済み。負け・引き分けだけここで1回書き込む(挑戦シリーズの試合は別に数える)
+    if (!CHALLENGE && currentUid && result !== 'win') {
+        recordSoloResult(currentUid, getCpuDifficulty(), playerChara?.charaID, result)
+            .catch((e) => console.error('[solo] 戦績の記録に失敗:', e));
+    }
 
     if (result === 'win') {
         winLabel.innerHTML = `${t('winLabelWin')}<br>${score}`;
@@ -1941,7 +1947,7 @@ async function cpuTurn() {
                 updateSpecialMoveButtonVisibility();
                 if (currentUid) {
                     try {
-                        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID);
+                        const newlyUnlocked = await recordSoloWin(currentUid, getCpuDifficulty(), playerChara?.charaID, { countRecord: !CHALLENGE });
                         newlyUnlocked.forEach((id) => {
                             showAchievementToast(id);
                             const unlocked = characterData.find(c => c.requiredAchievementId === id);
@@ -2483,7 +2489,7 @@ async function showChallengeResult(result) {
         if (result === 'win') {
             const r = afterWin(mode, progress);
             if (r.cleared) {
-                await saveProgress(uid, mode, null);
+                await saveProgress(uid, mode, null, challengeResultFields(mode, 'clears', CHALLENGE.total));
                 const ids = await recordChallengeClear(uid, CLEAR_STAT[mode]);
                 ids.forEach((id) => {
                     showAchievementToast(id);
@@ -2500,7 +2506,7 @@ async function showChallengeResult(result) {
                      [isEn() ? 'Take a Break' : '中断してロビーへ', toLobby]]);
             }
         } else if (result === 'lose') {
-            await saveProgress(uid, mode, null);
+            await saveProgress(uid, mode, null, challengeResultFields(mode, 'fails', CHALLENGE.done));
             setBox(isEn() ? `<b>Challenge failed</b><br>Ended at ${CHALLENGE.done} / ${CHALLENGE.total} wins.`
                           : `<b>挑戦失敗</b><br>${CHALLENGE.done} / ${CHALLENGE.total}勝で終了しました。`, [lobbyBtn]);
         } else {

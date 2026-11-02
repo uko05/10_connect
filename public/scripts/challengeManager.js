@@ -9,7 +9,7 @@
 // 結果が出たら外す。次にキャラ選択画面を開いた時に playing が残っていたら失敗として最初からにする)。
 // 挑戦できる条件: 連勝・万象は No.001〜016 をすべて解放済み、逆転は 020 以外をすべて解放済み(UP交換所の017も含む)。
 import { db } from './firebaseConfig.js';
-import { doc, getDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { doc, getDoc, updateDoc, deleteField, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { characterData } from './characterData.js';
 import { getCurrentLang } from './i18n.js';
 
@@ -90,13 +90,28 @@ export function randomReverseChara() {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// 挑戦シリーズの戦績(2026-11-03): connectUsers.challengeRecords = { [mode]: { clears, fails, best } }
+// best は1回の挑戦で一番多く勝った数。loadProgress で一緒に読んだ値と比べるので、読み取りは増えない
+let lastChallengeRecords = {};
 export async function loadProgress(uid) {
     if (!uid) return {};
     const snap = await getDoc(doc(db, 'connectUsers', uid));
+    lastChallengeRecords = (snap.exists() && snap.data().challengeRecords) || {};
     return (snap.exists() && snap.data().challengeProgress) || {};
 }
-export async function saveProgress(uid, mode, data) {
-    await updateDoc(doc(db, 'connectUsers', uid), { [`challengeProgress.${mode}`]: data ?? deleteField() });
+// extra: 同じ書き込みに一緒に入れる項目(challengeResultFields の戻り値)
+export async function saveProgress(uid, mode, data, extra = {}) {
+    await updateDoc(doc(db, 'connectUsers', uid), { [`challengeProgress.${mode}`]: data ?? deleteField(), ...extra });
+}
+// 挑戦が終わった時の戦績。kind は 'clears'(クリア)か 'fails'(失敗)、wins はその挑戦で勝った試合数
+export function challengeResultFields(mode, kind, wins) {
+    const fields = { [`challengeRecords.${mode}.${kind}`]: increment(1) };
+    const best = lastChallengeRecords[mode]?.best || 0;
+    if (wins > best) {
+        fields[`challengeRecords.${mode}.best`] = wins;
+        lastChallengeRecords = { ...lastChallengeRecords, [mode]: { ...(lastChallengeRecords[mode] || {}), best: wins } };
+    }
+    return fields;
 }
 
 // 次の試合の組み合わせ(自分・相手・難易度)。progress が無ければ新しく作る

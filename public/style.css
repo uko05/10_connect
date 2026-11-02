@@ -1980,3 +1980,17 @@ body.hub-page::before {
 .challenge-info-content { max-width: 560px; text-align: left; }
 .challenge-info-content h3 { margin: 6px 0 10px; color: #7b3fbf; text-align: center; }
 .challenge-info-content p { font-size: 15px; line-height: 1.7; margin: 0 6px 8px; white-space: pre-line; }
+
+/* 戦績タブ(2026-11-03、playerInfo.js の renderStats) */
+.stats-table { width: 100%; border-collapse: collapse; font-size: 14px; background: rgba(255, 255, 255, 0.85); border-radius: 8px; overflow: hidden; margin: 2px 0 8px; }
+.stats-table th, .stats-table td { padding: 5px 6px; text-align: center; border-bottom: 1px solid rgba(0, 0, 0, 0.08); color: #222; white-space: nowrap; }
+.stats-table th { background: rgba(201, 150, 43, 0.25); font-weight: bold; font-size: 13px; }
+.stats-table .stats-name { text-align: left; white-space: normal; }
+.stats-table td.stats-name { display: flex; align-items: center; gap: 6px; }
+.stats-table tr.stats-total td { font-weight: bold; background: rgba(201, 150, 43, 0.1); }
+.stats-icon { width: 26px; height: 26px; object-fit: cover; object-position: top; border-radius: 50%; flex-shrink: 0; }
+.stats-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 6px; }
+.stats-filter-btn { padding: 4px 10px; font-size: 13px; font-weight: bold; color: #555; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 6px; cursor: pointer; }
+.stats-filter-btn.active { color: #222; background: rgba(255, 255, 255, 0.95); border-color: #c9962b; }
+.stats-empty { font-size: 13px; color: #444; text-align: left; padding: 4px 2px 8px; }
+.stats-note { font-size: 12px; color: #444; text-align: left; margin: 4px 2px 10px; line-height: 1.5; }
