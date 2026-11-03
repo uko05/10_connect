@@ -75,9 +75,6 @@ document.getElementById('goCpuButton').addEventListener('click', () => {
 document.getElementById('goMatchButton').addEventListener('click', () => {
     window.location.href = 'select.html?mode=match';
 });
-// お知らせ
-setupNews('hubNewsButton', 'newsModal');
-
 document.getElementById('goPlayerInfoButton').addEventListener('click', () => {
     window.location.href = 'playerInfo.html';
 });
@@ -98,6 +95,9 @@ const myDataPromise = (async () => {
         return undefined; // 読み込み失敗(ランク欄は出さない)
     }
 })();
+
+// お知らせ(隠しキャラの名前は解放済みの人にだけ出す)
+setupNews('hubNewsButton', 'newsModal', myDataPromise);
 
 function showHero(userData) {
     const img = document.getElementById('hubHeroImg');

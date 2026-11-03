@@ -2060,6 +2060,7 @@ body.hub-page::before {
 .news-item-date { font-size: 12px; opacity: 0.65; }
 .news-item-title { margin: 2px 0 6px; font-size: 16px; }
 .news-item-body p { margin: 2px 0; font-size: 14px; line-height: 1.6; }
+.news-item-body .news-chara { padding-left: 1.2em; }
 
 @media (min-width: 1400px) and (min-height: 700px) {
     .hub-page .hub-news { font-size: 15px; padding: 11px 18px; }

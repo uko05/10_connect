@@ -1,44 +1,20 @@
 // news.js - トップ画面の「お知らせ」(2026-11-03)
 // 新しいお知らせは NEWS の先頭に足す。データベースは使わない(読み取り数が増えない)。
 // 前回見た一番新しいお知らせの id を localStorage に覚えておき、それより新しいものがあれば印を出す。
-import { getCurrentLang } from './i18n.js';
+import { getCurrentLang, getCharaText } from './i18n.js';
+import { characterData, isCharaUnlocked } from './characterData.js';
 
+// charges: チャージを変えたキャラ。名前は characterData から出し、見ている人がまだ解放していない隠しキャラは「？？？」にする
 export const NEWS = [
     {
         id: '2026-11-03',
         date: '2026-11-03',
-        ja: {
-            title: 'キャラクターのチャージ修正',
-            lines: [
-                '下記のキャラのチャージを修正しました。',
-                'アルハイゼン（11→12）',
-                'ナヴィア（9→10）',
-                '花火（9→10）',
-                'キャストリス（15→16）',
-                '魈（13→11）',
-                'ホタル（16→18）',
-                'ローエン（8→10）',
-                '鍾離（15→16）',
-                'フリーナ（12→14）',
-                '星神★アッハ（15→14）',
-            ],
-        },
-        en: {
-            title: 'Character charge changes',
-            lines: [
-                'The charge of the following characters has been changed.',
-                'Alhaitham (11→12)',
-                'Navia (9→10)',
-                'Sparkle (9→10)',
-                'Castorice (15→16)',
-                'Xiao (13→11)',
-                'Firefly (16→18)',
-                'Lohen (8→10)',
-                'Zhongli (15→16)',
-                'Furina (12→14)',
-                'Aeon ★ Aha (15→14)',
-            ],
-        },
+        ja: { title: 'キャラクターのチャージ修正', intro: '下記のキャラのチャージを修正しました。' },
+        en: { title: 'Character charge changes', intro: 'The charge of the following characters has been changed.' },
+        charges: [
+            ['003', 11, 12], ['004', 9, 10], ['005', 9, 10], ['007', 15, 16], ['008', 13, 11],
+            ['009', 16, 18], ['011', 8, 10], ['012', 15, 16], ['019', 12, 14], ['020', 15, 14],
+        ],
     },
 ];
 
@@ -64,8 +40,29 @@ function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function charaLabel(id, achievements) {
+    const c = characterData.find((x) => x.charaID === id);
+    if (!c || !isCharaUnlocked(c, achievements)) return '？？？';
+    return getCharaText(id, 'name') || c.name;
+}
+
+function renderList(achievements) {
+    const ja = getCurrentLang() === 'ja';
+    return NEWS.map((n) => {
+        const tx = textOf(n);
+        const lines = (n.charges || []).map(([id, from, to]) =>
+            `<p class="news-chara">${escapeHtml(charaLabel(id, achievements))}${ja ? `（${from}→${to}）` : ` (${from}→${to})`}</p>`);
+        return `<article class="news-item">
+            <div class="news-item-date">${formatDate(n.date)}</div>
+            <h3 class="news-item-title">${escapeHtml(tx.title)}</h3>
+            <div class="news-item-body"><p>${escapeHtml(tx.intro)}</p>${lines.join('')}</div>
+        </article>`;
+    }).join('');
+}
+
 // buttonId: トップ画面のお知らせの行、modalId: 一覧を出すモーダル
-export function setupNews(buttonId, modalId) {
+// userDataPromise: トップ画面で読んでいるプレイヤー情報(解放済みアチーブの判定に使う。追加の読み取りはしない)
+export function setupNews(buttonId, modalId, userDataPromise) {
     const btn = document.getElementById(buttonId);
     const modal = document.getElementById(modalId);
     if (!btn || !modal || !NEWS.length) return;
@@ -77,17 +74,12 @@ export function setupNews(buttonId, modalId) {
     dot.hidden = readSeen() >= latest.id;
     btn.hidden = false;
 
-    modal.querySelector('.news-list').innerHTML = NEWS.map((n) => {
-        const tx = textOf(n);
-        return `<article class="news-item">
-            <div class="news-item-date">${formatDate(n.date)}</div>
-            <h3 class="news-item-title">${escapeHtml(tx.title)}</h3>
-            <div class="news-item-body">${tx.lines.map((l) => `<p>${escapeHtml(l)}</p>`).join('')}</div>
-        </article>`;
-    }).join('');
+    let achievements = new Set();
+    Promise.resolve(userDataPromise).then((d) => { achievements = new Set(d?.achievements || []); }).catch(() => {});
 
     const close = () => { modal.style.display = 'none'; };
     btn.addEventListener('click', () => {
+        modal.querySelector('.news-list').innerHTML = renderList(achievements);
         modal.style.display = 'block';
         writeSeen(latest.id);
         dot.hidden = true;
