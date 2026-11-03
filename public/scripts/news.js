@@ -7,6 +7,25 @@ import { characterData, isCharaUnlocked } from './characterData.js';
 // charges: チャージを変えたキャラ。名前は characterData から出し、見ている人がまだ解放していない隠しキャラは「？？？」にする
 export const NEWS = [
     {
+        id: '2026-11-20',
+        date: '2026-11-20',
+        ja: { title: 'メンテナンスのお知らせ（テスト）', intro: 'テスト用のお知らせです。11/21 2:00〜3:00 にメンテナンスを行います。' },
+        en: { title: 'Maintenance (test)', intro: 'This is a test announcement.' },
+    },
+    {
+        id: '2026-11-17',
+        date: '2026-11-17',
+        ja: { title: 'キャラクターのチャージ修正（テスト）', intro: '下記のキャラのチャージを修正しました。' },
+        en: { title: 'Character charge changes (test)', intro: 'The charge of the following characters has been changed.' },
+        charges: [['001', 14, 15], ['002', 15, 14], ['006', 10, 11], ['013', 14, 13], ['018', 16, 15]],
+    },
+    {
+        id: '2026-11-14',
+        date: '2026-11-14',
+        ja: { title: '新しいアチーブメント追加（テスト）', intro: 'テスト用のお知らせです。長めの文章がどう折り返されるかを確認するため、少し長く書いています。新しいアチーブメントを5つ追加しました。' },
+        en: { title: 'New achievements (test)', intro: 'This is a test announcement.' },
+    },
+    {
         id: '2026-11-10',
         date: '2026-11-10',
         ja: { title: '新キャラクター追加（テスト）', intro: 'テスト用のお知らせです。キャラの行がない形の表示確認。' },
