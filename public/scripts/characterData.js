@@ -115,7 +115,7 @@ export const characterData = [
         src: 'public/chara/Xiao.png',
         charaID: '008',
         name: '魈',
-        charge: 12, // 2026-11-03: 13→12(CPUどうしの勝率が74%と高かったため)
+        charge: 11, // 2026-11-03: 13→11(CPUどうしの勝率が70%前後と高かったため)
         chargeMax: 200,
         Ability: '靖妖儺舞',
         AbilityDetail: '【破壊】相手の石が一番多い縦1列を選択し、その列の石を全て破壊する。(6ターン目から発動可能)',
