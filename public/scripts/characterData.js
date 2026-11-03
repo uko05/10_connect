@@ -162,7 +162,7 @@ export const characterData = [
         src: 'public/chara/Roen.png',
         charaID: '011',
         name: 'ローエン',
-        charge: 9, // 2026-11-03: 8→9
+        charge: 10, // 2026-11-03: 8→10
         chargeMax: 200,
         Ability: '制裁の刻',
         // 2026-10-22: 「下から2段目の石を全て破壊(チャージ9・15ターン目から)」は自分の石も消えて弱かった(CPU同士の対戦で36%)ので、相手の石だけに変更
@@ -304,7 +304,7 @@ export const characterData = [
         src: 'public/chara/Furina.png',
         charaID: '019',
         name: 'フリーナ',
-        charge: 13, // 2026-11-03: 12→13(CPUの打ち方の調整で勝率が下がったため)
+        charge: 14, // 2026-11-03: 12→14(CPUの打ち方の調整で勝率が下がったため)
         chargeMax: 200,
         Ability: '万民のカルナバル',
         AbilityDetail: '【反転】このターンに置いた石の左右の石の色を反転させ、最後に置いた石自身も相手の色になる。(6ターン目から発動可能)',
