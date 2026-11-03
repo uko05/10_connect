@@ -1341,13 +1341,16 @@ function immediateThreatIn(sim, color) {
     }
     return false;
 }
-// 重力反転: 反転でCPUだけ並ぶなら使う。相手が並ぶなら使わない。相手の即詰めを反転で消せるなら使う
+// 重力反転: 反転でCPUだけ並ぶなら使う。相手が並ぶ・反転後に相手がすぐ並べるなら使わない。
+// それ以外は、相手の即詰めを反転で消せる時か、反転後にCPUが次の1手で並べる時に使う
+// (2026-11-03: 以前は後者で使わなかったため、ゲージがたまっても出番がほとんどなかった)
 function cpuShouldGravityFlip() {
     const sim = gravityFlip(stones, rows, cols).stones;
     const board = sharedBoardFromStones(sim, rows, cols);
     if (hasLineOfColor(board, PLAYER_COLOR)) return false;
     if (hasLineOfColor(board, CPU_COLOR)) return true;
-    return hasImmediateThreat(PLAYER_COLOR) && !immediateThreatIn(sim, PLAYER_COLOR);
+    if (immediateThreatIn(sim, PLAYER_COLOR)) return false;
+    return hasImmediateThreat(PLAYER_COLOR) || immediateThreatIn(sim, CPU_COLOR);
 }
 // 爆弾: 爆弾にする石で「壊れる相手の石 − 壊れる自分の石」が3以上になるなら使う
 function cpuShouldBomb() {

@@ -323,7 +323,7 @@ export const characterData = [
         src: 'public/chara/AHA.png',
         charaID: '020',
         name: '星神★アッハ',
-        charge: 15,
+        charge: 14, // 2026-11-03: 15→14(CPUが必殺技をうまく使うようにしたため。人が使う時も同じ使い方ができるので少し下げた)
         chargeMax: 200,
         Ability: 'ひっくり返しの大喝采',
         AbilityDetail: '【反転】盤面を上下にひっくり返し、石を重力で落とし直す(各列の石の積み順が逆になる)。(8ターン目から発動可能)',

@@ -37,7 +37,7 @@
       }
     </script>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
-    <link rel="stylesheet" href="public/style.css?v=1.68.5"> <!-- スタイルシートのリンク -->
+    <link rel="stylesheet" href="public/style.css?v=1.79.0"> <!-- スタイルシートのリンク -->
     <script type="module" src="public/scripts/main.js" defer></script> <!-- JavaScriptファイルの読み込み -->
 
     <!-- Favicon -->
@@ -149,8 +149,24 @@
             </span>
             <span class="hub-btn-arrow" aria-hidden="true">›</span>
         </button>
+        <!-- お知らせ(一番新しいものの見出しだけ出し、押すと一覧。news.js) -->
+        <button id="hubNewsButton" class="hub-news" hidden>
+            <span class="hub-news-label">NEWS</span>
+            <span class="hub-news-date"></span>
+            <span class="hub-news-title"></span>
+            <span class="hub-news-dot" hidden></span>
+            <span class="hub-news-arrow" aria-hidden="true">›</span>
+        </button>
     </div>
     </main>
+
+    <div id="newsModal" class="modal news-modal">
+      <div class="modal-content news-modal-content">
+        <span class="close">&times;</span>
+        <h2 class="news-modal-title" data-i18n="newsTitle">お知らせ</h2>
+        <div class="news-list"></div>
+      </div>
+    </div>
 
     <div id="version"></div>
 
