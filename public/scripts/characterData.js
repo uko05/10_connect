@@ -130,7 +130,7 @@ export const characterData = [
         src: 'public/chara/hotaru.png',
         charaID: '009',
         name: 'ホタル',
-        charge: 17, // 2026-11-03: 16→17(同上)
+        charge: 18, // 2026-11-03: 16→18(CPUの打ち方の調整で勝率が下がったため)
         chargeMax: 200,
         Ability: 'ファイアフライ-Ⅳ-完全燃焼',
         AbilityDetail: '【連続攻撃】ランダムな縦1列を選択する。その列に自分の石を投下する。(5ターン目から発動可能)',
@@ -180,7 +180,7 @@ export const characterData = [
         src: 'public/chara/Shori.png',
         charaID: '012',
         name: '鍾離',
-        charge: 15,
+        charge: 16, // 2026-11-03: 15→16(CPUどうしの勝率が38%と低かったため)
         chargeMax: 200,
         Ability: '天星',
         AbilityDetail: '【封鎖】石を投下できる列からランダムに2列を選択し相手のみ封鎖する。自分はその列に投下可能。次の自分のターン開始時にも再度発動する（列は再抽選）。この効果を3回繰り返す。(5ターン目から発動可能)',
