@@ -2059,8 +2059,7 @@ body.hub-page::before {
 .news-item:first-child { border-top: none; padding-top: 0; }
 .news-item-date { font-size: 12px; opacity: 0.65; }
 .news-item-title { margin: 2px 0 6px; font-size: 16px; }
-.news-item ul { margin: 0; padding-left: 1.3em; }
-.news-item li { margin: 4px 0; font-size: 14px; line-height: 1.6; }
+.news-item-body p { margin: 2px 0; font-size: 14px; line-height: 1.6; }
 
 @media (min-width: 1400px) and (min-height: 700px) {
     .hub-page .hub-news { font-size: 15px; padding: 11px 18px; }
@@ -2071,5 +2070,5 @@ body.hub-page::before {
     .hub-page .hub-news { margin-top: 6px; padding: 6px 12px; font-size: 11px; }
     .hub-news-label, .hub-news-date { font-size: 10px; }
     .news-modal .news-modal-content { max-height: 88vh; padding: 12px 16px; }
-    .news-item li { font-size: 12px; }
+    .news-item-body p { font-size: 12px; }
 }
