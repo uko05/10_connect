@@ -120,6 +120,16 @@ Claude Code must:
 APP_VERSION is also what `public/scripts/versionGuard.js` compares when a player starts a CPU battle or matchmaking:
 if the published version.js differs, the tab is told to reload. Bumping APP_VERSION therefore makes stale tabs reload before their next battle.
 
+## あそびかた（右上のボタン）を最新に保つ（2026-11-08 ユーザー指示）
+
+- 「あそびかた」の中身は `public/scripts/helpGuide.js`（スライドの文字、日英）と `public/help/*.jpg`（スクショ）。
+- **ルール・数値・画面・ボタン名など、あそびかたに書いてあることに影響する修正をしたら、同じ作業の中で必ずここも直す。**
+  - 文字: helpGuide.js の SLIDES を直す（日本語と英語の両方）。
+  - 画像: `python -m http.server 8123 --bind 127.0.0.1` を起動して `python tools/help_screenshots.py` で撮り直す。
+    撮り方（どのキャラ・どの盤面か、切り抜く位置）はスクリプトの中にある。画面の配置が変わったら切り抜き位置も直す。
+  - 撮り直した画像は開いて目で確認する。
+- 影響しない修正なら触らなくてよい。
+
 ## 今後の予定（メモ）
 
 - **リリース時に入れるもの（2026-11-07 決定）**: ガチャ機能・ログインボーナス・バトル後にもらえるUP を、できる限り全部入れた状態でリリースする。
