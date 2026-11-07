@@ -9,6 +9,7 @@ import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getCpuSearchDepth as _getCpuSearchDepth, getCpuDifficulty as _getCpuDifficulty, getClickMode, getVoicePlaybackVolume, VOICE_GAIN, CPU_DIFFICULTY_LEVELS } from "./settingsManager.js";
 import { getSoloChallenge, clearSoloChallenge, setSoloChallenge, challengeText, loadProgress, saveProgress, afterWin, nextMatch, CLEAR_STAT, CHALLENGE_INFO, challengeResultFields } from "./challengeManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
+import './helpGuide.js'; // あそびかたのスライド
 import { getRandomTwoNumbers, getRandomThreeNumbers, getRandomElements } from "./abilities.js";
 import { characterData, TEST_ALL_CHARAS_UNLOCKED } from "./characterData.js";
 import { playDiceRoll } from "./diceRoll.js";

@@ -11,6 +11,7 @@ import { authReady } from './firebaseConfig.js';
 import { getUserRating } from './eloRating.js';
 import { getRankByRating, getRankBadgePath } from './rankConfig.js';
 import { setupNews } from './news.js';
+import './helpGuide.js'; // あそびかたのスライド
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');

@@ -32,6 +32,7 @@ import { setupScaledLayout, setupMobileBoardLayout } from "./layoutScaler.js";
 import { ensureUserDoc, writeBO3Result, deleteRoomAfterRating, getRoomDocRef, getUserRating, applyRatingDisplay } from "./eloRating.js";
 import { setupSettingsModal, bindSettingsUI, getDisplayColor, getUltIntensity, getClickMode, getSystemVolume, getVoicePlaybackVolume, VOICE_GAIN } from "./settingsManager.js";
 import { initLang, t, getCharaText } from "./i18n.js";
+import './helpGuide.js'; // あそびかたのスライド
 import { recordPvpMatchAchievements, applyTitleDisplay, refreshTitleDisplay } from "./achievementManager.js";
 import { showAchievementToast, showCharacterUnlockModal } from "./achievementToast.js";
 

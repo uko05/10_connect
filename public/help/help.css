@@ -1,0 +1,87 @@
+/* あそびかた(helpGuide.js)のスライド。トップ・キャラ選択・対戦・CPU戦で共通 */
+#helpModal.help-modal .modal-content {
+  width: min(94vw, 1000px);
+  max-width: none;
+  padding: 18px 0 12px;
+  text-align: left;
+  color: #333;
+}
+#helpModal.help-modal .close {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  z-index: 2;
+}
+#helpModal.help-modal .slider-btn { z-index: 2; }
+
+.help-slide { padding: 0 56px; box-sizing: border-box; }
+.help-slide.active { display: flex; flex-direction: column; min-height: min(560px, 76vh); }
+.help-slide .help-page { margin-top: auto; padding-top: 12px; }
+.help-slide .help-lang { display: flex; flex-direction: column; gap: 14px; }
+.help-slide .help-lang[hidden] { display: none; }
+
+.help-media { display: flex; gap: 10px; justify-content: center; align-items: flex-start; }
+.help-media img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+/* 画像が上・文字が下 */
+.help-wide .help-media img { max-height: 46vh; width: auto; min-width: 0; flex: 0 1 auto; }
+.help-wide .help-media img + img { max-width: 49%; }
+.help-wide .help-media img:first-child:not(:only-child) { max-width: 49%; }
+/* 画像が左・文字が右 */
+.help-tall .help-lang,
+.help-rank .help-lang { flex-direction: row; align-items: flex-start; }
+.help-tall .help-media { flex: 0 0 auto; max-width: 42%; }
+.help-tall .help-media img { max-height: 66vh; width: auto; }
+.help-tall .help-text,
+.help-rank .help-text { flex: 1 1 0; min-width: 0; }
+.help-rank .help-media { flex: 0 0 auto; }
+
+.help-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  color: #c4571a;
+  border-bottom: 2px solid #f0c9a8;
+  padding-bottom: 6px;
+}
+.help-body { margin: 0; padding-left: 1.3em; }
+.help-body li { margin: 0 0 8px; line-height: 1.65; font-size: 15px; list-style: disc; }
+.help-body b { color: #b23c17; }
+
+.help-page { text-align: center; font-size: 12px; color: #888; }
+
+/* ランク一覧 */
+.help-rank-list { list-style: none; margin: 0; padding: 0; min-width: 260px; }
+.help-rank-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+  border-bottom: 1px solid #eee;
+}
+.help-rank-list img { width: 44px; height: 44px; object-fit: contain; border: none; border-radius: 0; }
+.help-rank-unknown {
+  width: 44px; height: 44px; line-height: 44px; text-align: center;
+  font-weight: bold; font-size: 22px; color: #999; background: #f2f2f2; border-radius: 50%;
+}
+.help-rank-name { font-weight: bold; flex: 1 1 auto; }
+.help-rank-min { color: #666; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 700px), (max-height: 520px) {
+  .help-slide { padding: 0 14px; }
+  .help-slide.active { min-height: 0; }
+  .help-slide .help-page { line-height: 40px; padding-top: 6px; }
+  /* 矢印は文字にかぶらないよう、ページ番号の左右に置く */
+  #helpModal.help-modal .slider-btn { top: auto; bottom: 0; transform: none; }
+  .help-tall .help-lang,
+  .help-rank .help-lang { flex-direction: column; }
+  .help-tall .help-media { max-width: 100%; }
+  .help-tall .help-media img { max-height: 40vh; }
+  .help-wide .help-media img { max-height: 34vh; }
+  .help-title { font-size: 18px; }
+  .help-body li { font-size: 13px; }
+}

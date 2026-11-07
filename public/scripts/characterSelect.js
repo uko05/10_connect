@@ -14,6 +14,7 @@ import { getRankTier, getRankCssClass, getRankBadgePath } from './rankConfig.js'
 import { applyTitleDisplay } from './achievementManager.js';
 import { setupSettingsModal, bindSettingsUI, CPU_DIFFICULTY_LEVELS, getCpuDifficulty, setCpuDifficulty, getSystemVolume, getVoiceVolume, VOICE_GAIN } from './settingsManager.js';
 import { initLang, t, getCharaText, getAchText, getCharaAchText } from './i18n.js';
+import './helpGuide.js'; // あそびかたのスライド
 import { applyBattleBackground, getMyStoneSkinCode } from './designSettings.js';
 import { CHALLENGE_MODES, CHALLENGE_INFO, challengeText, canChallenge, loadProgress, saveProgress, nextMatch, setSoloChallenge, clearSoloChallenge, challengeResultFields } from './challengeManager.js';
 
