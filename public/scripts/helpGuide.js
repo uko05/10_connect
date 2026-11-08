@@ -138,8 +138,8 @@ const SLIDES = [
       title: '必殺技',
       body: [
         'キャラの横のゲージは、石を落とすたびにCTの分だけたまります（最大200）。<b>150以上</b>たまるとゲージが赤くなり、必殺技が使えます。',
-        '自分の番に<b>自分のキャラのアイコン</b>をクリックすると、盤面の上に<b>「必殺技発動」</b>ボタンが出ます。押すと必殺技が発動します。やめるときは、もう一度アイコンをクリックします。',
-        '発動するとゲージが150減り、そのあと普通に石を落とします。必殺技を使ったターンは、ゲージはたまりません。',
+        '自分の番に<b>自分のキャラのアイコン</b>をクリックすると、盤面の上に<b>「必殺技発動」</b>ボタンが出ます。押すと必殺技が発動します。必殺技待機状態を解除するときは、もう一度アイコンをクリックします。',
+        '発動すると必殺技の効果が適用されます。その後、通常通り石を投下できます。必殺技を使ったターンは、ゲージはたまりません。',
         '相手のゲージや必殺技も見ながら戦いましょう。',
       ],
     },
@@ -147,8 +147,8 @@ const SLIDES = [
       title: 'Ultimates',
       body: [
         'The gauge next to your character fills by your CT each time you drop a stone (max 200). At <b>150 or more</b> it turns red and your Ultimate is ready.',
-        'On your turn, click <b>your character icon</b> and a <b>"Use Ultimate"</b> button appears above the board. Press it to use your Ultimate. Click the icon again to cancel.',
-        'Using it costs 150 gauge, and then you drop a stone as usual. The gauge does not fill on the turn you use your Ultimate.',
+        'On your turn, click <b>your character icon</b> and a <b>"Use Ultimate"</b> button appears above the board. Press it to use your Ultimate. To cancel the Ultimate standby, click the icon again.',
+        'When used, the Ultimate’s effect is applied. After that, you can drop a stone as usual. The gauge does not fill on the turn you use your Ultimate.',
         'Keep an eye on your opponent\'s gauge and Ultimate too.',
       ],
     },
