@@ -127,6 +127,9 @@ if the published version.js differs, the tab is told to reload. Bumping APP_VERS
   - 文字: helpGuide.js の SLIDES を直す（日本語と英語の両方）。
   - 画像: `python -m http.server 8123 --bind 127.0.0.1` を起動して `python tools/help_screenshots.py` で撮り直す。
     撮り方（どのキャラ・どの盤面か、切り抜く位置）はスクリプトの中にある。画面の配置が変わったら切り抜き位置も直す。
+    画像の赤枠と赤文字の補足もスクリプトの mark(...) で決めている（日本語版 xxx.jpg と英語版 xxx_en.jpg）。
+    説明文を変えたら補足の文言も合わせる。補足だけ直すなら `--build` で撮り直さずに作り直せる。
+  - 撮り直したら helpGuide.js の IMGV（画像の ?v=）を上げる。
   - 撮り直した画像は開いて目で確認する。
 - 影響しない修正なら触らなくてよい。
 
