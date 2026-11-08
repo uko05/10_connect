@@ -83,7 +83,6 @@ const SLIDES = [
         '名前を入れてキャラを選び、<b>マッチング</b>を押すと相手を探します。',
         '勝つとレートが上がり、負けると下がります。',
         '<b>合言葉</b>：同じ合言葉を入れた人どうしで対戦できます。友達と遊ぶときに使ってください。合言葉の対戦ではレートは変わりません。',
-        'キャラの画像には、そのキャラでの勝利数が出ます。',
       ],
     },
     en: {
@@ -92,7 +91,6 @@ const SLIDES = [
         'Enter your name, pick a character and press <b>Match</b> to look for an opponent.',
         'Winning raises your rating and losing lowers it.',
         '<b>Passphrase</b>: players who enter the same passphrase are matched together. Use it to play with friends. Passphrase matches do not change your rating.',
-        'Each character image shows your number of wins with that character.',
       ],
     },
   },
