@@ -19,7 +19,7 @@ DST = os.path.join(ROOT, 'public', 'help')
 B = 'http://127.0.0.1:8123/'
 VP = {'width': 1366, 'height': 768}
 RED = (220, 30, 36)
-FONT = 'C:/Windows/Fonts/meiryob.ttc'
+FONT = os.path.join(ROOT, 'public', 'font', 'SDK_JP_WEB.ttf')  # コネバトの画面と同じフォント
 
 # 赤枠と赤文字の補足(説明文に出てくるボタンや表示)。boxes.json に保存して build() で描く
 # 1項目 = (セレクタ または [まとめて1枠にするセレクタ...], 日本語の補足, 英語の補足, 補足の位置)
@@ -81,6 +81,7 @@ async def shoot():
         await th[5].click(); await pg.wait_for_timeout(800)
         await pg.mouse.move(5, 400); await pg.screenshot(path=f'{RAW}/sel_match_chosen.png')
         await mark(pg, 'match', [
+            (['#playerName', '.lobby-player-left .label'], '名前を入れる', 'Enter your name', 'above-r'),
             ('#matchButton', '押すと相手を探す', 'Press to find an opponent', 'above-r'),
             (['#roomMatching', '#matchModeBlock .info-item-yoko .label'], '友達と遊ぶときに入力', 'For playing with friends', 'below-r')])
 

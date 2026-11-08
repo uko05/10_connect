@@ -6,7 +6,7 @@
 import { getCurrentLang } from './i18n.js';
 
 const IMG = 'public/help/';
-const IMGV = '?v=1.80.1'; // 画像を撮り直したら上げる(同じファイル名なので古い画像が残らないように)
+const IMGV = '?v=1.80.2'; // 画像を撮り直したら上げる(同じファイル名なので古い画像が残らないように)
 const BADGE = 'public/scripts/badges/';
 
 // layout: 'wide' = 画像が上・文字が下 / 'tall' = 画像が左・文字が右
