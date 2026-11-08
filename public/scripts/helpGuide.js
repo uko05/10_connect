@@ -6,9 +6,11 @@
 import { getCurrentLang } from './i18n.js';
 
 const IMG = 'public/help/';
+const IMGV = '?v=1.80.1'; // 画像を撮り直したら上げる(同じファイル名なので古い画像が残らないように)
 const BADGE = 'public/scripts/badges/';
 
 // layout: 'wide' = 画像が上・文字が下 / 'tall' = 画像が左・文字が右
+// 画像の赤枠・赤文字の補足は tools/help_screenshots.py で描いている(説明文を変えたらそちらも合わせる)
 const SLIDES = [
   {
     img: 'battle.jpg', layout: 'wide',
@@ -32,7 +34,7 @@ const SLIDES = [
     },
   },
   {
-    img: 'hub.jpg', layout: 'wide',
+    img: 'hub.jpg', imgEn: true, layout: 'wide',
     ja: {
       title: 'トップ画面',
       body: [
@@ -53,7 +55,7 @@ const SLIDES = [
     },
   },
   {
-    img: 'select.jpg', layout: 'tall',
+    img: 'select.jpg', imgEn: true, layout: 'tall',
     ja: {
       title: 'キャラ選択',
       body: [
@@ -74,7 +76,7 @@ const SLIDES = [
     },
   },
   {
-    img: 'match.jpg', layout: 'tall',
+    img: 'match.jpg', imgEn: true, layout: 'tall',
     ja: {
       title: 'マッチング対戦',
       body: [
@@ -114,7 +116,7 @@ const SLIDES = [
     },
   },
   {
-    img: 'battle.jpg', layout: 'wide',
+    img: 'battle_ui.jpg', imgEn: true, layout: 'wide',
     ja: {
       title: '対戦画面',
       body: [
@@ -133,7 +135,7 @@ const SLIDES = [
     },
   },
   {
-    img: 'standby.jpg', img2: 'cutin.jpg', layout: 'wide',
+    img: 'standby.jpg', imgEn: true, layout: 'wide',
     ja: {
       title: '必殺技',
       body: [
@@ -190,7 +192,7 @@ const SLIDES = [
     },
   },
   {
-    img: 'playerinfo.jpg', layout: 'tall',
+    img: 'playerinfo.jpg', imgEn: true, layout: 'tall',
     ja: {
       title: '設定・プレイヤー情報',
       body: [
@@ -237,7 +239,9 @@ function slideHtml(s, i, total) {
     const text = `<h3 class="help-title">${d.title}</h3><ul class="help-body">${d.body.map((b) => `<li>${b}</li>`).join('')}</ul>`;
     let media = '';
     if (s.img) {
-      media = `<div class="help-media"><img src="${IMG}${s.img}" alt="" loading="lazy">${s.img2 ? `<img src="${IMG}${s.img2}" alt="" loading="lazy">` : ''}</div>`;
+      // imgEn: 赤文字の補足が入った画像。英語版は xxx_en.jpg(tools/help_screenshots.py が作る)
+      const src = lang === 'en' && s.imgEn ? s.img.replace('.jpg', '_en.jpg') : s.img;
+      media = `<div class="help-media"><img src="${IMG}${src}${IMGV}" alt="" loading="lazy">${s.img2 ? `<img src="${IMG}${s.img2}${IMGV}" alt="" loading="lazy">` : ''}</div>`;
     } else if (s.layout === 'rank') {
       media = `<div class="help-media">${rankTable(lang)}</div>`;
     }
