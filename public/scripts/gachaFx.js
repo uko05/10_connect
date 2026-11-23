@@ -332,7 +332,7 @@ export async function playGachaFx(results, makeFace) {
     cards.forEach((c) => box.appendChild(c));
     ov.classList.add('is-cards');
     skip.skip = false;
-    await sleep(reduced() ? 0 : 300 + results.length * 60);
+    await sleep(reduced() ? 0 : 600 + results.length * 60);
 
     // 1枚ずつめくる(押すと残りを一気に)
     for (let i = 0; i < cards.length; i++) {
@@ -340,12 +340,12 @@ export async function playGachaFx(results, makeFace) {
         if (!skip.skip && !reduced()) {
             if (rar === 'SR' || rar === 'SSR') {
                 cards[i].classList.add('is-charge');
-                await sleep(rar === 'SSR' ? 700 : 420);
+                await sleep(rar === 'SSR' ? 1200 : 750);
                 cards[i].classList.remove('is-charge');
             }
         }
         flip(cards[i], rar);
-        if (!skip.skip && !reduced()) await sleep(rar === 'SSR' ? 520 : rar === 'SR' ? 360 : 150);
+        if (!skip.skip && !reduced()) await sleep(rar === 'SSR' ? 1100 : rar === 'SR' ? 800 : 420);
     }
     ov.querySelector('.gfx-skip').hidden = true;
     ov.removeEventListener('click', onSkip);

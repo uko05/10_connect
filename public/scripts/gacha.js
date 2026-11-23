@@ -226,9 +226,32 @@ function buildModal() {
         </div>
         <div class="gc-body">
           <section class="gc-sec" data-sec="draw">
+            <div class="gc-show">
+              <div class="gc-show-text">
+                <div class="gc-show-tag">SSR</div>
+                <div class="gc-show-title">${L('元素・国の石（八角形）', 'Element & Nation Stones (Octagon)')}</div>
+                <div class="gc-show-sub">${L('ほかに 石（丸・四角）・背景 も出ます', 'Also round/square stones and backgrounds')}</div>
+              </div>
+              <div class="gc-show-stones"></div>
+            </div>
             <div class="gc-buttons">
-              <button class="gc-pull" data-n="1"><span>${L('1回ひく', 'Draw x1')}</span><b>${PRICE_ONE} UP</b></button>
-              <button class="gc-pull gc-pull-ten" data-n="11"><span>${L('11連ひく', 'Draw x11')}</span><b>${PRICE_TEN} UP</b><small>${L('SR以上1つ確定', '1 SR or better guaranteed')}</small></button>
+              <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+                <radialGradient id="gcStone" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset="0.5" stop-color="#dcd6f0"/><stop offset="1" stop-color="#8a83a8"/></radialGradient>
+              </defs></svg>
+              <button class="gc-pull" data-n="1">
+                <span class="gc-pull-ic"><svg viewBox="0 0 40 40"><circle class="st" cx="20" cy="20" r="11"/></svg></span>
+                <span class="gc-pull-main">
+                  <span class="gc-pull-label">${L('1回ひく', 'Draw x1')}</span>
+                  <span class="gc-pull-row"><span class="gc-pull-price">${UP_SVG}${PRICE_ONE}</span></span>
+                </span>
+              </button>
+              <button class="gc-pull gc-pull-ten" data-n="11">
+                <span class="gc-pull-ic"><svg viewBox="0 0 40 40"><path class="ln" d="M6 34L34 6"/><circle class="st" cx="6" cy="34" r="5.5"/><circle class="st" cx="15.3" cy="24.7" r="5.5"/><circle class="st" cx="24.7" cy="15.3" r="5.5"/><circle class="st" cx="34" cy="6" r="5.5"/></svg></span>
+                <span class="gc-pull-main">
+                  <span class="gc-pull-label">${L('11連ひく', 'Draw x11')}</span>
+                  <span class="gc-pull-row"><span class="gc-pull-price">${UP_SVG}${PRICE_TEN}</span><span class="gc-pull-badge">${L('SR以上1つ確定', 'SR+ guaranteed')}</span></span>
+                </span>
+              </button>
             </div>
             <div class="gc-confirm" hidden>
               <span class="gc-confirm-text"></span>
@@ -261,6 +284,13 @@ function buildModal() {
         doPull(n);
     });
     modal.querySelector('.gc-shard-name').textContent = SHARD_NAME();
+    // 見本の帯: SSRの石をランダムに7つ並べる(少しずつずらして浮かせる)
+    const show = modal.querySelector('.gc-show-stones');
+    [...PRIZES.filter((p) => p.rarity === 'SSR')].sort(() => rand() - 0.5).slice(0, 7).forEach((p, i) => {
+        const cv = prizeVisual(p, 52);
+        cv.style.animationDelay = `${-i * 0.4}s`;
+        show.appendChild(cv);
+    });
     modal.querySelector('[data-sec="draw"] .gc-note').textContent = L(
         `ハズレのときは${SHARD_NAME()}が${MISS_SHARDS}個もらえます。持っている景品がまた出たときも、かけらに変わります。かけらは「かけら交換」で好きな景品と交換できます。`,
         `A miss gives ${MISS_SHARDS} ${SHARD_NAME()}. Duplicates turn into shards too. Trade shards for any prize in "Shard Exchange".`);
