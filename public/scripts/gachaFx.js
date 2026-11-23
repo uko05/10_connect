@@ -365,17 +365,10 @@ export async function playGachaFx(results, makeFace, opts = {}) {
             await wait(650);
             continue;
         }
-        // 前へ飛び出す
-        const rc = card.getBoundingClientRect();
-        const k = Math.min(3, (window.innerHeight * 0.6) / rc.height);
-        const dx = window.innerWidth / 2 - (rc.left + rc.width / 2);
-        const dy = window.innerHeight / 2 - (rc.top + rc.height / 2);
-        card.classList.add('is-focus');
+        // おみくじのガチャと同じく「その場でためる → めくれながら前へ近づいてくる」(2026-11-23 ユーザー)。
+        // SRとSSRの違いは近づいてくる大きさ(SSRの方が大きい)と、ためる長さ・揺れ
+        card.classList.add('is-focus', 'is-charge-big');
         ov.classList.add('is-focusing');
-        card.style.transform = `translate(${dx}px, ${dy}px) scale(${k})`;
-        await wait(550);
-        // ため
-        card.classList.add(rar === 'SSR' ? 'is-charge-ssr' : 'is-charge');
         if (rar === 'SSR') {
             ov.classList.add('is-shake');
             await wait(1000);
@@ -384,26 +377,34 @@ export async function playGachaFx(results, makeFace, opts = {}) {
         } else {
             await wait(1000);
         }
-        card.classList.remove('is-charge', 'is-charge-ssr');
+        card.classList.remove('is-charge-big');
         ov.classList.remove('is-shake', 'is-shake-hard');
-        // めくる(白く光る)
+        // 白く光って、めくれながら真ん中へ大きくなる
+        const rc = card.getBoundingClientRect();
+        const k = rar === 'SSR'
+            ? Math.min(3.2, (window.innerHeight * 0.66) / rc.height)
+            : Math.min(2.1, (window.innerHeight * 0.44) / rc.height);
+        const dx = window.innerWidth / 2 - (rc.left + rc.width / 2);
+        const dy = window.innerHeight / 2 - (rc.top + rc.height / 2);
         const flash = document.createElement('div');
         flash.className = `gfx-flash gfx-flash-${rar}`;
         ov.appendChild(flash);
         setTimeout(() => flash.remove(), 900);
+        card.classList.add('is-approach');
+        card.style.transform = `translate(${dx}px, ${dy}px) scale(${k})`;
         flip(card, rar);
-        await wait(rar === 'SSR' ? 2000 : 1400);
+        await wait(rar === 'SSR' ? 2200 : 1600);
         // 元の場所へ戻る
         card.style.transform = '';
         ov.classList.remove('is-focusing');
         await wait(550);
-        card.classList.remove('is-focus');
+        card.classList.remove('is-focus', 'is-approach');
     }
     // SKIPで途中を飛ばした時の後始末
     cards.forEach((c, i) => {
         if (!c.classList.contains('is-flipped')) flip(c, rarityOf(results[i]));
         c.style.transform = '';
-        c.classList.remove('is-focus', 'is-charge', 'is-charge-ssr');
+        c.classList.remove('is-focus', 'is-charge', 'is-charge-big', 'is-approach');
     });
     ov.classList.remove('is-focusing', 'is-shake', 'is-shake-hard');
     ov.querySelector('.gfx-skip').hidden = true;

@@ -589,29 +589,32 @@
     50% { transform: translate(5px, -3px); }
     75% { transform: translate(-3px, -5px); }
 }
-/* SSRのため: 金の光の筋が後ろで回り、だんだん強く光る */
-.gfx-card.is-charge-ssr .gfx-back {
-    animation: gfx-ssr-glow 2.1s ease-in forwards;
-}
-@keyframes gfx-ssr-glow {
+/* SR・SSRのため(その場で): おみくじのように左右に小刻みに傾き、後ろで光の筋が回り、だんだん強く光る */
+.gfx-card.is-charge-big .gfx-inner { animation: gfx-wobble 0.12s ease-in-out infinite alternate; }
+@keyframes gfx-wobble { from { transform: rotate(-5deg) scale(1.04); } to { transform: rotate(5deg) scale(1.04); } }
+.gfx-card.is-charge-big .gfx-back { animation: gfx-big-glow 1s ease-in forwards; }
+.gfx-SSR.is-charge-big .gfx-back { animation-duration: 2.1s; }
+@keyframes gfx-big-glow {
     from { box-shadow: 0 0 10px var(--c), inset 0 0 10px var(--c); }
-    to { box-shadow: 0 0 22px #fff, 0 0 16px var(--c), inset 0 0 30px rgba(255, 248, 224, 0.9); }
+    to { box-shadow: 0 0 26px #fff, 0 0 18px var(--c), inset 0 0 30px rgba(255, 255, 255, 0.85); }
 }
-.gfx-card.is-charge-ssr::before {
+.gfx-card.is-charge-big::before {
     content: "";
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 320%;
+    width: 420%;
     aspect-ratio: 1;
     transform: translate(-50%, -50%);
-    background: repeating-conic-gradient(rgba(242, 207, 122, 0.35) 0 6deg, transparent 6deg 20deg);
-    -webkit-mask: radial-gradient(circle, #000 12%, transparent 60%);
-    mask: radial-gradient(circle, #000 12%, transparent 60%);
+    background: repeating-conic-gradient(color-mix(in srgb, var(--c) 45%, transparent) 0 6deg, transparent 6deg 20deg);
+    -webkit-mask: radial-gradient(circle, #000 10%, transparent 58%);
+    mask: radial-gradient(circle, #000 10%, transparent 58%);
     z-index: -1;
     pointer-events: none;
-    animation: gfx-spin 2.5s linear infinite, gfx-fadein 1.2s ease-in;
+    animation: gfx-spin 2.5s linear infinite, gfx-fadein 0.8s ease-in;
 }
+/* めくれながら近づく(移動・拡大はめくる時間に合わせる) */
+.gfx.is-cards .gfx-card.is-dealt.is-approach { transition: transform 0.9s cubic-bezier(0.2, 1.1, 0.35, 1); }
 .gfx-flash {
     position: absolute;
     inset: 0;
