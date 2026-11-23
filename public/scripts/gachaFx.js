@@ -366,16 +366,18 @@ export async function playGachaFx(results, makeFace, opts = {}) {
             continue;
         }
         // おみくじのガチャと同じく「その場でためる → めくれながら前へ近づいてくる」(2026-11-23 ユーザー)。
-        // SRとSSRの違いは近づいてくる大きさ(SSRの方が大きい)と、ためる長さ・揺れ
-        card.classList.add('is-focus', 'is-charge-big');
+        // SRとSSRの違いは近づいてくる大きさ(SSRの方が大きい)と、SSRだけためる(揺れ付き)こと
+        // SRはためずに、すぐめくれながら近づく(2026-11-23 ユーザー: シャドバのレアを引く時のイメージ)。SSRだけためる
+        card.classList.add('is-focus');
         ov.classList.add('is-focusing');
         if (rar === 'SSR') {
+            card.classList.add('is-charge-big');
             ov.classList.add('is-shake');
             await wait(1000);
             ov.classList.add('is-shake-hard');
             await wait(1100);
         } else {
-            await wait(1000);
+            await wait(250);
         }
         card.classList.remove('is-charge-big');
         ov.classList.remove('is-shake', 'is-shake-hard');
