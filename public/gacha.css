@@ -438,7 +438,7 @@
     position: absolute;
     inset: 0;
     transform-style: preserve-3d;
-    transition: transform 0.8s cubic-bezier(0.3, 1.25, 0.5, 1);
+    transition: transform 0.9s cubic-bezier(0.3, 1.25, 0.5, 1);
 }
 .gfx-card.is-flipped .gfx-inner { transform: rotateY(180deg); }
 .gfx-back, .gfx-front {
@@ -507,8 +507,68 @@
 .gfx-front .gc-card-rarity { font-size: 14px; top: 6px; left: 10px; }
 .gfx-front .gc-tag-new { top: 6px; right: 10px; }
 
+/* 配り終わったら配る動きを外す(transform で前へ飛び出せるように) */
+.gfx.is-cards .gfx-card.is-dealt {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition: transform 0.55s cubic-bezier(0.2, 1.15, 0.35, 1);
+}
+.gfx.is-cards .gfx-card.is-dealt.is-focus { z-index: 5; }
+.gfx-dim {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    background: rgba(2, 1, 6, 0.72);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+}
+.gfx.is-focusing .gfx-dim { opacity: 1; }
+.gfx.is-shake .gfx-cards { animation: gfx-shake 0.1s linear infinite; }
+.gfx.is-shake-hard .gfx-cards { animation: gfx-shake-hard 0.07s linear infinite; }
+@keyframes gfx-shake-hard {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-5px, 3px); }
+    50% { transform: translate(5px, -3px); }
+    75% { transform: translate(-3px, -5px); }
+}
+/* SSRのため: 金の光の筋が後ろで回り、だんだん強く光る */
+.gfx-card.is-charge-ssr .gfx-back {
+    animation: gfx-ssr-glow 2.1s ease-in forwards;
+}
+@keyframes gfx-ssr-glow {
+    from { box-shadow: 0 0 10px var(--c), inset 0 0 10px var(--c); }
+    to { box-shadow: 0 0 22px #fff, 0 0 16px var(--c), inset 0 0 30px rgba(255, 248, 224, 0.9); }
+}
+.gfx-card.is-charge-ssr::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 320%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: repeating-conic-gradient(rgba(242, 207, 122, 0.35) 0 6deg, transparent 6deg 20deg);
+    -webkit-mask: radial-gradient(circle, #000 12%, transparent 60%);
+    mask: radial-gradient(circle, #000 12%, transparent 60%);
+    z-index: -1;
+    pointer-events: none;
+    animation: gfx-spin 2.5s linear infinite, gfx-fadein 1.2s ease-in;
+}
+.gfx-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.6) 40%, transparent 75%);
+    animation: gfx-flash 0.8s ease-out forwards;
+}
+.gfx-flash-SSR { background: radial-gradient(circle, #fff 0%, rgba(255, 236, 180, 0.85) 45%, rgba(242, 207, 122, 0.2) 80%); }
+@keyframes gfx-flash { from { opacity: 1; } to { opacity: 0; } }
+
 /* SR・SSRの「ため」 */
-.gfx-card.is-charge { animation: gfx-charge 0.12s linear infinite; }
+.gfx-card.is-charge .gfx-inner { animation: gfx-charge 0.12s linear infinite; }
 .gfx-card.is-charge .gfx-back { box-shadow: 0 0 34px var(--c), inset 0 0 30px var(--c); }
 @keyframes gfx-charge {
     0% { transform: translate(0, 0); }

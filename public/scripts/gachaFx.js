@@ -328,25 +328,76 @@ export async function playGachaFx(results, makeFace) {
 
     // カードを並べる(裏向き)
     const box = ov.querySelector('.gfx-cards');
+    const dim = document.createElement('div');
+    dim.className = 'gfx-dim';
+    box.appendChild(dim);
     const cards = results.map((r, i) => buildCard(r, i, makeFace));
     cards.forEach((c) => box.appendChild(c));
     ov.classList.add('is-cards');
     skip.skip = false;
-    await sleep(reduced() ? 0 : 600 + results.length * 60);
+    // 押すと止まる待ち時間(SKIPした時は残りの待ちを飛ばす)
+    const wait = (ms) => new Promise((res) => {
+        if (reduced()) { res(); return; }
+        const t0 = performance.now();
+        const total = ms * (window.__gfxSlow || 1);   // __gfxSlow: 見た目の確認用に待ち時間を伸ばす
+        const tick = () => (skip.skip || performance.now() - t0 >= total ? res() : setTimeout(tick, 30));
+        tick();
+    });
+    await wait(600 + results.length * 60);
+    cards.forEach((c) => c.classList.add('is-dealt'));   // 配る動きを外して、transform を使えるようにする
 
-    // 1枚ずつめくる(押すと残りを一気に)
+    // 1枚ずつ、ゆっくりめくる(2026-11-23 ユーザー: レア度にかかわらずゆっくり)。
+    // SR・SSRは、おみくじのアルカナのように画面の真ん中へ大きく飛び出してきて、ためてからめくる。SSRはもっとためる
     for (let i = 0; i < cards.length; i++) {
         const rar = rarityOf(results[i]);
-        if (!skip.skip && !reduced()) {
-            if (rar === 'SR' || rar === 'SSR') {
-                cards[i].classList.add('is-charge');
-                await sleep(rar === 'SSR' ? 1200 : 750);
-                cards[i].classList.remove('is-charge');
-            }
+        const card = cards[i];
+        const big = rar === 'SR' || rar === 'SSR';
+        if (!big || skip.skip || reduced()) {
+            flip(card, rar);
+            await wait(650);
+            continue;
         }
-        flip(cards[i], rar);
-        if (!skip.skip && !reduced()) await sleep(rar === 'SSR' ? 1100 : rar === 'SR' ? 800 : 420);
+        // 前へ飛び出す
+        const rc = card.getBoundingClientRect();
+        const k = Math.min(3, (window.innerHeight * 0.6) / rc.height);
+        const dx = window.innerWidth / 2 - (rc.left + rc.width / 2);
+        const dy = window.innerHeight / 2 - (rc.top + rc.height / 2);
+        card.classList.add('is-focus');
+        ov.classList.add('is-focusing');
+        card.style.transform = `translate(${dx}px, ${dy}px) scale(${k})`;
+        await wait(550);
+        // ため
+        card.classList.add(rar === 'SSR' ? 'is-charge-ssr' : 'is-charge');
+        if (rar === 'SSR') {
+            ov.classList.add('is-shake');
+            await wait(1000);
+            ov.classList.add('is-shake-hard');
+            await wait(1100);
+        } else {
+            await wait(1000);
+        }
+        card.classList.remove('is-charge', 'is-charge-ssr');
+        ov.classList.remove('is-shake', 'is-shake-hard');
+        // めくる(白く光る)
+        const flash = document.createElement('div');
+        flash.className = `gfx-flash gfx-flash-${rar}`;
+        ov.appendChild(flash);
+        setTimeout(() => flash.remove(), 900);
+        flip(card, rar);
+        await wait(rar === 'SSR' ? 2000 : 1400);
+        // 元の場所へ戻る
+        card.style.transform = '';
+        ov.classList.remove('is-focusing');
+        await wait(550);
+        card.classList.remove('is-focus');
     }
+    // SKIPで途中を飛ばした時の後始末
+    cards.forEach((c, i) => {
+        if (!c.classList.contains('is-flipped')) flip(c, rarityOf(results[i]));
+        c.style.transform = '';
+        c.classList.remove('is-focus', 'is-charge', 'is-charge-ssr');
+    });
+    ov.classList.remove('is-focusing', 'is-shake', 'is-shake-hard');
     ov.querySelector('.gfx-skip').hidden = true;
     ov.removeEventListener('click', onSkip);
     await sleep(250);
