@@ -277,6 +277,19 @@
 .gc-pull.is-selected { filter: brightness(1.2); }
 .gc-buttons:has(.is-selected) .gc-pull:not(.is-selected) { filter: grayscale(0.7) brightness(0.5); }
 
+/* かぶった景品: 全体をグレーにして、かぶったことを分かりやすくする(かけらの札だけ色を残す) */
+.gc-is-dup .gc-card-vis > canvas,
+.gc-is-dup .gc-card-vis > img { filter: grayscale(1) brightness(0.55); }
+.gc-is-dup .gc-card-rarity,
+.gc-is-dup .gc-card-name { color: rgba(255, 255, 255, 0.45); }
+.gc-is-dup .gc-card-tag { color: rgba(159, 227, 255, 0.75); }
+.gfx-front:has(.gc-is-dup) {
+    background: linear-gradient(160deg, rgba(34, 34, 40, 0.96), rgba(14, 14, 18, 0.96));
+    border-color: rgba(150, 150, 160, 0.55);
+    box-shadow: none;
+}
+.gfx-front:has(.gc-is-dup)::after { display: none; }
+
 /* かぶった景品の上に重ねる「かけら×N」 */
 .gc-card-vis { position: relative; }
 .gc-dup-over {

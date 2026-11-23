@@ -377,7 +377,7 @@ function againOpt(n) {
 
 function resultCard(r, i, size = 56) {
     const rarity = r.miss ? 'miss' : r.prize.rarity;
-    const card = el('div', `gc-card gc-r-${rarity}`);
+    const card = el('div', `gc-card gc-r-${rarity}${r.dup ? ' gc-is-dup' : ''}`);
     card.style.animationDelay = `${i * 0.12}s`;
     const vis = el('div', 'gc-card-vis');
     if (r.miss) vis.innerHTML = `<span class="gc-card-shard">${SHARD_SVG}</span>`;
