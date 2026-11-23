@@ -1607,6 +1607,7 @@ body.hub-page::before {
 .hub-page .hub-btn-match { --hub-c: #4aa8ff; }
 .hub-page .hub-btn-cpu { --hub-c: #ff9a3c; }
 .hub-page .hub-btn-info { --hub-c: #e8c25a; }
+.hub-page .hub-btn-gacha { --hub-c: #c77dff; }
 .hub-btn-ic {
     width: 40px;
     height: 40px;

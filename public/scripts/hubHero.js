@@ -9,6 +9,7 @@
 // - 解放した裏面はランダムの候補にも入る。固定にも条件なしで選べる(キャラの「5勝」条件はキャラだけ)。
 import { characterData } from './characterData.js';
 import { db, getSharedUserId } from './firebaseConfig.js';
+import { setGachaOwned } from './designSettings.js';
 import { doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { ALL_CARD_DESIGNS } from 'https://uko05.github.io/14_GenshinOmikuji/gachaBacks.js';
 
@@ -75,6 +76,8 @@ export async function syncHubArtUnlocks(uid, userData) {
     if (!uid || !sharedUserId || !userData) return userData;
     try {
         const snap = await getDoc(doc(db, 'omikujiUsers', sharedUserId));
+        // コネバトのガチャで手に入れた石・背景も、同じ読み込みでこの端末に写しておく(2026-11-23)
+        if (snap.exists()) setGachaOwned(snap.data().connectGacha?.items);
         const cardBacks = snap.exists() ? (snap.data().cardBacks || {}) : {};
         const have = new Set(userData.hubArtUnlocked || []);
         const add = Object.entries(cardBacks)

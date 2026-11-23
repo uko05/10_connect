@@ -136,7 +136,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderAchievements();
         renderHeroSetting();
         // 原神おみくじの裏面(10枚)の解放を反映してから、タイトル画面のキャラの選択肢を描き直す
-        syncHubArtUnlocks(currentUid, latestUserData).then((d) => { latestUserData = d || latestUserData; renderHeroSetting(); });
+        // ガチャの所持もこの読み込みで最新になるので、石・背景の選択肢も描き直す(2026-11-23)
+        syncHubArtUnlocks(currentUid, latestUserData).then((d) => {
+            latestUserData = d || latestUserData;
+            renderHeroSetting();
+            renderStoneSkinSetting();
+            renderBattleBgSetting();
+        });
         renderStoneSkinSetting();
         renderBattleBgSetting();
     } catch (error) {

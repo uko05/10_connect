@@ -57,6 +57,7 @@ async def shoot():
         await mark(pg, 'hub', [
             ('#goMatchButton', 'オンラインで対戦（ランク戦）', 'Play online (ranked)', 'left'),
             ('#goCpuButton', 'CPUと練習・キャラの解放', 'Practice & unlock characters', 'left'),
+            ('#goGachaButton', 'UPで石・背景を手に入れる', 'Get stones & backgrounds with UP', 'left'),
             ('#goPlayerInfoButton', 'ランク・戦績・設定など', 'Rank, records, settings', 'left'),
             ('#hubNewsButton', 'お知らせ', 'News', 'left')])
 

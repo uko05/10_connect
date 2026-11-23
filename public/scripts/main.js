@@ -12,6 +12,7 @@ import { getUserRating } from './eloRating.js';
 import { getRankByRating, getRankBadgePath } from './rankConfig.js';
 import { setupNews } from './news.js';
 import './helpGuide.js'; // あそびかたのスライド
+import { openGacha } from './gacha.js';
 
 // 設定ダイアログ（石カラー・必殺技演出強度・音量）
 setupSettingsModal('settingsButton', 'settingsModal');
@@ -75,6 +76,9 @@ document.getElementById('goCpuButton').addEventListener('click', () => {
 });
 document.getElementById('goMatchButton').addEventListener('click', () => {
     window.location.href = 'select.html?mode=match';
+});
+document.getElementById('goGachaButton').addEventListener('click', () => {
+    openGacha();
 });
 document.getElementById('goPlayerInfoButton').addEventListener('click', () => {
     window.location.href = 'playerInfo.html';

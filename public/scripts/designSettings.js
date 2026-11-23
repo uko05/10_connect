@@ -56,10 +56,32 @@ export function setStoneShape(shape) {
     try { localStorage.setItem(STONE_SHAPE_KEY, normShape(shape)); } catch (e) { /* 保存できなくても続ける */ }
 }
 
-// その形のそのスキンを持っているか。ガチャを作ったら「スキン×形」の所持データで判定する
+// その形のそのスキンを持っているか(「スキン×形」ごとに、ガチャで手に入れたもの)
 export function ownsStoneSkin(skinId, shape = 'round') {
     if (skinId === 'go') return true; // デフォルトは全部の形を全員が持っている
-    return TEST_OWN_ALL_SKINS;
+    return TEST_OWN_ALL_SKINS || gachaOwnedSet().has(stoneItemKey(skinId, shape));
+}
+
+// ===== ガチャで手に入れた石・背景(2026-11-23、gacha.js) =====
+// 所持の本体は omikujiUsers/{共有ID}.connectGacha.items({ 'st:el_hi:round': 枚数, 'bg:bb002': 枚数 })。
+// 画面を開くたびに読むと読み取りが増えるので、トップ画面・設定画面で omikujiUsers を読んだ時に
+// この端末(localStorage)へ写しておき、所持の判定はその写しで行う。
+const GACHA_OWNED_KEY = 'connectGachaOwned';
+let gachaOwnedCache = null;
+function gachaOwnedSet() {
+    if (!gachaOwnedCache) {
+        try { gachaOwnedCache = new Set(JSON.parse(localStorage.getItem(GACHA_OWNED_KEY) || '[]')); }
+        catch (e) { gachaOwnedCache = new Set(); }
+    }
+    return gachaOwnedCache;
+}
+export const stoneItemKey = (skinId, shape) => `st:${skinId}:${normShape(shape)}`;
+export const bgItemKey = (bgId) => `bg:${bgId}`;
+// omikujiUsers の connectGacha.items を受け取って、この端末の写しを入れ替える
+export function setGachaOwned(items) {
+    const keys = Object.keys(items || {}).filter((k) => (items[k] || 0) > 0);
+    gachaOwnedCache = new Set(keys);
+    try { localStorage.setItem(GACHA_OWNED_KEY, JSON.stringify(keys)); } catch (e) { /* 保存できなくても続ける */ }
 }
 
 export function getStoneSkinId() {
@@ -169,10 +191,10 @@ export const BATTLE_BACKGROUNDS = Array.from({ length: BATTLE_BG_COUNT }, (_, i)
     };
 });
 
-// その背景を持っているか(000・001は全員。ほかはガチャを作ったら所持データで判定する)
+// その背景を持っているか(000・001は全員。ほかはガチャで手に入れたもの)
 export function ownsBattleBg(id) {
     const bg = BATTLE_BACKGROUNDS.find((b) => b.id === id);
-    return !!bg && (bg.free || TEST_OWN_ALL_SKINS);
+    return !!bg && (bg.free || TEST_OWN_ALL_SKINS || gachaOwnedSet().has(bgItemKey(id)));
 }
 
 export function getBattleBgId() {

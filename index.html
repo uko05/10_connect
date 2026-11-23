@@ -37,7 +37,8 @@
       }
     </script>
     <link rel="stylesheet" href="public/style_settings.css"> <!-- 設定ダイアログのスタイル -->
-    <link rel="stylesheet" href="public/style.css?v=1.79.2"> <!-- スタイルシートのリンク -->
+    <link rel="stylesheet" href="public/style.css?v=1.81.0"> <!-- スタイルシートのリンク -->
+    <link rel="stylesheet" href="public/gacha.css?v=1.81.0"> <!-- ガチャ -->
     <link rel="stylesheet" href="public/help/help.css?v=1.80.0"> <!-- あそびかた -->
     <script type="module" src="public/scripts/main.js" defer></script> <!-- JavaScriptファイルの読み込み -->
 
@@ -131,6 +132,15 @@
             <span class="hub-btn-text">
                 <span class="hub-btn-title"><span data-i18n="btnCpu">CPU対戦</span><small>PRACTICE</small></span>
                 <span class="hub-btn-sub" data-i18n="btnCpuSub">練習・キャラ解放（レート変動なし）</span>
+            </span>
+            <span class="hub-btn-arrow" aria-hidden="true">›</span>
+        </button>
+        <!-- ガチャ(2026-11-23、gacha.js) -->
+        <button id="goGachaButton" class="hub-btn hub-btn-gacha">
+            <span class="hub-btn-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span>
+            <span class="hub-btn-text">
+                <span class="hub-btn-title"><span data-i18n="btnGacha">ガチャ</span><small>GACHA</small></span>
+                <span class="hub-btn-sub" data-i18n="btnGachaSub">UPで石のデザイン・背景を手に入れる</span>
             </span>
             <span class="hub-btn-arrow" aria-hidden="true">›</span>
         </button>

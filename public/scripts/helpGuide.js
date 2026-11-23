@@ -6,7 +6,7 @@
 import { getCurrentLang } from './i18n.js';
 
 const IMG = 'public/help/';
-const IMGV = '?v=1.80.2'; // 画像を撮り直したら上げる(同じファイル名なので古い画像が残らないように)
+const IMGV = '?v=1.81.0'; // 画像を撮り直したら上げる(同じファイル名なので古い画像が残らないように)
 const BADGE = 'public/scripts/badges/';
 
 // layout: 'wide' = 画像が上・文字が下 / 'tall' = 画像が左・文字が右
@@ -40,6 +40,7 @@ const SLIDES = [
       body: [
         '<b>マッチング対戦</b>：ほかのプレイヤーとオンラインで戦います（ランク戦）。',
         '<b>CPU対戦</b>：CPUと1人で練習できます。キャラの解放もここで。レートは変わりません。',
+        '<b>ガチャ</b>：UPを使って、石のデザインや背景を手に入れます。ハズレのかけらを貯めると好きな景品と交換できます。',
         '<b>設定・プレイヤー情報</b>：ランク・戦績・アチーブメント・デザイン変更・各種設定。',
         '<b>NEWS</b>：キャラ調整などのお知らせです。新しいお知らせがあると赤い点が付きます。',
       ],
@@ -49,6 +50,7 @@ const SLIDES = [
       body: [
         '<b>Online Match</b>: fight other players online (ranked).',
         '<b>CPU Battle</b>: practice alone against the CPU. This is also where you unlock characters. Your rating does not change.',
+        '<b>Gacha</b>: spend UP to get stone designs and backgrounds. Save shards from misses to trade for any prize.',
         '<b>Settings &amp; Player Info</b>: rank, record, achievements, design and settings.',
         '<b>NEWS</b>: notices such as character balance changes. A red dot means there is something new.',
       ],
