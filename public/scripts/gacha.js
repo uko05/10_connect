@@ -34,6 +34,8 @@ const MISS_SHARDS = 5;
 const RATES = { miss: 60, R: 30, SR: 8.5, SSR: 1.5 };
 const DUP_SHARDS = { R: 25, SR: 50, SSR: 100 };
 const EXCHANGE_COST = { R: 100, SR: 200, SSR: 300 };
+// 天井: SSRが出ないまま77回目になったら、その回はSSR確定(2026-11-23 ユーザーの決定)。SSRが出たら数え直し
+const PITY = 77;
 const SHAPE_NAME = { round: ['丸', 'Round'], square: ['四角', 'Square'], octagon: ['八角形', 'Octagon'] };
 
 const isEn = () => localStorage.getItem('lang') === 'en';
@@ -93,19 +95,35 @@ function rollMany(n) {
     return out;
 }
 
+// 天井を当てはめる。pity: 前回SSRが出てから引いた回数。items: 持っている景品(天井のSSRは持っていない石から選ぶ)
+function applyPity(out, pity, items) {
+    let p = pity;
+    out.forEach((o, i) => {
+        p += 1;
+        if (o.prize?.rarity !== 'SSR' && p >= PITY) {
+            const ssr = PRIZES.filter((x) => x.rarity === 'SSR');
+            const notOwned = ssr.filter((x) => !(items[x.key] > 0));
+            out[i] = { prize: pickFrom(notOwned.length ? notOwned : ssr), pity: true };
+            o = out[i];
+        }
+        if (o.prize?.rarity === 'SSR') p = 0;
+    });
+    return p;
+}
+
 // ===== データ =====
-let state = { exists: false, up: 0, shards: 0, items: {} };
+let state = { exists: false, up: 0, shards: 0, items: {}, pity: 0 };
 
 function readGacha(data) {
     const g = data?.connectGacha || {};
-    return { shards: g.shards || 0, items: { ...(g.items || {}) }, pulls: g.pulls || 0 };
+    return { shards: g.shards || 0, items: { ...(g.items || {}) }, pulls: g.pulls || 0, pity: g.pity || 0 };
 }
 
 async function loadState() {
     const snap = await getDoc(doc(db, 'omikujiUsers', getSharedUserId()));
     const data = snap.exists() ? snap.data() : null;
     const g = readGacha(data);
-    state = { exists: !!data, up: data?.ukoPoints || 0, shards: g.shards, items: g.items };
+    state = { exists: !!data, up: data?.ukoPoints || 0, shards: g.shards, items: g.items, pity: g.pity };
     setGachaOwned(g.items);
 }
 
@@ -120,12 +138,14 @@ async function drawTx(count, cost) {
         const data = snap.data();
         if ((data.ukoPoints || 0) < cost) throw new Error('NO_UP');
         const g = readGacha(data);
-        results = rollMany(count).map((o) => {
+        const rolled = rollMany(count);
+        g.pity = applyPity(rolled, g.pity, g.items);
+        results = rolled.map((o) => {
             if (o.miss) { g.shards += MISS_SHARDS; return { miss: true, shards: MISS_SHARDS }; }
             const had = g.items[o.prize.key] || 0;
             g.items[o.prize.key] = had + 1;
-            if (had > 0) { g.shards += DUP_SHARDS[o.prize.rarity]; return { prize: o.prize, dup: true, shards: DUP_SHARDS[o.prize.rarity] }; }
-            return { prize: o.prize, isNew: true };
+            if (had > 0) { g.shards += DUP_SHARDS[o.prize.rarity]; return { prize: o.prize, dup: true, shards: DUP_SHARDS[o.prize.rarity], pity: o.pity }; }
+            return { prize: o.prize, isNew: true, pity: o.pity };
         });
         g.pulls += count;
         tx.update(ref, { ukoPoints: increment(-cost), connectGacha: g });
@@ -136,7 +156,7 @@ async function drawTx(count, cost) {
         });
         after = { up: (data.ukoPoints || 0) - cost, g };
     });
-    state = { exists: true, up: after.up, shards: after.g.shards, items: after.g.items };
+    state = { exists: true, up: after.up, shards: after.g.shards, items: after.g.items, pity: after.g.pity || 0 };
     setGachaOwned(after.g.items);
     return results;
 }
@@ -161,7 +181,7 @@ async function exchangeTx(prize) {
         });
         after = { up: snap.data().ukoPoints || 0, g };
     });
-    state = { exists: true, up: after.up, shards: after.g.shards, items: after.g.items };
+    state = { exists: true, up: after.up, shards: after.g.shards, items: after.g.items, pity: after.g.pity || 0 };
     setGachaOwned(after.g.items);
 }
 
@@ -253,6 +273,10 @@ function buildModal() {
                 </span>
               </button>
             </div>
+            <div class="gc-pity">
+              <div class="gc-pity-text"></div>
+              <div class="gc-pity-bar"><i></i></div>
+            </div>
             <div class="gc-confirm" hidden>
               <div class="gc-confirm-box">
                 <div class="gc-confirm-kind"></div>
@@ -316,6 +340,11 @@ function renderWallet() {
         const cost = Number(b.dataset.n) === 1 ? PRICE_ONE : PRICE_TEN;
         b.disabled = busy || state.up < cost;
     });
+    // 天井までの残り
+    const left = Math.max(1, PITY - state.pity);
+    modal.querySelector('.gc-pity-text').innerHTML = L(
+        `SSR確定まで あと<b>${left}</b>回`, `SSR guaranteed in <b>${left}</b> draws`);
+    modal.querySelector('.gc-pity-bar i').style.width = `${Math.min(100, (state.pity / PITY) * 100)}%`;
 }
 
 function setMsg(text) {
@@ -472,6 +501,8 @@ function renderRates() {
       <ul class="gc-rate-notes">
         <li>${L(`11連は、SR以上が1つも出なかったときだけ、最後の1回がSR以上になります（SR ${(RATES.SR / (RATES.SR + RATES.SSR) * 100).toFixed(0)}% / SSR ${(RATES.SSR / (RATES.SR + RATES.SSR) * 100).toFixed(0)}%）。`,
             `In an 11-draw, if no SR or better appears, the last draw becomes SR or better.`)}</li>
+        <li>${L(`SSRが出ないまま${PITY}回目になったら、その回はSSRが確定します（まだ持っていない石から選ばれます）。SSRが出たら、回数は0に戻ります。`,
+            `If no SSR appears for ${PITY} draws, draw ${PITY} is a guaranteed SSR (one you don't own yet). The count resets whenever an SSR appears.`)}</li>
         <li>${L(`持っている景品がまた出たら、かけらに変わります（R ${DUP_SHARDS.R}個 / SR ${DUP_SHARDS.SR}個 / SSR ${DUP_SHARDS.SSR}個）。`,
             `Duplicates become shards (R ${DUP_SHARDS.R} / SR ${DUP_SHARDS.SR} / SSR ${DUP_SHARDS.SSR}).`)}</li>
         <li>${L('石は形ごとに別の景品です（「炎の石（丸）」と「炎の石（四角）」は別）。', 'Each stone shape is a separate prize.')}</li>

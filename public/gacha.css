@@ -314,6 +314,12 @@
 .gfx-cards.is-single .gc-dup-over .gc-shard-img { width: 22px; height: 22px; }
 .gfx-cards.is-single .gc-dup-over { font-size: 16px; }
 
+/* 天井までの残り */
+.gc-pity { width: min(420px, 100%); margin: 12px auto 0; }
+.gc-pity-text { text-align: center; font-size: 13px; color: rgba(255, 255, 255, 0.8); margin-bottom: 5px; }
+.gc-pity-text b { color: #f2cf7a; font-size: 16px; margin: 0 2px; }
+.gc-pity-bar { height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.gc-pity-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #c77dff, #f2cf7a); transition: width 0.5s; }
 .gc-msg { min-height: 1.4em; margin: 10px 0 4px; text-align: center; font-size: 14px; color: #ffe9a8; }
 .gc-note { font-size: 12px; opacity: 0.75; line-height: 1.6; margin: 8px 0 0; }
 
@@ -733,3 +739,46 @@
     .gfx-front .gc-card-name { font-size: 10px; }
     .gfx-foot { bottom: 12px; }
 }
+
+/* ===== 昇格演出 (2026-11-23) ===== */
+.gfx-back { transition: border-color 0.25s, box-shadow 0.25s; }
+.gfx-back svg { transition: fill 0.25s, stroke 0.25s; }
+/* ためる: 裏が小刻みに震えて、色の光が強くなる */
+.gfx-card.is-promo-charge .gfx-back { animation: gfx-promo-charge 0.09s linear infinite alternate; box-shadow: 0 0 22px var(--c), inset 0 0 22px color-mix(in srgb, var(--c) 40%, transparent); }
+@keyframes gfx-promo-charge { from { transform: translate(-1.5px, 0) scale(1.03); } to { transform: translate(1.5px, -1px) scale(1.03); } }
+/* 上がった瞬間: カードが跳ねて、白く光る */
+.gfx-card.is-promo-hit .gfx-back { animation: gfx-promo-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes gfx-promo-pop { 0% { transform: scale(1.18); filter: brightness(2.4); } 100% { transform: none; filter: none; } }
+.gfx-promo { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.gfx-promo .pillar {
+    position: absolute; left: 50%; bottom: -10%; width: 70%; height: 220%;
+    transform: translateX(-50%) scaleY(0); transform-origin: 50% 100%;
+    background: linear-gradient(to top, transparent, color-mix(in srgb, var(--pc) 70%, white) 35%, transparent);
+    filter: blur(6px); opacity: 0.9;
+    animation: gfx-pillar 0.9s ease-out forwards;
+}
+@keyframes gfx-pillar { 0% { transform: translateX(-50%) scaleY(0); opacity: 1; } 40% { transform: translateX(-50%) scaleY(1); opacity: 0.9; } 100% { transform: translateX(-50%) scaleY(1); opacity: 0; } }
+.gfx-promo .ring {
+    position: absolute; left: 50%; top: 50%; width: 100%; aspect-ratio: 1;
+    border: 2px solid var(--pc); border-radius: 50%;
+    box-shadow: 0 0 16px var(--pc);
+    transform: translate(-50%, -50%) scale(0.4); opacity: 1;
+    animation: gfx-promo-ring 0.8s ease-out forwards;
+}
+@keyframes gfx-promo-ring { to { transform: translate(-50%, -50%) scale(2); opacity: 0; } }
+.gfx-promo .label {
+    position: absolute; left: 50%; top: -8px; transform: translate(-50%, -100%);
+    font-size: 13px; font-weight: 900; letter-spacing: 0.12em; white-space: nowrap;
+    color: var(--pc); text-shadow: 0 0 10px var(--pc), 0 0 2px #000;
+    animation: gfx-promo-label 1.4s ease-out forwards;
+}
+.gfx-cards.is-single .gfx-promo .label { font-size: 18px; }
+.gfx-promo-SSR .label { color: #ffe9a8; }
+@keyframes gfx-promo-label {
+    0% { transform: translate(-50%, -40%) scale(0.6); opacity: 0; }
+    20% { transform: translate(-50%, -100%) scale(1.15); opacity: 1; }
+    35% { transform: translate(-50%, -100%) scale(1); }
+    75% { opacity: 1; }
+    100% { transform: translate(-50%, -130%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .gfx-promo { display: none; } }

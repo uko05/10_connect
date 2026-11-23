@@ -281,15 +281,60 @@ function runIntro(canvas, best, skipSignal) {
 }
 
 // ===== 4: カード =====
+// 昇格演出(2026-11-23 ユーザー): SR・SSRのカードは、ときどき低いレア度の色で配られ、めくる前に色が上がる。
+// SSR: 35%で紫(SR)から、15%で青(R)から2段階で上がる。SR: 30%で青(R)から上がる
+const RANK = ['R', 'SR', 'SSR'];
+function shownRarity(rar) {
+    const f = window.__gfxPromo;   // 見た目の確認用: 1 なら必ず一番下から上がる
+    const x = Math.random();
+    if (rar === 'SSR') return f ? 'R' : x < 0.15 ? 'R' : x < 0.5 ? 'SR' : 'SSR';
+    if (rar === 'SR') return f || x < 0.3 ? 'R' : 'SR';
+    return rar;
+}
+
 function buildCard(r, i, makeFace) {
     const rar = rarityOf(r);
+    const shown = shownRarity(rar);
     const card = document.createElement('div');
     card.className = `gfx-card gfx-${rar}`;
-    card.style.setProperty('--c', COLORS[rar]);
+    card.dataset.shown = shown;
+    card.style.setProperty('--c', COLORS[shown]);
     card.style.animationDelay = `${i * 0.06}s`;
     card.innerHTML = `<div class="gfx-inner"><div class="gfx-back">${BACK_SVG}</div><div class="gfx-front"></div></div>`;
-    card.querySelector('.gfx-front').appendChild(makeFace(r));
+    const front = card.querySelector('.gfx-front');
+    front.style.setProperty('--c', COLORS[rar]);   // 表は本当のレア度の色
+    front.appendChild(makeFace(r));
     return card;
+}
+
+// 昇格: 裏の色を1段ずつ上げる。上がるたびに、カードが跳ねて光の柱と輪が出て「RANK UP」
+async function promote(card, rar, ov, wait, skip) {
+    let cur = RANK.indexOf(card.dataset.shown);
+    const goal = RANK.indexOf(rar);
+    while (cur < goal && !skip.skip) {
+        const next = RANK[cur + 1];
+        const toSSR = next === 'SSR';
+        card.classList.add('is-focus', 'is-promo-charge');
+        if (toSSR) ov.classList.add('is-focusing');
+        await wait(toSSR ? 900 : 650);
+        card.classList.remove('is-promo-charge');
+        card.style.setProperty('--c', COLORS[next]);
+        card.dataset.shown = next;
+        if (ov.querySelector('.gfx-cards.is-single')) ov.className = ov.className.replace(/gfx-best-\w+/, `gfx-best-${next}`);
+        const fx = document.createElement('span');
+        fx.className = `gfx-promo gfx-promo-${next}`;
+        fx.style.setProperty('--pc', COLORS[next]);
+        fx.innerHTML = '<i class="pillar"></i><i class="ring"></i><b class="label">RANK UP</b>';
+        card.appendChild(fx);
+        card.classList.add('is-promo-hit');
+        setTimeout(() => fx.remove(), 1500);
+        setTimeout(() => card.classList.remove('is-promo-hit'), 600);
+        await wait(toSSR ? 1100 : 850);
+        cur += 1;
+    }
+    card.style.setProperty('--c', COLORS[rar]);
+    card.classList.remove('is-promo-charge');
+    if (ov.querySelector('.gfx-cards.is-single')) ov.className = ov.className.replace(/gfx-best-\w+/, `gfx-best-${rar}`);
 }
 
 function flip(card, rar) {
@@ -332,14 +377,18 @@ export async function playGachaFx(results, makeFace, opts = {}) {
     ov.querySelector('.gfx-skip').addEventListener('click', (e) => { e.stopPropagation(); onSkip(); });
     ov.addEventListener('click', onSkip);
 
-    if (!reduced()) await runIntro(ov.querySelector('.gfx-canvas'), best, skip);
+    // カードは先に作っておく(配られる時の色を決めるため)
+    const cards = results.map((r, i) => buildCard(r, i, makeFace));
+    // 1回ひきの時は、最初の光の線も「配られる時の色」にする(昇格が本当の驚きになるように)。11連は本当の最高レア度のまま
+    const introBest = results.length === 1 && rarityOf(results[0]) !== 'miss' ? cards[0].dataset.shown : best;
+    ov.classList.replace(`gfx-best-${best}`, `gfx-best-${introBest}`);
+    if (!reduced()) await runIntro(ov.querySelector('.gfx-canvas'), introBest, skip);
 
     // カードを並べる(裏向き)
     const box = ov.querySelector('.gfx-cards');
     const dim = document.createElement('div');
     dim.className = 'gfx-dim';
     box.appendChild(dim);
-    const cards = results.map((r, i) => buildCard(r, i, makeFace));
     cards.forEach((c) => box.appendChild(c));
     ov.classList.add('is-cards');
     skip.skip = false;
@@ -360,6 +409,11 @@ export async function playGachaFx(results, makeFace, opts = {}) {
         const rar = rarityOf(results[i]);
         const card = cards[i];
         const big = rar === 'SR' || rar === 'SSR';
+        // 低い色で配られたカードは、めくる前に昇格する
+        if (card.dataset.shown !== rar && !skip.skip && !reduced()) {
+            await promote(card, rar, ov, wait, skip);
+            if (rar === 'SR') ov.classList.remove('is-focusing');
+        }
         // SR: Rなどと同じめくり方で、ひと呼吸おいてから、めくれる時に少し前に出る(1.5倍)(揺れ・光はなし。2026-11-23 ユーザー)
         if (rar === 'SR' && !skip.skip && !reduced()) {
             await wait(450);   // めくる前にひと呼吸おく
@@ -416,6 +470,8 @@ export async function playGachaFx(results, makeFace, opts = {}) {
     }
     // SKIPで途中を飛ばした時の後始末
     cards.forEach((c, i) => {
+        c.style.setProperty('--c', COLORS[rarityOf(results[i])]);
+        c.classList.remove('is-promo-charge', 'is-promo-hit');
         if (!c.classList.contains('is-flipped')) flip(c, rarityOf(results[i]));
         c.style.transform = '';
         c.classList.remove('is-focus', 'is-charge', 'is-charge-big', 'is-approach');
