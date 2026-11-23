@@ -360,10 +360,11 @@ export async function playGachaFx(results, makeFace, opts = {}) {
         const rar = rarityOf(results[i]);
         const card = cards[i];
         const big = rar === 'SR' || rar === 'SSR';
-        // SR: Rなどと同じめくり方で、めくれる時に少しだけ前に出る(揺れ・光はなし。2026-11-23 ユーザー)
+        // SR: Rなどと同じめくり方で、ひと呼吸おいてから、めくれる時に少し前に出る(1.5倍)(揺れ・光はなし。2026-11-23 ユーザー)
         if (rar === 'SR' && !skip.skip && !reduced()) {
+            await wait(450);   // めくる前にひと呼吸おく
             card.classList.add('is-focus');
-            card.style.transform = 'scale(1.18)';
+            card.style.transform = 'scale(1.5)';
             flip(card, rar);
             await wait(500);
             card.style.transform = '';
