@@ -294,7 +294,7 @@ function buildCard(r, i, makeFace) {
 
 function flip(card, rar) {
     card.classList.add('is-flipped');
-    if (rar === 'SR' || rar === 'SSR') {
+    if (rar === 'SSR') {
         const ring = document.createElement('span');
         ring.className = 'gfx-ring';
         card.appendChild(ring);
@@ -360,6 +360,17 @@ export async function playGachaFx(results, makeFace, opts = {}) {
         const rar = rarityOf(results[i]);
         const card = cards[i];
         const big = rar === 'SR' || rar === 'SSR';
+        // SR: Rなどと同じめくり方で、めくれる時に少しだけ前に出る(揺れ・光はなし。2026-11-23 ユーザー)
+        if (rar === 'SR' && !skip.skip && !reduced()) {
+            card.classList.add('is-focus');
+            card.style.transform = 'scale(1.18)';
+            flip(card, rar);
+            await wait(500);
+            card.style.transform = '';
+            await wait(550);
+            card.classList.remove('is-focus');
+            continue;
+        }
         if (!big || skip.skip || reduced()) {
             flip(card, rar);
             await wait(650);
