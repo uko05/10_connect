@@ -254,12 +254,17 @@ function buildModal() {
               </button>
             </div>
             <div class="gc-confirm" hidden>
-              <span class="gc-confirm-text"></span>
-              <button class="gc-confirm-yes">${L('ひく', 'Draw')}</button>
-              <button class="gc-confirm-no">${L('やめる', 'Cancel')}</button>
+              <div class="gc-confirm-box">
+                <div class="gc-confirm-kind"></div>
+                <div class="gc-confirm-cost"></div>
+                <div class="gc-confirm-left"></div>
+                <div class="gc-confirm-btns">
+                  <button class="gc-confirm-no" type="button">${L('やめる', 'Cancel')}</button>
+                  <button class="gc-confirm-yes" type="button">${L('ひく', 'Draw')}</button>
+                </div>
+              </div>
             </div>
             <div class="gc-msg"></div>
-            <div class="gc-results"></div>
             <p class="gc-note"></p>
           </section>
           <section class="gc-sec" data-sec="exchange" hidden>
@@ -317,17 +322,24 @@ function setMsg(text) {
     modal.querySelector('.gc-msg').textContent = text || '';
 }
 
+// 引く前の確認(2026-11-23 作り直し): 選んだ方(1回/11連)の色の小さな箱を真ん中に出し、何をひくかを大きく見せる
 function askPull(n) {
     if (busy) return;
     const cost = n === 1 ? PRICE_ONE : PRICE_TEN;
     const box = modal.querySelector('.gc-confirm');
     box.dataset.n = String(n);
-    box.querySelector('.gc-confirm-text').textContent = L(
-        `${cost}UPを使って${n}回ひきます（のこり ${(state.up - cost).toLocaleString()}UP）`,
-        `Use ${cost} UP to draw ${n} (${(state.up - cost).toLocaleString()} UP left)`);
+    box.dataset.kind = n === 1 ? 'one' : 'ten';
+    box.querySelector('.gc-confirm-kind').textContent = n === 1 ? L('1回ひく', 'Draw x1') : L('11連ひく', 'Draw x11');
+    box.querySelector('.gc-confirm-cost').innerHTML = `${UP_SVG}<b>${cost}</b> UP`;
+    box.querySelector('.gc-confirm-left').textContent = L(
+        `のこり ${(state.up - cost).toLocaleString()} UP`, `${(state.up - cost).toLocaleString()} UP left`);
+    modal.querySelectorAll('.gc-pull').forEach((b) => b.classList.toggle('is-selected', Number(b.dataset.n) === n));
     box.hidden = false;
 }
-function hideConfirm() { modal.querySelector('.gc-confirm').hidden = true; }
+function hideConfirm() {
+    modal.querySelector('.gc-confirm').hidden = true;
+    modal.querySelectorAll('.gc-pull').forEach((b) => b.classList.remove('is-selected'));
+}
 
 async function doPull(n) {
     if (busy) return;
@@ -335,13 +347,14 @@ async function doPull(n) {
     busy = true;
     renderWallet();
     setMsg('');
-    const box = modal.querySelector('.gc-results');
-    box.innerHTML = '';
+    let again = false;
     try {
-        const results = await drawTx(n, n === 1 ? PRICE_ONE : PRICE_TEN);
+        const cost = n === 1 ? PRICE_ONE : PRICE_TEN;
+        const results = await drawTx(n, cost);
         renderWallet();
-        await playGachaFx(results, (r) => resultCard(r, 0, 100));
-        showResults(results);
+        // 演出の最後に「OK」と「もう1度引く」を出す(引いた後、ガチャ画面には結果の一覧を出さない)
+        const choice = await playGachaFx(results, (r) => resultCard(r, 0, 100), againOpt(n));
+        again = choice === 'again';
     } catch (e) {
         console.error('[gacha] draw failed', e);
         setMsg(e.message === 'NO_UP'
@@ -351,6 +364,15 @@ async function doPull(n) {
         busy = false;
         renderWallet();
     }
+    if (again) doPull(n);
+}
+
+function againOpt(n) {
+    const cost = n === 1 ? PRICE_ONE : PRICE_TEN;
+    return {
+        againLabel: L(`もう1度引く（${cost}UP）`, `Draw again (${cost} UP)`),
+        againEnabled: state.up >= cost,
+    };
 }
 
 function resultCard(r, i, size = 56) {
@@ -360,27 +382,16 @@ function resultCard(r, i, size = 56) {
     const vis = el('div', 'gc-card-vis');
     if (r.miss) vis.innerHTML = `<span class="gc-card-shard">${SHARD_SVG}</span>`;
     else vis.appendChild(prizeVisual(r.prize, size));
+    // かぶった時: 何がかぶったか分かるように景品はそのまま見せ、その上にかけらの数を重ねる
+    if (r.dup) vis.appendChild(el('div', 'gc-dup-over', `${SHARD_SVG}<b>×${r.shards}</b>`));
     card.appendChild(el('div', 'gc-card-rarity', r.miss ? '' : rarity));
     card.appendChild(vis);
     const name = el('div', 'gc-card-name');
     name.textContent = r.miss ? L(`かけら ×${r.shards}`, `Shards x${r.shards}`) : prizeName(r.prize);
     card.appendChild(name);
     if (r.isNew) card.appendChild(el('div', 'gc-card-tag gc-tag-new', 'NEW'));
-    if (r.dup) card.appendChild(el('div', 'gc-card-tag', L(`かけら +${r.shards}`, `+${r.shards} shards`)));
+    if (r.dup) card.appendChild(el('div', 'gc-card-tag', L('かぶり → かけら', 'Duplicate → shards')));
     return card;
-}
-
-function showResults(results) {
-    const box = modal.querySelector('.gc-results');
-    box.innerHTML = '';
-    box.classList.toggle('is-ten', results.length > 1);
-    results.forEach((r, i) => box.appendChild(resultCard(r, i)));
-    const best = results.some((r) => r.prize?.rarity === 'SSR') ? 'SSR' : results.some((r) => r.prize?.rarity === 'SR') ? 'SR' : '';
-    modal.querySelector('.gc-panel').dataset.flash = best;
-    if (best) setTimeout(() => { if (modal) modal.querySelector('.gc-panel').dataset.flash = ''; }, 1600);
-    const news = results.filter((r) => r.isNew).length;
-    if (news) setMsg(L(`新しい景品が${news}個！ 「設定・プレイヤー情報」の「デザイン変更」で使えます。`,
-        `${news} new prize(s)! Use them in Settings > Design.`));
 }
 
 function renderExchange() {
@@ -473,7 +484,6 @@ export async function openGacha() {
     setTab('draw');
     hideConfirm();
     setMsg(L('読み込み中…', 'Loading...'));
-    modal.querySelector('.gc-results').innerHTML = '';
     try {
         await loadState();
         setMsg(state.exists ? '' : L('UPがありません。原神おみくじなどでUPを貯めると引けます。', 'You have no UP yet.'));
@@ -500,14 +510,13 @@ if (['127.0.0.1', 'localhost'].includes(location.hostname)) {
             owned.add(o.prize.key);
             return { prize: o.prize, isNew: true };
         });
-        await playGachaFx(results, (r) => resultCard(r, 0, 100));
-        showResults(results);
+        if (await playGachaFx(results, (r) => resultCard(r, 0, 100), againOpt(n)) === 'again') window.__gachaPreview(n);
     };
     // 一番いい当たりを決めて見る用: __gachaPreviewAs('SSR')
     window.__gachaPreviewAs = async (best = 'SSR', n = 11) => {
         const pick = (rar) => ({ prize: pickFrom(PRIZES.filter((p) => p.rarity === rar)), isNew: true });
         const results = Array.from({ length: n }, (_, i) => (i === Math.floor(n / 2) ? pick(best) : (i % 3 ? { miss: true, shards: MISS_SHARDS } : pick('R'))));
-        await playGachaFx(results, (r) => resultCard(r, 0, 100));
-        showResults(results);
+        if (n > 1) results[0] = { ...pick('R'), isNew: false, dup: true, shards: DUP_SHARDS.R };   // かぶりの見た目の確認用
+        if (await playGachaFx(results, (r) => resultCard(r, 0, 100), againOpt(n)) === 'again') window.__gachaPreviewAs(best, n);
     };
 }

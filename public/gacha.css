@@ -221,26 +221,82 @@
 .gc-pull:disabled { filter: grayscale(0.85) brightness(0.55); cursor: default; }
 .gc-pull:disabled::before { animation: none; }
 
+/* 引く前の確認: パネルの真ん中に、選んだ方の色の箱を出す */
 .gc-confirm {
-    margin: 12px auto 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    font-size: 14px;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    background: rgba(6, 4, 14, 0.6);
+    border-radius: 14px;
 }
 .gc-confirm[hidden] { display: none; }
-.gc-confirm button {
-    padding: 6px 18px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.35);
+.gc-confirm-box {
+    --g1: #3b2f6e;
+    --g2: #6d55b8;
+    --edge: rgba(190, 170, 255, 0.8);
+    min-width: 280px;
+    padding: 22px 30px 20px;
+    border-radius: 12px;
+    text-align: center;
+    background: linear-gradient(160deg, var(--g1), #15101f 75%);
+    box-shadow: inset 0 0 0 1.5px var(--edge), 0 12px 40px rgba(0, 0, 0, 0.6);
+    animation: gc-confirm-in 0.18s ease-out;
+}
+.gc-confirm[data-kind="ten"] .gc-confirm-box { --g1: #7a4a12; --edge: rgba(255, 228, 160, 0.9); }
+@keyframes gc-confirm-in { from { opacity: 0; transform: scale(0.92); } }
+.gc-confirm-kind { font-size: 28px; font-weight: 900; letter-spacing: 0.08em; }
+.gc-confirm-cost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    color: #ffe9a8;
+    font-size: 16px;
+}
+.gc-confirm-cost b { font-size: 26px; }
+.gc-confirm-cost svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.gc-confirm-left { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+.gc-confirm-btns { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
+.gc-confirm-btns button {
+    min-width: 104px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
     font-family: inherit;
+    font-size: 15px;
     cursor: pointer;
 }
-.gc-confirm .gc-confirm-yes { background: #c98f2c; border-color: #c98f2c; }
+.gc-confirm-btns .gc-confirm-yes { background: linear-gradient(90deg, var(--g1), var(--g2)); border-color: var(--edge); font-weight: 900; }
+.gc-confirm[data-kind="ten"] .gc-confirm-yes { background: linear-gradient(90deg, #8a5a1c, #d39a2e); }
+.gc-confirm-btns button:hover { filter: brightness(1.15); }
+/* 選んだボタンを強調、もう片方は暗く */
+.gc-pull.is-selected { filter: brightness(1.2); }
+.gc-buttons:has(.is-selected) .gc-pull:not(.is-selected) { filter: grayscale(0.7) brightness(0.5); }
+
+/* かぶった景品の上に重ねる「かけら×N」 */
+.gc-card-vis { position: relative; }
+.gc-dup-over {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 9px 2px 5px;
+    border-radius: 999px;
+    background: rgba(8, 20, 34, 0.85);
+    border: 1px solid rgba(159, 227, 255, 0.7);
+    color: #9fe3ff;
+    font-size: 13px;
+    white-space: nowrap;
+}
+.gc-dup-over svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.gfx-cards.is-single .gc-dup-over { font-size: 16px; }
 
 .gc-msg { min-height: 1.4em; margin: 10px 0 4px; text-align: center; font-size: 14px; color: #ffe9a8; }
 .gc-note { font-size: 12px; opacity: 0.75; line-height: 1.6; margin: 8px 0 0; }
@@ -620,6 +676,23 @@
     transition: opacity 0.3s;
 }
 .gfx.is-done .gfx-foot { opacity: 1; pointer-events: auto; }
+.gfx-foot { gap: 16px; }
+.gfx-again {
+    min-width: 200px;
+    padding: 10px 24px;
+    border: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+    background: linear-gradient(90deg, #8a5a1c, #d39a2e);
+}
+.gfx-again[hidden] { display: none; }
+.gfx-again:hover:not(:disabled) { filter: brightness(1.15); }
+.gfx-again:disabled { filter: grayscale(0.85) brightness(0.55); cursor: default; }
 .gfx-ok {
     min-width: 180px;
     padding: 10px 30px;

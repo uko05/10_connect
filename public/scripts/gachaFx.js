@@ -307,7 +307,8 @@ function flip(card, rar) {
 }
 
 // results: gacha.js の結果。makeFace(r): カードの表に入れる要素を返す
-export async function playGachaFx(results, makeFace) {
+// opts: { againLabel, againEnabled }。戻り値: 'ok' | 'again'(もう1度引く)
+export async function playGachaFx(results, makeFace, opts = {}) {
     const best = bestOf(results);
     const ov = document.createElement('div');
     ov.className = `gfx gfx-best-${best}`;
@@ -315,7 +316,14 @@ export async function playGachaFx(results, makeFace) {
       <canvas class="gfx-canvas"></canvas>
       <div class="gfx-cards ${results.length > 1 ? 'is-multi' : 'is-single'}"></div>
       <button class="gfx-skip" type="button">SKIP</button>
-      <div class="gfx-foot"><button class="gfx-ok" type="button">OK</button></div>`;
+      <div class="gfx-foot"><button class="gfx-ok" type="button">OK</button><button class="gfx-again" type="button"></button></div>`;
+    const againBtn = ov.querySelector('.gfx-again');
+    if (opts.againLabel) {
+        againBtn.textContent = opts.againLabel;
+        againBtn.disabled = !opts.againEnabled;
+    } else {
+        againBtn.hidden = true;
+    }
     document.body.appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('is-in'));
 
@@ -403,13 +411,15 @@ export async function playGachaFx(results, makeFace) {
     await sleep(250);
     ov.classList.add('is-done');
 
-    await new Promise((res) => {
-        const close = () => { document.removeEventListener('keydown', onKey); res(); };
-        const onKey = (e) => { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') close(); };
-        ov.querySelector('.gfx-ok').addEventListener('click', close);
+    const choice = await new Promise((res) => {
+        const close = (v) => { document.removeEventListener('keydown', onKey); res(v); };
+        const onKey = (e) => { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') close('ok'); };
+        ov.querySelector('.gfx-ok').addEventListener('click', () => close('ok'));
+        againBtn.addEventListener('click', () => { if (!againBtn.disabled) close('again'); });
         document.addEventListener('keydown', onKey);
     });
     ov.classList.remove('is-in');
     await sleep(250);
     ov.remove();
+    return choice;
 }
