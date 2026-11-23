@@ -73,7 +73,7 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .gc-wallet b { font-size: 16px; }
-.gc-wallet svg, .gc-card-shard svg {
+.gc-wallet svg {
     width: 18px;
     height: 18px;
     fill: none;
@@ -81,8 +81,10 @@
     stroke-width: 1.6;
     stroke-linejoin: round;
 }
+.gc-shard-img { display: block; object-fit: contain; pointer-events: none; user-select: none; }
+.gc-wallet .gc-shard-img { width: 22px; height: 22px; }
 .gc-up { color: #ffe9a8; }
-.gc-shard { color: #9fe3ff; }
+.gc-shard { color: #ffd0a8; }
 
 .gc-tabs {
     display: flex;
@@ -302,13 +304,14 @@
     gap: 3px;
     padding: 2px 9px 2px 5px;
     border-radius: 999px;
-    background: rgba(8, 20, 34, 0.85);
-    border: 1px solid rgba(159, 227, 255, 0.7);
-    color: #9fe3ff;
+    background: rgba(30, 14, 18, 0.85);
+    border: 1px solid rgba(255, 196, 140, 0.75);
+    color: #ffd0a8;
     font-size: 13px;
     white-space: nowrap;
 }
-.gc-dup-over svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.gc-dup-over .gc-shard-img { width: 18px; height: 18px; }
+.gfx-cards.is-single .gc-dup-over .gc-shard-img { width: 22px; height: 22px; }
 .gfx-cards.is-single .gc-dup-over { font-size: 16px; }
 
 .gc-msg { min-height: 1.4em; margin: 10px 0 4px; text-align: center; font-size: 14px; color: #ffe9a8; }
@@ -360,8 +363,8 @@
     color: var(--rc);
 }
 .gc-card-vis { height: 60px; display: grid; place-items: center; }
-.gc-card-shard { color: #9fe3ff; }
-.gc-card-shard svg { width: 40px; height: 40px; }
+.gc-card-shard { color: #ffd0a8; }
+.gc-card-shard .gc-shard-img { width: 50px; height: 50px; filter: drop-shadow(0 0 6px rgba(255, 190, 120, 0.45)); }
 .gc-bg-thumb {
     width: 92px;
     height: 52px;

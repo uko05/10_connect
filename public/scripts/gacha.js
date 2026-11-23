@@ -166,7 +166,7 @@ async function exchangeTx(prize) {
 }
 
 // ===== 見た目 =====
-const SHARD_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l5 6-2 13-3 1-3-1-2-13z"/><path d="M7 8h10M12 2v20M9.5 21L7 8M14.5 21L17 8"/></svg>';
+const SHARD_SVG = '<img class="gc-shard-img" src="public/items/shard.webp?v=1" alt="" aria-hidden="true" draggable="false">';
 const UP_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5L12 8l3.5 3.5"/></svg>';
 
 function prizeVisual(prize, size = 64) {

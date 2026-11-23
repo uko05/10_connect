@@ -61,3 +61,4 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 tools/_help_raw/
+tools/art_src/
