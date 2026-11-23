@@ -24,6 +24,7 @@ import {
 } from './designSettings.js';
 import { drawStoneAt } from './renderer.js';
 import { ensureLatestVersion } from './versionGuard.js';
+import { playGachaFx } from './gachaFx.js';
 
 const PRICE_ONE = 50;
 const PRICE_TEN = 500;   // 11回
@@ -308,6 +309,8 @@ async function doPull(n) {
     box.innerHTML = '';
     try {
         const results = await drawTx(n, n === 1 ? PRICE_ONE : PRICE_TEN);
+        renderWallet();
+        await playGachaFx(results, (r) => resultCard(r, 0, 100));
         showResults(results);
     } catch (e) {
         console.error('[gacha] draw failed', e);
@@ -320,13 +323,13 @@ async function doPull(n) {
     }
 }
 
-function resultCard(r, i) {
+function resultCard(r, i, size = 56) {
     const rarity = r.miss ? 'miss' : r.prize.rarity;
     const card = el('div', `gc-card gc-r-${rarity}`);
     card.style.animationDelay = `${i * 0.12}s`;
     const vis = el('div', 'gc-card-vis');
     if (r.miss) vis.innerHTML = `<span class="gc-card-shard">${SHARD_SVG}</span>`;
-    else vis.appendChild(prizeVisual(r.prize, 56));
+    else vis.appendChild(prizeVisual(r.prize, size));
     card.appendChild(el('div', 'gc-card-rarity', r.miss ? '' : rarity));
     card.appendChild(vis);
     const name = el('div', 'gc-card-name');
@@ -455,17 +458,26 @@ export function closeGacha() {
     if (modal) modal.classList.remove('is-open');
 }
 
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeGacha(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !document.querySelector('.gfx')) closeGacha(); });
 
 // 見た目の確認用(手元のサーバーでだけ): UPを使わずに結果の表示だけを出す
 if (['127.0.0.1', 'localhost'].includes(location.hostname)) {
-    window.__gachaPreview = (n = 11) => {
+    window.__gachaPreview = async (n = 11) => {
         const owned = new Set();
-        showResults(rollMany(n).map((o) => {
+        const results = rollMany(n).map((o) => {
             if (o.miss) return { miss: true, shards: MISS_SHARDS };
             if (owned.has(o.prize.key)) return { prize: o.prize, dup: true, shards: DUP_SHARDS[o.prize.rarity] };
             owned.add(o.prize.key);
             return { prize: o.prize, isNew: true };
-        }));
+        });
+        await playGachaFx(results, (r) => resultCard(r, 0, 100));
+        showResults(results);
+    };
+    // 一番いい当たりを決めて見る用: __gachaPreviewAs('SSR')
+    window.__gachaPreviewAs = async (best = 'SSR', n = 11) => {
+        const pick = (rar) => ({ prize: pickFrom(PRIZES.filter((p) => p.rarity === rar)), isNew: true });
+        const results = Array.from({ length: n }, (_, i) => (i === Math.floor(n / 2) ? pick(best) : (i % 3 ? { miss: true, shards: MISS_SHARDS } : pick('R'))));
+        await playGachaFx(results, (r) => resultCard(r, 0, 100));
+        showResults(results);
     };
 }

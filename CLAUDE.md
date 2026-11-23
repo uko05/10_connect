@@ -161,5 +161,8 @@ if the published version.js differs, the tab is told to reload. Bumping APP_VERS
     - 所持は omikujiUsers/{共有ID}.connectGacha（shards / items / pulls）。UPの減算と景品の追加は画面側の1トランザクション＋ukoPointsLog。
       所持の判定は localStorage の写し（designSettings.js setGachaOwned。hubHero.js の omikujiUsers 読み込みとガチャ画面で更新）。
     - 手元のサーバー（127.0.0.1）では `window.__gachaPreview(11)` で、UPを使わずに結果の見た目だけ確認できる。
+    - 演出（v1.82.0、`gachaFx.js`）: 石が4つ斜めに落ちて光の線でつながる（線の色＝その回の一番いい当たり。SSRは紫→金に格上げ＋画面の揺れ）
+      → 白い光と衝撃波 → 裏向きのカード（縁の色でレア度）が1枚ずつめくれる（SR・SSRはためてから）。押すと一気にめくる。
+      確認用: `__gachaPreviewAs('SSR')`（一番いい当たりを決めて再生）、`window.__gfxSpeed = 0.12` でゆっくり再生。
   - 決めること: どのスキンでも2人の石の色がはっきり区別できること、おみくじのスタレ裏面（ダブり）と連動させるか、
     景品を増やすか（ランク枠・キャラ枠・称号・別絵・別ボイスなど）。
